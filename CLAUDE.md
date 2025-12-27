@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Approach
+
+This project follows **Test-Driven Development (TDD)**:
+1. Write tests first that define expected behavior
+2. Run tests to confirm they fail
+3. Implement the minimum code to make tests pass
+4. Refactor while keeping tests green
+
 ## Build Commands
 
 ```bash
