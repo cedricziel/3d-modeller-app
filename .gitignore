@@ -1,0 +1,16 @@
+.build/
+.claude/settings.local.json
+
+# Xcode
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+*.swp

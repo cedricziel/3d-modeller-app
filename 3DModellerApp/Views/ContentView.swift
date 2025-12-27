@@ -1,0 +1,170 @@
+import SwiftUI
+import SwiftUIAssistant
+
+/// Main content view with 3D viewport and assistant panel
+struct ContentView: View {
+    @Binding var document: SceneDocument
+    @EnvironmentObject private var appModel: AppModel
+    @StateObject private var sceneManager = SceneManager()
+
+    // Assistant setup
+    @State private var assistant: Assistant?
+
+    var body: some View {
+        NavigationSplitView {
+            // Left sidebar: Scene outline
+            SceneOutlineView(sceneManager: sceneManager)
+                .frame(minWidth: 200)
+        } content: {
+            // Center: 3D Viewport
+            Viewport3DView(sceneManager: sceneManager)
+                .overlay(alignment: .topLeading) {
+                    ToolbarView(selectedTool: $appModel.selectedTool)
+                        .padding()
+                }
+                .overlay(alignment: .bottom) {
+                    SceneStatisticsView(statistics: sceneManager.statistics)
+                        .padding()
+                }
+        } detail: {
+            // Right sidebar: Assistant or Properties
+            if appModel.showAssistant, let assistant = assistant {
+                AssistantPanel(
+                    assistant: assistant,
+                    isPresented: $appModel.showAssistant
+                )
+            } else {
+                PropertiesInspectorView(sceneManager: sceneManager)
+                    .frame(minWidth: 250)
+            }
+        }
+        .navigationTitle(document.sceneData.metadata.name)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    appModel.showAssistant.toggle()
+                } label: {
+                    Image(systemName: appModel.showAssistant ? "bubble.left.fill" : "bubble.left")
+                }
+                .help("Toggle Assistant (⌘\\)")
+            }
+        }
+        .task {
+            setupAssistant()
+            syncDocumentToScene()
+        }
+        .onChange(of: sceneManager.statistics.entityCount) { _, _ in
+            syncSceneToDocument()
+        }
+    }
+
+    // MARK: - Assistant Setup
+
+    private func setupAssistant() {
+        guard !appModel.llmApiKey.isEmpty else { return }
+
+        let provider = ClaudeProvider(apiKey: appModel.llmApiKey)
+
+        let tools: [any AssistantTool] = [
+            CreatePrimitiveTool(sceneManager: sceneManager),
+            TransformEntityTool(sceneManager: sceneManager),
+            DeleteEntityTool(sceneManager: sceneManager),
+            SetMaterialTool(sceneManager: sceneManager),
+            DuplicateEntityTool(sceneManager: sceneManager),
+            QuerySceneTool(sceneManager: sceneManager)
+        ]
+
+        let contextProvider: @Sendable () -> any AssistantContext = { [sceneManager] in
+            SceneContextAdapter(sceneManager: sceneManager)
+        }
+
+        let systemPrompt = """
+            You are a 3D modeling assistant with full control over the scene.
+            You can autonomously create, modify, and delete 3D objects.
+
+            ## Your Capabilities
+            - Create primitives: box, sphere, cylinder, cone, plane, torus
+            - Transform objects: move, rotate, scale
+            - Modify materials: color, metallic, roughness
+            - Query scene state
+            - Duplicate and delete entities
+
+            ## Guidelines
+            1. Execute operations directly - you have full scene access
+            2. Provide brief explanations of what you did
+            3. Use metric units (meters)
+            4. When ambiguous, ask for clarification
+
+            ## Current Context
+            {context}
+            """
+
+        assistant = Assistant(
+            provider: provider,
+            tools: tools,
+            contextProvider: contextProvider,
+            configuration: AssistantConfiguration(
+                systemPromptTemplate: systemPrompt
+            )
+        )
+    }
+
+    // MARK: - Document Sync
+
+    private func syncDocumentToScene() {
+        sceneManager.loadSceneData(document.sceneData)
+    }
+
+    private func syncSceneToDocument() {
+        document.sceneData = sceneManager.toSceneData()
+    }
+}
+
+// MARK: - Toolbar View
+
+struct ToolbarView: View {
+    @Binding var selectedTool: AppModel.EditingTool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(AppModel.EditingTool.allCases) { tool in
+                Button {
+                    selectedTool = tool
+                } label: {
+                    Image(systemName: tool.icon)
+                        .font(.title2)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.bordered)
+                .tint(selectedTool == tool ? .accentColor : .secondary)
+                .help("\(tool.label) (\(tool.shortcut))")
+            }
+        }
+        .padding(8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// MARK: - Scene Statistics View
+
+struct SceneStatisticsView: View {
+    let statistics: SceneStatistics
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Label("\(statistics.entityCount) objects", systemImage: "cube")
+            Label("\(statistics.triangleCount) triangles", systemImage: "triangle")
+            Label("\(statistics.materialCount) materials", systemImage: "paintpalette")
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+    }
+}
+
+#Preview {
+    ContentView(document: .constant(SceneDocument()))
+        .environmentObject(AppModel())
+}

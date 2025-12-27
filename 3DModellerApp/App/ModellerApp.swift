@@ -1,0 +1,69 @@
+import SwiftUI
+
+@main
+struct ModellerApp: App {
+    @StateObject private var appModel = AppModel()
+
+    var body: some Scene {
+        DocumentGroup(newDocument: SceneDocument()) { configuration in
+            ContentView(document: configuration.$document)
+                .environmentObject(appModel)
+        }
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Scene") {
+                    // Handle via DocumentGroup
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+
+            CommandMenu("Tools") {
+                Button("Select") {
+                    appModel.selectedTool = .select
+                }
+                .keyboardShortcut("q", modifiers: [])
+
+                Button("Move") {
+                    appModel.selectedTool = .move
+                }
+                .keyboardShortcut("w", modifiers: [])
+
+                Button("Rotate") {
+                    appModel.selectedTool = .rotate
+                }
+                .keyboardShortcut("e", modifiers: [])
+
+                Button("Scale") {
+                    appModel.selectedTool = .scale
+                }
+                .keyboardShortcut("r", modifiers: [])
+            }
+
+            CommandMenu("View") {
+                Button("Toggle Assistant") {
+                    appModel.showAssistant.toggle()
+                }
+                .keyboardShortcut("\\", modifiers: .command)
+
+                Divider()
+
+                Button("Frame Selection") {
+                    appModel.frameSelection()
+                }
+                .keyboardShortcut("f", modifiers: [])
+
+                Button("Frame All") {
+                    appModel.frameAll()
+                }
+                .keyboardShortcut("a", modifiers: .option)
+            }
+        }
+
+        #if os(macOS)
+        Settings {
+            SettingsView()
+                .environmentObject(appModel)
+        }
+        #endif
+    }
+}

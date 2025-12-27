@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:3d-modeller-app}",
+            "name": "Debug 3DModellerApp",
+            "target": "3DModellerApp",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug 3DModellerApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:3d-modeller-app}",
+            "name": "Release 3DModellerApp",
+            "target": "3DModellerApp",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release 3DModellerApp"
+        }
+    ]
+}
