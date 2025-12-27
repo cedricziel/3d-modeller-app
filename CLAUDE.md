@@ -69,6 +69,6 @@ This is an AI-first 3D modeling macOS app where users interact primarily through
 ## Project Configuration
 
 - Xcode project generated via XcodeGen (`project.yml`)
-- macOS 15.0 deployment target for Xcode, platform version "26.0" in Package.swift
+- macOS 26.0 deployment target
 - Swift 6.0 with strict concurrency
 - Document type: `com.example.3dmodeller.scene` (`.scene3d` extension)

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftUIAssistant
+import SwiftUIAssistantTools
 
 /// Main content view with 3D viewport and assistant panel
 struct ContentView: View {
@@ -71,7 +72,8 @@ struct ContentView: View {
             DeleteEntityTool(sceneManager: sceneManager),
             SetMaterialTool(sceneManager: sceneManager),
             DuplicateEntityTool(sceneManager: sceneManager),
-            QuerySceneTool(sceneManager: sceneManager)
+            QuerySceneTool(sceneManager: sceneManager),
+            FetchTool()
         ]
 
         let contextProvider: @Sendable () -> any AssistantContext = { [sceneManager] in
@@ -88,6 +90,7 @@ struct ContentView: View {
             - Modify materials: color, metallic, roughness
             - Query scene state
             - Duplicate and delete entities
+            - Fetch data from URLs (GET, POST, PUT, PATCH, DELETE)
 
             ## Guidelines
             1. Execute operations directly - you have full scene access

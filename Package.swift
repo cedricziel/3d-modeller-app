@@ -21,7 +21,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "3DModellerApp",
-            dependencies: ["SwiftUIAssistant"],
+            dependencies: ["SwiftUIAssistant", "SwiftUIAssistantTools"],
             path: "3DModellerApp"
         )
     ]
