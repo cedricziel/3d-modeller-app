@@ -1,0 +1,136 @@
+import Foundation
+import SwiftUI
+
+/// The main assistant class that orchestrates LLM interactions and tool execution
+@MainActor
+public final class Assistant: ObservableObject {
+    // MARK: - Published State
+
+    /// All messages in the conversation
+    @Published public private(set) var messages: [Message] = []
+
+    /// Whether the assistant is currently processing a request
+    @Published public private(set) var isProcessing: Bool = false
+
+    /// The current error, if any
+    @Published public private(set) var currentError: AssistantError?
+
+    // MARK: - Dependencies
+
+    private let provider: any LLMProvider
+    private let toolRegistry: ToolRegistry
+    private let contextProvider: @Sendable () -> any AssistantContext
+    private let configuration: AssistantConfiguration
+
+    // MARK: - Initialization
+
+    /// Create a new assistant
+    /// - Parameters:
+    ///   - provider: The LLM provider to use
+    ///   - tools: Available tools the assistant can use
+    ///   - contextProvider: Closure that returns the current context
+    ///   - configuration: Configuration options
+    public init(
+        provider: any LLMProvider,
+        tools: [any AssistantTool],
+        contextProvider: @escaping @Sendable () -> any AssistantContext,
+        configuration: AssistantConfiguration = .default
+    ) {
+        self.provider = provider
+        self.toolRegistry = ToolRegistry(tools: tools)
+        self.contextProvider = contextProvider
+        self.configuration = configuration
+    }
+
+    // MARK: - Public API
+
+    /// Send a message and process the response
+    /// - Parameter message: The user's message
+    public func send(_ message: String) async throws {
+        guard !isProcessing else { return }
+
+        isProcessing = true
+        currentError = nil
+
+        defer { isProcessing = false }
+
+        // Add user message
+        messages.append(Message.user(message))
+
+        // Process response (may involve multiple tool execution rounds)
+        try await processResponse()
+    }
+
+    /// Clear the conversation history
+    public func clearHistory() {
+        messages.removeAll()
+        currentError = nil
+    }
+
+    /// Register additional tools
+    public func registerTool(_ tool: any AssistantTool) {
+        toolRegistry.register(tool)
+    }
+
+    // MARK: - Private Implementation
+
+    private func processResponse() async throws {
+        var rounds = 0
+
+        while rounds < configuration.maxToolExecutionRounds {
+            rounds += 1
+
+            let context = contextProvider()
+            let systemPrompt = configuration.buildSystemPrompt(context: context)
+
+            let response = try await provider.sendMessage(
+                messages.last?.content ?? "",
+                systemPrompt: systemPrompt,
+                conversationHistory: messages,
+                tools: toolRegistry.allTools
+            )
+
+            // Add assistant message if there's content
+            if let content = response.content {
+                messages.append(Message.assistant(content, toolCalls: response.toolCalls))
+            } else if let toolCalls = response.toolCalls, !toolCalls.isEmpty {
+                // Tool calls without text content
+                messages.append(Message.assistant("", toolCalls: toolCalls))
+            }
+
+            // Execute tool calls if present
+            if response.hasToolCalls, let toolCalls = response.toolCalls {
+                for toolCall in toolCalls {
+                    let result = await executeToolCall(toolCall)
+                    messages.append(Message.toolResult(toolCallId: toolCall.id, content: result.toPromptString()))
+                }
+
+                // Continue to get LLM's response after tool execution
+                continue
+            }
+
+            // No more tool calls, we're done
+            break
+        }
+    }
+
+    private func executeToolCall(_ toolCall: ToolCall) async -> ToolExecutionResult {
+        guard let tool = toolRegistry.tool(named: toolCall.name) else {
+            return .failure("Tool '\(toolCall.name)' not found")
+        }
+
+        do {
+            return try await tool.execute(arguments: toolCall.arguments)
+        } catch let error as AssistantError {
+            currentError = error
+            return .failure(error.localizedDescription)
+        } catch {
+            let assistantError = AssistantError.toolExecutionFailed(
+                toolName: toolCall.name,
+                reason: error.localizedDescription
+            )
+            currentError = assistantError
+            return .failure(error.localizedDescription)
+        }
+    }
+}
