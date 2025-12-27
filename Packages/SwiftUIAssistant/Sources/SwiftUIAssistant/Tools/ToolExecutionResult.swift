@@ -1,7 +1,7 @@
 import Foundation
 
 /// The result of executing a tool
-public struct ToolExecutionResult: Sendable, Equatable {
+public struct ToolExecutionResult: @unchecked Sendable, Equatable {
     /// Whether the tool execution succeeded
     public let success: Bool
 

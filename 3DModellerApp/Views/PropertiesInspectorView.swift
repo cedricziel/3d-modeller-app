@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Inspector panel showing properties of selected entity
+@MainActor
 struct PropertiesInspectorView: View {
     @ObservedObject var sceneManager: SceneManager
 
@@ -193,6 +194,7 @@ struct PropertiesInspectorView: View {
 
 // MARK: - Property Row
 
+@MainActor
 struct PropertyRow<Content: View>: View {
     let label: String
     @ViewBuilder let content: () -> Content
@@ -211,6 +213,7 @@ struct PropertyRow<Content: View>: View {
 
 // MARK: - Vector Field
 
+@MainActor
 struct VectorField: View {
     let x: Float
     let y: Float
@@ -238,6 +241,7 @@ struct VectorField: View {
     }
 }
 
+@MainActor
 struct ComponentField: View {
     let label: String
     let value: Float

@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Sidebar showing scene entity hierarchy
+@MainActor
 struct SceneOutlineView: View {
     @ObservedObject var sceneManager: SceneManager
 
@@ -59,6 +60,7 @@ struct SceneOutlineView: View {
 
 // MARK: - Entity Row
 
+@MainActor
 struct EntityRow: View {
     let entity: CADEntity
     let isSelected: Bool

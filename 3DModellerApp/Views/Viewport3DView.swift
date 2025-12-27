@@ -2,6 +2,7 @@ import SwiftUI
 import RealityKit
 
 /// 3D viewport using RealityKit
+@MainActor
 struct Viewport3DView: View {
     @ObservedObject var sceneManager: SceneManager
     @EnvironmentObject private var appModel: AppModel

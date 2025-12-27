@@ -1,7 +1,7 @@
 import Foundation
 
 /// Describes a parameter that a tool accepts
-public struct ToolParameter: Sendable, Equatable {
+public struct ToolParameter: @unchecked Sendable, Equatable {
     /// The name of the parameter
     public let name: String
 

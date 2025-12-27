@@ -42,7 +42,9 @@ targets:
           SWIFT_OPTIMIZATION_LEVEL: "-O"
     dependencies:
       - package: SwiftUIAssistant
+        product: SwiftUIAssistant
       - package: SwiftUIAssistantTools
+        product: SwiftUIAssistantTools
     info:
       path: 3DModellerApp/Info.plist
       properties:

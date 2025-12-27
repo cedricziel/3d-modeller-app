@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a tool invocation requested by the LLM
-public struct ToolCall: Identifiable, Sendable, Equatable {
+public struct ToolCall: Identifiable, @unchecked Sendable, Equatable {
     public let id: String
     public let name: String
     public let arguments: [String: Any]
