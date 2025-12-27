@@ -1,10 +1,10 @@
 import Foundation
 
 /// Represents a tool invocation requested by the LLM
-public struct ToolCall: Identifiable, @unchecked Sendable, Equatable {
+public struct ToolCall: Identifiable, Sendable, Equatable {
     public let id: String
     public let name: String
-    public let arguments: [String: Any]
+    public let arguments: [String: JSONValue]
     public var status: Status
     public var result: ToolExecutionResult?
 
@@ -19,7 +19,7 @@ public struct ToolCall: Identifiable, @unchecked Sendable, Equatable {
     public init(
         id: String,
         name: String,
-        arguments: [String: Any],
+        arguments: [String: JSONValue],
         status: Status = .pending,
         result: ToolExecutionResult? = nil
     ) {
@@ -28,14 +28,5 @@ public struct ToolCall: Identifiable, @unchecked Sendable, Equatable {
         self.arguments = arguments
         self.status = status
         self.result = result
-    }
-
-    // MARK: - Equatable
-
-    public static func == (lhs: ToolCall, rhs: ToolCall) -> Bool {
-        lhs.id == rhs.id &&
-        lhs.name == rhs.name &&
-        lhs.status == rhs.status
-        // Note: arguments comparison is omitted due to [String: Any]
     }
 }

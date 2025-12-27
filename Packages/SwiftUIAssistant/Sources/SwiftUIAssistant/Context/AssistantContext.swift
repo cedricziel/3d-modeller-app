@@ -6,7 +6,7 @@ import Foundation
 /// awareness of the current state (e.g., selected objects, scene contents).
 public protocol AssistantContext: Sendable {
     /// Serialize the context to a dictionary for JSON encoding
-    func serialize() -> [String: Any]
+    func serialize() -> [String: JSONValue]
 
     /// Human-readable description of the context for the system prompt
     var contextDescription: String { get }
@@ -16,8 +16,8 @@ public protocol AssistantContext: Sendable {
 
 public extension AssistantContext {
     /// Default serialization uses the description
-    func serialize() -> [String: Any] {
-        ["description": contextDescription]
+    func serialize() -> [String: JSONValue] {
+        ["description": .string(contextDescription)]
     }
 }
 
@@ -27,7 +27,7 @@ public extension AssistantContext {
 public struct EmptyContext: AssistantContext {
     public init() {}
 
-    public func serialize() -> [String: Any] {
+    public func serialize() -> [String: JSONValue] {
         [:]
     }
 

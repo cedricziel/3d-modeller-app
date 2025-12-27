@@ -38,8 +38,8 @@ struct SetMaterialTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let entityName = arguments["entityName"] as? String else {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let entityName = arguments["entityName"]?.stringValue else {
             return ToolExecutionResult(
                 success: false,
                 message: "Missing required 'entityName' parameter",
@@ -48,12 +48,12 @@ struct SetMaterialTool: AssistantTool, @unchecked Sendable {
         }
 
         var color: ColorData?
-        if let colorName = arguments["color"] as? String {
+        if let colorName = arguments["color"]?.stringValue {
             color = ColorData(named: colorName)
         }
 
-        let metallic = (arguments["metallic"] as? NSNumber)?.floatValue
-        let roughness = (arguments["roughness"] as? NSNumber)?.floatValue
+        let metallic = arguments["metallic"]?.floatValue
+        let roughness = arguments["roughness"]?.floatValue
 
         return await MainActor.run {
             guard let entity = sceneManager.entity(named: entityName) else {
@@ -80,7 +80,7 @@ struct SetMaterialTool: AssistantTool, @unchecked Sendable {
                 return ToolExecutionResult(
                     success: true,
                     message: "Updated material on '\(entityName)': \(changes.joined(separator: ", "))",
-                    data: ["entityName": entityName, "entityId": entity.id.uuidString]
+                    data: ["entityName": .string(entityName), "entityId": .string(entity.id.uuidString)]
                 )
             } else {
                 return ToolExecutionResult(

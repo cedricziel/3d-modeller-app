@@ -26,8 +26,8 @@ struct DuplicateEntityTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let entityName = arguments["entityName"] as? String else {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let entityName = arguments["entityName"]?.stringValue else {
             return ToolExecutionResult(
                 success: false,
                 message: "Missing required 'entityName' parameter",
@@ -35,7 +35,7 @@ struct DuplicateEntityTool: AssistantTool, @unchecked Sendable {
             )
         }
 
-        let newName = arguments["newName"] as? String
+        let newName = arguments["newName"]?.stringValue
 
         return await MainActor.run {
             guard let entity = sceneManager.entity(named: entityName) else {
@@ -60,9 +60,9 @@ struct DuplicateEntityTool: AssistantTool, @unchecked Sendable {
                 success: true,
                 message: "Duplicated '\(entityName)' as '\(duplicate.name)'",
                 data: [
-                    "originalEntityName": entityName,
-                    "newEntityId": duplicate.id.uuidString,
-                    "newEntityName": duplicate.name
+                    "originalEntityName": .string(entityName),
+                    "newEntityId": .string(duplicate.id.uuidString),
+                    "newEntityName": .string(duplicate.name)
                 ]
             )
         }

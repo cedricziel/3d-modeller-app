@@ -21,12 +21,12 @@ public struct CalculatorTool: AssistantTool, Sendable {
 
     public init() {}
 
-    public func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let expression = arguments["expression"] as? String else {
+    public func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let expression = arguments["expression"]?.stringValue else {
             return .failure("Missing required parameter: expression")
         }
 
-        let angleUnit = (arguments["angleUnit"] as? String) ?? "degrees"
+        let angleUnit = arguments["angleUnit"]?.stringValue ?? "degrees"
         let useDegrees = angleUnit == "degrees"
 
         do {
@@ -34,10 +34,10 @@ public struct CalculatorTool: AssistantTool, Sendable {
             return .success(
                 "Result: \(formatNumber(result))",
                 data: [
-                    "expression": expression,
-                    "result": result,
-                    "formatted": formatNumber(result),
-                    "angleUnit": angleUnit
+                    "expression": .string(expression),
+                    "result": .number(result),
+                    "formatted": .string(formatNumber(result)),
+                    "angleUnit": .string(angleUnit)
                 ]
             )
         } catch let error as CalculatorError {

@@ -27,9 +27,9 @@ struct QuerySceneTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        let filter = arguments["filter"] as? String
-        let typeFilter = arguments["type"] as? String
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        let filter = arguments["filter"]?.stringValue
+        let typeFilter = arguments["type"]?.stringValue
 
         return await MainActor.run {
             var entities = Array(sceneManager.entities.values)
@@ -45,18 +45,18 @@ struct QuerySceneTool: AssistantTool, @unchecked Sendable {
                 entities = entities.filter { $0.type == entityType }
             }
 
-            let entityInfos: [[String: Any]] = entities.map { entity in
-                [
-                    "id": entity.id.uuidString,
-                    "name": entity.name,
-                    "type": entity.type.rawValue,
-                    "position": [
-                        "x": entity.entity.position.x,
-                        "y": entity.entity.position.y,
-                        "z": entity.entity.position.z
-                    ],
-                    "isSelected": entity.id == sceneManager.selectedEntityId
-                ]
+            let entityInfos: [JSONValue] = entities.map { entity in
+                .object([
+                    "id": .string(entity.id.uuidString),
+                    "name": .string(entity.name),
+                    "type": .string(entity.type.rawValue),
+                    "position": .object([
+                        "x": .number(Double(entity.entity.position.x)),
+                        "y": .number(Double(entity.entity.position.y)),
+                        "z": .number(Double(entity.entity.position.z))
+                    ]),
+                    "isSelected": .bool(entity.id == sceneManager.selectedEntityId)
+                ])
             }
 
             let stats = sceneManager.statistics
@@ -74,11 +74,11 @@ struct QuerySceneTool: AssistantTool, @unchecked Sendable {
                 success: true,
                 message: message,
                 data: [
-                    "entities": entityInfos,
-                    "statistics": [
-                        "totalEntities": stats.entityCount,
-                        "triangleCount": stats.triangleCount
-                    ]
+                    "entities": .array(entityInfos),
+                    "statistics": .object([
+                        "totalEntities": .integer(stats.entityCount),
+                        "triangleCount": .integer(stats.triangleCount)
+                    ])
                 ]
             )
         }

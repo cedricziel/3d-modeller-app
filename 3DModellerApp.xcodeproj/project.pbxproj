@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */; };
 		17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6058937E5DD57AD2F2ED9A /* AppModel.swift */; };
 		253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */; };
 		2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */; };
@@ -22,17 +23,30 @@
 		92CBCF72AD0E55F6C3ABA6F1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */; };
 		94FB6803D47CA21068532180 /* TransformEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D65B9758FA8B269BA08BC425 /* TransformEntityTool.swift */; };
 		B0F6DBE95D03E9BDD37456B9 /* SceneDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA980DDA18639ED43150C241 /* SceneDocument.swift */; };
+		B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */; };
 		CF2D83332BB84B4C6AEF0787 /* SceneOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E976980A6F107762B5A70CA /* SceneOutlineView.swift */; };
 		D13CF02A24A1572A8313A23D /* SetMaterialTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC88A9275F62E0EFA4CC0E0B /* SetMaterialTool.swift */; };
 		F79289D47E44C32BD88E9D9F /* QuerySceneTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4A5E8340E8E26376A83DFA /* QuerySceneTool.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8BDA043FD59AB8D6E470A565 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7091458A9454F4A35001305C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 69D471B3D9A3966B90232DD2;
+			remoteInfo = 3DModellerApp;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		17993460361E0DC0931AD47F /* ModellerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModellerApp.swift; sourceTree = "<group>"; };
 		24E6BB346016D6BB0545D19E /* SwiftUIAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistant; path = Packages/SwiftUIAssistant; sourceTree = SOURCE_ROOT; };
 		27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertiesInspectorView.swift; sourceTree = "<group>"; };
 		37DED0741689842B141AD2E6 /* CreatePrimitiveTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePrimitiveTool.swift; sourceTree = "<group>"; };
+		50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDocumentTests.swift; sourceTree = "<group>"; };
 		50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = 3DModellerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F19B4E515275E6B718ADBB7 /* SwiftUIAssistantTools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistantTools; path = Packages/SwiftUIAssistantTools; sourceTree = SOURCE_ROOT; };
 		6A5F6A4548E9DD7364A36CBB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6C7AC13B8AFB6810059AB22A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -42,6 +56,7 @@
 		963AE036BDBB748EFA641D79 /* DeleteEntityTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteEntityTool.swift; sourceTree = "<group>"; };
 		AA075440578BA6785256D06A /* Viewport3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Viewport3DView.swift; sourceTree = "<group>"; };
 		BC88A9275F62E0EFA4CC0E0B /* SetMaterialTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetMaterialTool.swift; sourceTree = "<group>"; };
+		C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneManagerTests.swift; sourceTree = "<group>"; };
 		C348D3B3408BC57F176142F2 /* 3DModellerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 3DModellerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA980DDA18639ED43150C241 /* SceneDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDocument.swift; sourceTree = "<group>"; };
 		D65B9758FA8B269BA08BC425 /* TransformEntityTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformEntityTool.swift; sourceTree = "<group>"; };
@@ -68,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				6ED4282CB1E042ADB38200D0 /* 3DModellerApp */,
+				976F0DAA64C5943C333EBD87 /* 3DModellerAppTests */,
 				D17AF539F25A3FE406E97C5C /* Packages */,
 				FFB81E609740A59AAE3FC45A /* Products */,
 			);
@@ -110,6 +126,15 @@
 				E1256193B9FDE81736F729FE /* Views */,
 			);
 			path = 3DModellerApp;
+			sourceTree = "<group>";
+		};
+		976F0DAA64C5943C333EBD87 /* 3DModellerAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
+				C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */,
+			);
+			path = 3DModellerAppTests;
 			sourceTree = "<group>";
 		};
 		B101EB14E3536B3773ABD8F4 /* Tools */ = {
@@ -159,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				C348D3B3408BC57F176142F2 /* 3DModellerApp.app */,
+				5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,6 +211,24 @@
 			productName = 3DModellerApp;
 			productReference = C348D3B3408BC57F176142F2 /* 3DModellerApp.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BE7E4BACF0CE180291BC23B5 /* 3DModellerAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E649FBE8F5C368456874F75A /* Build configuration list for PBXNativeTarget "3DModellerAppTests" */;
+			buildPhases = (
+				4162E97AAC8639874E94EB88 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B3371FC46D547887BF9B707B /* PBXTargetDependency */,
+			);
+			name = 3DModellerAppTests;
+			packageProductDependencies = (
+			);
+			productName = 3DModellerAppTests;
+			productReference = 5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -220,6 +264,7 @@
 			projectRoot = "";
 			targets = (
 				69D471B3D9A3966B90232DD2 /* 3DModellerApp */,
+				BE7E4BACF0CE180291BC23B5 /* 3DModellerAppTests */,
 			);
 		};
 /* End PBXProject section */
@@ -248,7 +293,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4162E97AAC8639874E94EB88 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,
+				B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B3371FC46D547887BF9B707B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 69D471B3D9A3966B90232DD2 /* 3DModellerApp */;
+			targetProxy = 8BDA043FD59AB8D6E470A565 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		027853C893E665174F486477 /* Release */ = {
@@ -332,6 +394,42 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		0613D33463976EE34B606582 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.3DModellerAppTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/3D Modeller.app/Contents/MacOS/3D Modeller";
+			};
+			name = Debug;
+		};
+		1E3B6CCB0AFACF9B71CBE154 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.3DModellerAppTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/3D Modeller.app/Contents/MacOS/3D Modeller";
 			};
 			name = Release;
 		};
@@ -443,6 +541,15 @@
 			buildConfigurations = (
 				204FE64DA9E191A0C678B99D /* Debug */,
 				027853C893E665174F486477 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E649FBE8F5C368456874F75A /* Build configuration list for PBXNativeTarget "3DModellerAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0613D33463976EE34B606582 /* Debug */,
+				1E3B6CCB0AFACF9B71CBE154 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

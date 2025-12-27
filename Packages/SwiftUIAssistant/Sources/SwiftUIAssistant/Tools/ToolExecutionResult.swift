@@ -1,7 +1,7 @@
 import Foundation
 
 /// The result of executing a tool
-public struct ToolExecutionResult: @unchecked Sendable, Equatable {
+public struct ToolExecutionResult: Sendable, Equatable {
     /// Whether the tool execution succeeded
     public let success: Bool
 
@@ -9,12 +9,12 @@ public struct ToolExecutionResult: @unchecked Sendable, Equatable {
     public let message: String
 
     /// Optional additional data from the execution
-    public let data: [String: Any]?
+    public let data: [String: JSONValue]?
 
     public init(
         success: Bool,
         message: String,
-        data: [String: Any]? = nil
+        data: [String: JSONValue]? = nil
     ) {
         self.success = success
         self.message = message
@@ -24,20 +24,13 @@ public struct ToolExecutionResult: @unchecked Sendable, Equatable {
     // MARK: - Convenience Initializers
 
     /// Create a successful result
-    public static func success(_ message: String, data: [String: Any]? = nil) -> ToolExecutionResult {
+    public static func success(_ message: String, data: [String: JSONValue]? = nil) -> ToolExecutionResult {
         ToolExecutionResult(success: true, message: message, data: data)
     }
 
     /// Create a failure result
     public static func failure(_ message: String) -> ToolExecutionResult {
         ToolExecutionResult(success: false, message: message, data: nil)
-    }
-
-    // MARK: - Equatable
-
-    public static func == (lhs: ToolExecutionResult, rhs: ToolExecutionResult) -> Bool {
-        lhs.success == rhs.success && lhs.message == rhs.message
-        // Note: data comparison is omitted due to [String: Any]
     }
 
     // MARK: - Serialization

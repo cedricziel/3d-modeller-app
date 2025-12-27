@@ -26,8 +26,8 @@ public struct TimeTool: AssistantTool, Sendable {
 
     public init() {}
 
-    public func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let operation = arguments["operation"] as? String else {
+    public func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let operation = arguments["operation"]?.stringValue else {
             return .failure("Missing required parameter: operation")
         }
 
@@ -51,10 +51,10 @@ public struct TimeTool: AssistantTool, Sendable {
 
     // MARK: - Operations
 
-    private func getCurrentTime(arguments: [String: Any]) -> ToolExecutionResult {
+    private func getCurrentTime(arguments: [String: JSONValue]) -> ToolExecutionResult {
         let now = Date()
-        let timezone = getTimezone(from: arguments["timezone"] as? String)
-        let format = arguments["format"] as? String ?? "iso8601"
+        let timezone = getTimezone(from: arguments["timezone"]?.stringValue)
+        let format = arguments["format"]?.stringValue ?? "iso8601"
 
         let formatted = formatDate(now, format: format, timezone: timezone)
         let iso8601 = ISO8601DateFormatter().string(from: now)
@@ -62,24 +62,24 @@ public struct TimeTool: AssistantTool, Sendable {
         return .success(
             "Current time: \(formatted)",
             data: [
-                "timestamp": now.timeIntervalSince1970,
-                "iso8601": iso8601,
-                "formatted": formatted,
-                "timezone": timezone.identifier,
-                "year": Calendar.current.component(.year, from: now),
-                "month": Calendar.current.component(.month, from: now),
-                "day": Calendar.current.component(.day, from: now),
-                "hour": Calendar.current.component(.hour, from: now),
-                "minute": Calendar.current.component(.minute, from: now),
-                "second": Calendar.current.component(.second, from: now),
-                "weekday": Calendar.current.component(.weekday, from: now),
-                "dayOfYear": Calendar.current.ordinality(of: .day, in: .year, for: now) ?? 0
+                "timestamp": .number(now.timeIntervalSince1970),
+                "iso8601": .string(iso8601),
+                "formatted": .string(formatted),
+                "timezone": .string(timezone.identifier),
+                "year": .integer(Calendar.current.component(.year, from: now)),
+                "month": .integer(Calendar.current.component(.month, from: now)),
+                "day": .integer(Calendar.current.component(.day, from: now)),
+                "hour": .integer(Calendar.current.component(.hour, from: now)),
+                "minute": .integer(Calendar.current.component(.minute, from: now)),
+                "second": .integer(Calendar.current.component(.second, from: now)),
+                "weekday": .integer(Calendar.current.component(.weekday, from: now)),
+                "dayOfYear": .integer(Calendar.current.ordinality(of: .day, in: .year, for: now) ?? 0)
             ]
         )
     }
 
-    private func parseDate(arguments: [String: Any]) -> ToolExecutionResult {
-        guard let dateString = arguments["date"] as? String else {
+    private func parseDate(arguments: [String: JSONValue]) -> ToolExecutionResult {
+        guard let dateString = arguments["date"]?.stringValue else {
             return .failure("Missing required parameter: date")
         }
 
@@ -92,20 +92,20 @@ public struct TimeTool: AssistantTool, Sendable {
         return .success(
             "Parsed date: \(iso8601)",
             data: [
-                "timestamp": date.timeIntervalSince1970,
-                "iso8601": iso8601,
-                "year": Calendar.current.component(.year, from: date),
-                "month": Calendar.current.component(.month, from: date),
-                "day": Calendar.current.component(.day, from: date),
-                "hour": Calendar.current.component(.hour, from: date),
-                "minute": Calendar.current.component(.minute, from: date),
-                "second": Calendar.current.component(.second, from: date)
+                "timestamp": .number(date.timeIntervalSince1970),
+                "iso8601": .string(iso8601),
+                "year": .integer(Calendar.current.component(.year, from: date)),
+                "month": .integer(Calendar.current.component(.month, from: date)),
+                "day": .integer(Calendar.current.component(.day, from: date)),
+                "hour": .integer(Calendar.current.component(.hour, from: date)),
+                "minute": .integer(Calendar.current.component(.minute, from: date)),
+                "second": .integer(Calendar.current.component(.second, from: date))
             ]
         )
     }
 
-    private func formatDate(arguments: [String: Any]) -> ToolExecutionResult {
-        guard let dateString = arguments["date"] as? String else {
+    private func formatDate(arguments: [String: JSONValue]) -> ToolExecutionResult {
+        guard let dateString = arguments["date"]?.stringValue else {
             return .failure("Missing required parameter: date")
         }
 
@@ -113,25 +113,25 @@ public struct TimeTool: AssistantTool, Sendable {
             return .failure("Could not parse date: \(dateString)")
         }
 
-        let format = arguments["format"] as? String ?? "medium"
-        let timezone = getTimezone(from: arguments["timezone"] as? String)
+        let format = arguments["format"]?.stringValue ?? "medium"
+        let timezone = getTimezone(from: arguments["timezone"]?.stringValue)
         let formatted = formatDate(date, format: format, timezone: timezone)
 
         return .success(
             "Formatted: \(formatted)",
             data: [
-                "formatted": formatted,
-                "format": format,
-                "timezone": timezone.identifier
+                "formatted": .string(formatted),
+                "format": .string(format),
+                "timezone": .string(timezone.identifier)
             ]
         )
     }
 
-    private func calculateDifference(arguments: [String: Any]) -> ToolExecutionResult {
-        guard let dateString1 = arguments["date"] as? String else {
+    private func calculateDifference(arguments: [String: JSONValue]) -> ToolExecutionResult {
+        guard let dateString1 = arguments["date"]?.stringValue else {
             return .failure("Missing required parameter: date")
         }
-        guard let dateString2 = arguments["date2"] as? String else {
+        guard let dateString2 = arguments["date2"]?.stringValue else {
             return .failure("Missing required parameter: date2")
         }
 
@@ -159,29 +159,29 @@ public struct TimeTool: AssistantTool, Sendable {
         return .success(
             "Difference: \(description)",
             data: [
-                "years": components.year ?? 0,
-                "months": components.month ?? 0,
-                "days": components.day ?? 0,
-                "hours": components.hour ?? 0,
-                "minutes": components.minute ?? 0,
-                "seconds": components.second ?? 0,
-                "totalSeconds": totalSeconds,
-                "totalMinutes": totalMinutes,
-                "totalHours": totalHours,
-                "totalDays": totalDays,
-                "description": description
+                "years": .integer(components.year ?? 0),
+                "months": .integer(components.month ?? 0),
+                "days": .integer(components.day ?? 0),
+                "hours": .integer(components.hour ?? 0),
+                "minutes": .integer(components.minute ?? 0),
+                "seconds": .integer(components.second ?? 0),
+                "totalSeconds": .number(totalSeconds),
+                "totalMinutes": .number(totalMinutes),
+                "totalHours": .number(totalHours),
+                "totalDays": .number(totalDays),
+                "description": .string(description)
             ]
         )
     }
 
-    private func addTime(arguments: [String: Any]) -> ToolExecutionResult {
-        guard let dateString = arguments["date"] as? String else {
+    private func addTime(arguments: [String: JSONValue]) -> ToolExecutionResult {
+        guard let dateString = arguments["date"]?.stringValue else {
             return .failure("Missing required parameter: date")
         }
-        guard let unit = arguments["unit"] as? String else {
+        guard let unit = arguments["unit"]?.stringValue else {
             return .failure("Missing required parameter: unit")
         }
-        guard let value = arguments["value"] as? Double else {
+        guard let value = arguments["value"]?.doubleValue else {
             return .failure("Missing required parameter: value")
         }
 
@@ -215,20 +215,20 @@ public struct TimeTool: AssistantTool, Sendable {
         return .success(
             "Result: \(iso8601)",
             data: [
-                "timestamp": resultDate.timeIntervalSince1970,
-                "iso8601": iso8601,
-                "originalDate": ISO8601DateFormatter().string(from: date),
-                "added": intValue,
-                "unit": unit
+                "timestamp": .number(resultDate.timeIntervalSince1970),
+                "iso8601": .string(iso8601),
+                "originalDate": .string(ISO8601DateFormatter().string(from: date)),
+                "added": .integer(intValue),
+                "unit": .string(unit)
             ]
         )
     }
 
-    private func convertTimezone(arguments: [String: Any]) -> ToolExecutionResult {
-        guard let dateString = arguments["date"] as? String else {
+    private func convertTimezone(arguments: [String: JSONValue]) -> ToolExecutionResult {
+        guard let dateString = arguments["date"]?.stringValue else {
             return .failure("Missing required parameter: date")
         }
-        guard let timezoneString = arguments["timezone"] as? String else {
+        guard let timezoneString = arguments["timezone"]?.stringValue else {
             return .failure("Missing required parameter: timezone")
         }
 
@@ -252,11 +252,11 @@ public struct TimeTool: AssistantTool, Sendable {
         return .success(
             "Converted: \(formatted)",
             data: [
-                "formatted": formatted,
-                "iso8601": iso8601,
-                "timezone": timezone.identifier,
-                "abbreviation": timezone.abbreviation() ?? "",
-                "utcOffset": timezone.secondsFromGMT() / 3600
+                "formatted": .string(formatted),
+                "iso8601": .string(iso8601),
+                "timezone": .string(timezone.identifier),
+                "abbreviation": .string(timezone.abbreviation() ?? ""),
+                "utcOffset": .integer(timezone.secondsFromGMT() / 3600)
             ]
         )
     }

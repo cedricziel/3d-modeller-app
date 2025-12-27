@@ -117,7 +117,7 @@ public actor ClaudeProvider: LLMProvider {
                         "type": "tool_use",
                         "id": call.id,
                         "name": call.name,
-                        "input": call.arguments
+                        "input": call.arguments.toAnyDict
                     ])
                 }
             }
@@ -148,7 +148,7 @@ public actor ClaudeProvider: LLMProvider {
         var required: [String] = []
 
         for param in tool.parameters {
-            properties[param.name] = param.toJSONSchema()
+            properties[param.name] = param.toJSONSchema().toAnyDict
             if param.required {
                 required.append(param.name)
             }
@@ -207,14 +207,15 @@ public actor ClaudeProvider: LLMProvider {
             case "tool_use":
                 guard let id = block["id"] as? String,
                       let name = block["name"] as? String,
-                      let input = block["input"] as? [String: Any] else {
+                      let input = block["input"] as? [String: Any],
+                      let arguments = [String: JSONValue](fromAny: input) else {
                     continue
                 }
 
                 let toolCall = ToolCall(
                     id: id,
                     name: name,
-                    arguments: input,
+                    arguments: arguments,
                     status: .pending
                 )
                 toolCalls.append(toolCall)

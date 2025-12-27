@@ -20,8 +20,8 @@ struct DeleteEntityTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let entityName = arguments["entityName"] as? String else {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let entityName = arguments["entityName"]?.stringValue else {
             return ToolExecutionResult(
                 success: false,
                 message: "Missing required 'entityName' parameter",
@@ -36,7 +36,7 @@ struct DeleteEntityTool: AssistantTool, @unchecked Sendable {
                 return ToolExecutionResult(
                     success: true,
                     message: "Deleted entity '\(entityName)'",
-                    data: ["deletedEntityName": entityName]
+                    data: ["deletedEntityName": .string(entityName)]
                 )
             } else {
                 return ToolExecutionResult(

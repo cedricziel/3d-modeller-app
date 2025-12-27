@@ -80,7 +80,7 @@ public final class ToolRegistry: @unchecked Sendable {
                 var required: [String] = []
 
                 for param in tool.parameters {
-                    properties[param.name] = param.toJSONSchema()
+                    properties[param.name] = param.toJSONSchema().toAnyDict
                     if param.required {
                         required.append(param.name)
                     }

@@ -45,9 +45,9 @@ struct CreatePrimitiveTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
         // Parse arguments before MainActor
-        guard let typeString = arguments["type"] as? String,
+        guard let typeString = arguments["type"]?.stringValue,
               let type = EntityData.EntityType(rawValue: typeString) else {
             return ToolExecutionResult(
                 success: false,
@@ -56,12 +56,12 @@ struct CreatePrimitiveTool: AssistantTool, @unchecked Sendable {
             )
         }
 
-        let name = arguments["name"] as? String
-        let size = (arguments["size"] as? NSNumber)?.floatValue ?? 0.5
-        let position = parsePosition(from: arguments["position"] as? [String: Any])
+        let name = arguments["name"]?.stringValue
+        let size = arguments["size"]?.floatValue ?? 0.5
+        let position = parsePosition(from: arguments["position"]?.objectValue)
 
         var color = ColorData(r: 0.8, g: 0.8, b: 0.8)
-        if let colorName = arguments["color"] as? String {
+        if let colorName = arguments["color"]?.stringValue {
             color = ColorData(named: colorName)
         }
 
@@ -81,19 +81,19 @@ struct CreatePrimitiveTool: AssistantTool, @unchecked Sendable {
                 success: true,
                 message: "Created \(type.rawValue) '\(entity.name)' at \(posStr)",
                 data: [
-                    "entityId": entity.id.uuidString,
-                    "entityName": entity.name,
-                    "type": type.rawValue
+                    "entityId": .string(entity.id.uuidString),
+                    "entityName": .string(entity.name),
+                    "type": .string(type.rawValue)
                 ]
             )
         }
     }
 
-    private func parsePosition(from dict: [String: Any]?) -> SIMD3<Float> {
+    private func parsePosition(from dict: [String: JSONValue]?) -> SIMD3<Float> {
         guard let dict = dict else { return .zero }
-        let posX = (dict["x"] as? NSNumber)?.floatValue ?? 0
-        let posY = (dict["y"] as? NSNumber)?.floatValue ?? 0
-        let posZ = (dict["z"] as? NSNumber)?.floatValue ?? 0
+        let posX = dict["x"]?.floatValue ?? 0
+        let posY = dict["y"]?.floatValue ?? 0
+        let posZ = dict["z"]?.floatValue ?? 0
         return [posX, posY, posZ]
     }
 }

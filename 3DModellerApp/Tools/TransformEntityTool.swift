@@ -38,8 +38,8 @@ struct TransformEntityTool: AssistantTool, @unchecked Sendable {
         ]
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let entityName = arguments["entityName"] as? String else {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let entityName = arguments["entityName"]?.stringValue else {
             return ToolExecutionResult(success: false, message: "Missing 'entityName'", data: nil)
         }
 
@@ -79,28 +79,27 @@ struct TransformEntityTool: AssistantTool, @unchecked Sendable {
             return ToolExecutionResult(
                 success: true,
                 message: "Transformed '\(entityName)': \(changes.joined(separator: ", "))",
-                data: ["entityName": entityName, "entityId": entity.id.uuidString]
+                data: ["entityName": .string(entityName), "entityId": .string(entity.id.uuidString)]
             )
         }
     }
 
-    private func parseVector(from value: Any?) -> SIMD3<Float>? {
-        guard let dict = value as? [String: Any] else { return nil }
-        let vecX = (dict["x"] as? NSNumber)?.floatValue ?? 0
-        let vecY = (dict["y"] as? NSNumber)?.floatValue ?? 0
-        let vecZ = (dict["z"] as? NSNumber)?.floatValue ?? 0
+    private func parseVector(from value: JSONValue?) -> SIMD3<Float>? {
+        guard let dict = value?.objectValue else { return nil }
+        let vecX = dict["x"]?.floatValue ?? 0
+        let vecY = dict["y"]?.floatValue ?? 0
+        let vecZ = dict["z"]?.floatValue ?? 0
         return [vecX, vecY, vecZ]
     }
 
-    private func parseScale(from value: Any?) -> SIMD3<Float>? {
-        if let dict = value as? [String: Any] {
-            let scaleX = (dict["x"] as? NSNumber)?.floatValue ?? 1
-            let scaleY = (dict["y"] as? NSNumber)?.floatValue ?? 1
-            let scaleZ = (dict["z"] as? NSNumber)?.floatValue ?? 1
+    private func parseScale(from value: JSONValue?) -> SIMD3<Float>? {
+        if let dict = value?.objectValue {
+            let scaleX = dict["x"]?.floatValue ?? 1
+            let scaleY = dict["y"]?.floatValue ?? 1
+            let scaleZ = dict["z"]?.floatValue ?? 1
             return [scaleX, scaleY, scaleZ]
-        } else if let uniform = value as? NSNumber {
-            let val = uniform.floatValue
-            return [val, val, val]
+        } else if let uniform = value?.floatValue {
+            return [uniform, uniform, uniform]
         }
         return nil
     }

@@ -64,13 +64,34 @@ targets:
               public.filename-extension:
                 - scene3d
 
+  3DModellerAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: 3DModellerAppTests
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: "YES"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/3D Modeller.app/Contents/MacOS/3D Modeller"
+    dependencies:
+      - target: 3DModellerApp
+
 schemes:
   3DModellerApp:
     build:
       targets:
         3DModellerApp: all
+        3DModellerAppTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - 3DModellerAppTests
     profile:
       config: Release
     analyze:

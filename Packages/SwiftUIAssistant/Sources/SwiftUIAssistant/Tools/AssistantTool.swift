@@ -17,7 +17,7 @@ public protocol AssistantTool: Identifiable, Sendable {
     /// Execute the tool with the given arguments
     /// - Parameter arguments: Dictionary of argument name to value
     /// - Returns: The result of the execution
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult
 }
 
 // MARK: - Default Implementations

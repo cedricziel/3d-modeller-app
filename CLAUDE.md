@@ -2,9 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation
+
+Always use context7 when I need code generation, setup or configuration steps, or
+library/API documentation. This means you should automatically use the Context7 MCP
+tools to resolve library id and get library docs without me having to explicitly ask.
+
 ## Development Approach
 
 This project follows **Test-Driven Development (TDD)**:
+
 1. Write tests first that define expected behavior
 2. Run tests to confirm they fail
 3. Implement the minimum code to make tests pass

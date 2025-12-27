@@ -28,15 +28,15 @@ public struct FetchTool: AssistantTool, Sendable {
                 type: .number,
                 description: "Request timeout in seconds (default: 30)",
                 required: false,
-                defaultValue: 30.0
+                defaultValue: .number(30.0)
             )
         ]
     }
 
     public init() {}
 
-    public func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
-        guard let urlString = arguments["url"] as? String else {
+    public func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
+        guard let urlString = arguments["url"]?.stringValue else {
             return .failure("Missing required parameter: url")
         }
 
@@ -44,10 +44,10 @@ public struct FetchTool: AssistantTool, Sendable {
             return .failure("Invalid URL: \(urlString)")
         }
 
-        let method = (arguments["method"] as? String)?.uppercased() ?? "GET"
-        let body = arguments["body"] as? String
-        let headers = arguments["headers"] as? [String: String]
-        let timeout = arguments["timeout"] as? Double ?? 30.0
+        let method = arguments["method"]?.stringValue?.uppercased() ?? "GET"
+        let body = arguments["body"]?.stringValue
+        let headers = arguments["headers"]?.objectValue?.compactMapValues { $0.stringValue }
+        let timeout = arguments["timeout"]?.doubleValue ?? 30.0
 
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -82,11 +82,19 @@ public struct FetchTool: AssistantTool, Sendable {
             let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "unknown"
 
             // Try to parse response as JSON
-            var responseData: Any?
+            var responseData: JSONValue?
             var responseText: String?
 
-            if contentType.contains("application/json") {
-                responseData = try? JSONSerialization.jsonObject(with: data)
+            if contentType.contains("application/json"),
+               let jsonObject = try? JSONSerialization.jsonObject(with: data),
+               let jsonDict = jsonObject as? [String: Any],
+               let jsonValue = [String: JSONValue](fromAny: jsonDict) {
+                responseData = .object(jsonValue)
+            } else if contentType.contains("application/json"),
+                      let jsonObject = try? JSONSerialization.jsonObject(with: data),
+                      let jsonArray = jsonObject as? [Any] {
+                // Handle JSON arrays
+                responseData = JSONValue.fromAny(jsonArray)
             }
 
             if responseData == nil {
@@ -98,11 +106,11 @@ public struct FetchTool: AssistantTool, Sendable {
                 ? "Successfully fetched \(url.absoluteString) (HTTP \(statusCode))"
                 : "Request failed with HTTP \(statusCode)"
 
-            var resultData: [String: Any] = [
-                "statusCode": statusCode,
-                "contentType": contentType,
-                "url": url.absoluteString,
-                "method": method
+            var resultData: [String: JSONValue] = [
+                "statusCode": .integer(statusCode),
+                "contentType": .string(contentType),
+                "url": .string(url.absoluteString),
+                "method": .string(method)
             ]
 
             if let responseData = responseData {
@@ -111,22 +119,22 @@ public struct FetchTool: AssistantTool, Sendable {
                 // Truncate very long responses
                 let maxLength = 10000
                 if responseText.count > maxLength {
-                    resultData["text"] = String(responseText.prefix(maxLength)) + "... (truncated)"
-                    resultData["truncated"] = true
-                    resultData["originalLength"] = responseText.count
+                    resultData["text"] = .string(String(responseText.prefix(maxLength)) + "... (truncated)")
+                    resultData["truncated"] = .bool(true)
+                    resultData["originalLength"] = .integer(responseText.count)
                 } else {
-                    resultData["text"] = responseText
+                    resultData["text"] = .string(responseText)
                 }
             }
 
             // Include response headers
-            var responseHeaders: [String: String] = [:]
+            var responseHeaders: [String: JSONValue] = [:]
             for (key, value) in httpResponse.allHeaderFields {
                 if let keyString = key as? String, let valueString = value as? String {
-                    responseHeaders[keyString] = valueString
+                    responseHeaders[keyString] = .string(valueString)
                 }
             }
-            resultData["headers"] = responseHeaders
+            resultData["headers"] = .object(responseHeaders)
 
             return ToolExecutionResult(
                 success: isSuccess,

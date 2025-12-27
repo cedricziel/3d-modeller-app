@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import SwiftUIAssistantTools
+import SwiftUIAssistant
 
 @Suite("CalculatorTool Tests")
 struct CalculatorToolTests {
@@ -9,12 +10,12 @@ struct CalculatorToolTests {
     // MARK: - Helper
 
     private func evaluate(_ expression: String, angleUnit: String = "degrees") async throws -> Double {
-        var args: [String: Any] = ["expression": expression]
+        var args: [String: JSONValue] = ["expression": .string(expression)]
         if angleUnit != "degrees" {
-            args["angleUnit"] = angleUnit
+            args["angleUnit"] = .string(angleUnit)
         }
         let result = try await calculator.execute(arguments: args)
-        guard result.success, let data = result.data, let value = data["result"] as? Double else {
+        guard result.success, let data = result.data, let value = data["result"]?.doubleValue else {
             throw TestError(message: result.message)
         }
         return value
@@ -58,7 +59,7 @@ struct CalculatorToolTests {
 
     @Test("Division by zero")
     func testDivisionByZero() async throws {
-        let result = try await calculator.execute(arguments: ["expression": "5 / 0"])
+        let result = try await calculator.execute(arguments: ["expression": .string("5 / 0")])
         #expect(result.success == false)
         #expect(result.message.contains("Division by zero"))
     }
@@ -305,13 +306,13 @@ struct CalculatorToolTests {
 
     @Test("Invalid expression")
     func testInvalidExpression() async throws {
-        let result = try await calculator.execute(arguments: ["expression": "2 + + 3"])
+        let result = try await calculator.execute(arguments: ["expression": .string("2 + + 3")])
         #expect(result.success == false)
     }
 
     @Test("Unmatched parenthesis")
     func testUnmatchedParenthesis() async throws {
-        let result = try await calculator.execute(arguments: ["expression": "(2 + 3"])
+        let result = try await calculator.execute(arguments: ["expression": .string("(2 + 3")])
         #expect(result.success == false)
         #expect(result.message.contains("parenthesis"))
     }

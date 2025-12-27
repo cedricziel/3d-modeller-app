@@ -11,26 +11,31 @@ struct Viewport3DView: View {
     @State private var cameraDistance: Float = 5.0
     @State private var cameraRotation: SIMD2<Float> = [Float.pi / 6, Float.pi / 4] // pitch, yaw
 
-    var body: some View {
-        GeometryReader { geometry in
-            RealityView { content in
-                // Add the scene root entity
-                content.add(sceneManager.rootEntity)
+    // Track if scene is ready
+    @State private var isSceneReady = false
 
-                // Setup camera anchor
-                let cameraAnchor = AnchorEntity(world: .zero)
-                content.add(cameraAnchor)
-            } update: { _ in
-                // Camera updates handled by gestures
-            }
-            .gesture(orbitGesture)
-            .gesture(zoomGesture)
-            .gesture(tapGesture)
-            .onAppear {
-                // Initial camera setup
+    var body: some View {
+        GeometryReader { _ in
+            if isSceneReady {
+                RealityView { content in
+                    content.add(sceneManager.rootEntity)
+                }
+                .gesture(orbitGesture)
+                .gesture(zoomGesture)
+                .gesture(tapGesture)
+            } else {
+                Color(white: 0.15)
+                    .overlay {
+                        ProgressView("Loading 3D Scene...")
+                    }
             }
         }
         .background(Color(white: 0.15))
+        .task {
+            // Delay to allow UI to render first
+            try? await Task.sleep(for: .milliseconds(100))
+            isSceneReady = true
+        }
     }
 
     // MARK: - Camera Update
