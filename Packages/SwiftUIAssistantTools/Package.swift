@@ -20,5 +20,10 @@ let package = Package(
             dependencies: ["SwiftUIAssistant"],
             path: "Sources/SwiftUIAssistantTools"
         ),
+        .testTarget(
+            name: "SwiftUIAssistantToolsTests",
+            dependencies: ["SwiftUIAssistantTools"],
+            path: "Tests/SwiftUIAssistantToolsTests"
+        ),
     ]
 )

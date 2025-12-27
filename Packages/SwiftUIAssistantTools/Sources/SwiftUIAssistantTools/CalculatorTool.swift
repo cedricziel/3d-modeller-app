@@ -54,21 +54,45 @@ public struct CalculatorTool: AssistantTool, Sendable {
             .replacingOccurrences(of: " ", with: "")
             .lowercased()
 
-        // Replace constants
-        expr = expr
-            .replacingOccurrences(of: "pi", with: String(Double.pi))
-            .replacingOccurrences(of: "e", with: String(M_E))
-
-        // Evaluate functions first
+        // Evaluate functions first (before constant replacement to avoid conflicts)
         expr = try evaluateFunctions(expr, useDegrees: useDegrees)
+
+        // Replace constants (use word boundary matching to avoid replacing inside numbers)
+        expr = replaceConstants(in: expr)
 
         // Evaluate the arithmetic expression
         return try evaluateArithmetic(expr)
     }
 
+    private func replaceConstants(in expression: String) -> String {
+        var result = expression
+
+        // Replace 'pi' only when it's a standalone token (not part of a number)
+        // Match pi when preceded by start, operator, or open paren AND followed by end, operator, or close paren
+        let piPattern = try! NSRegularExpression(pattern: "(?<=[+\\-*/^%(]|^)pi(?=[+\\-*/^%)]|$)", options: [])
+        result = piPattern.stringByReplacingMatches(
+            in: result,
+            options: [],
+            range: NSRange(result.startIndex..., in: result),
+            withTemplate: String(Double.pi)
+        )
+
+        // Replace 'e' only when standalone (not part of scientific notation like 1e5 or function names)
+        let ePattern = try! NSRegularExpression(pattern: "(?<=[+\\-*/^%(]|^)e(?=[+\\-*/^%)]|$)", options: [])
+        result = ePattern.stringByReplacingMatches(
+            in: result,
+            options: [],
+            range: NSRange(result.startIndex..., in: result),
+            withTemplate: String(M_E)
+        )
+
+        return result
+    }
+
     private func evaluateFunctions(_ expression: String, useDegrees: Bool) throws -> String {
         var expr = expression
 
+        // Order matters: longer names first to avoid partial matches (e.g., "cos" matching in "acos")
         let functions: [(String, (Double) -> Double)] = [
             ("sqrt", { sqrt($0) }),
             ("abs", { abs($0) }),
@@ -80,15 +104,18 @@ public struct CalculatorTool: AssistantTool, Sendable {
             ("log", { log($0) }),
             ("ln", { log($0) }),
             ("exp", { exp($0) }),
-            ("sin", { useDegrees ? sin($0 * .pi / 180) : sin($0) }),
-            ("cos", { useDegrees ? cos($0 * .pi / 180) : cos($0) }),
-            ("tan", { useDegrees ? tan($0 * .pi / 180) : tan($0) }),
+            ("asinh", { asinh($0) }),
+            ("acosh", { acosh($0) }),
+            ("atanh", { atanh($0) }),
+            ("sinh", { sinh($0) }),
+            ("cosh", { cosh($0) }),
+            ("tanh", { tanh($0) }),
             ("asin", { useDegrees ? asin($0) * 180 / .pi : asin($0) }),
             ("acos", { useDegrees ? acos($0) * 180 / .pi : acos($0) }),
             ("atan", { useDegrees ? atan($0) * 180 / .pi : atan($0) }),
-            ("sinh", { sinh($0) }),
-            ("cosh", { cosh($0) }),
-            ("tanh", { tanh($0) })
+            ("sin", { useDegrees ? sin($0 * .pi / 180) : sin($0) }),
+            ("cos", { useDegrees ? cos($0 * .pi / 180) : cos($0) }),
+            ("tan", { useDegrees ? tan($0 * .pi / 180) : tan($0) })
         ]
 
         for (name, fn) in functions {
@@ -183,10 +210,20 @@ public struct CalculatorTool: AssistantTool, Sendable {
 
             if char.isNumber || char == "." {
                 numberBuffer.append(char)
-            } else if char == "-" && (tokens.isEmpty || tokens.last?.isOperator == true) {
-                // Negative number
+            } else if (char == "e" || char == "E") && !numberBuffer.isEmpty && numberBuffer.last?.isNumber == true {
+                // Scientific notation (e.g., 1e5, 2.5e-10)
+                numberBuffer.append(char)
+            } else if char == "-" && numberBuffer.isEmpty && (tokens.isEmpty || tokens.last?.isOperator == true) {
+                // Negative number: only if buffer is empty AND (no tokens yet OR last token is operator)
+                numberBuffer.append(char)
+            } else if char == "-" && !numberBuffer.isEmpty && (numberBuffer.last == "e" || numberBuffer.last == "E") {
+                // Negative exponent in scientific notation (e.g., 1e-5)
+                numberBuffer.append(char)
+            } else if char == "+" && !numberBuffer.isEmpty && (numberBuffer.last == "e" || numberBuffer.last == "E") {
+                // Positive exponent in scientific notation (e.g., 1e+5)
                 numberBuffer.append(char)
             } else {
+                // Flush number buffer first
                 if !numberBuffer.isEmpty {
                     guard let num = Double(numberBuffer) else {
                         throw CalculatorError.invalidNumber(numberBuffer)
