@@ -3,6 +3,7 @@ import SwiftUIAssistant
 import SwiftUIAssistantTools
 
 /// Main content view with 3D viewport and assistant panel
+@MainActor
 struct ContentView: View {
     @Binding var document: SceneDocument
     @EnvironmentObject private var appModel: AppModel
@@ -73,7 +74,9 @@ struct ContentView: View {
             SetMaterialTool(sceneManager: sceneManager),
             DuplicateEntityTool(sceneManager: sceneManager),
             QuerySceneTool(sceneManager: sceneManager),
-            FetchTool()
+            FetchTool(),
+            CalculatorTool(),
+            TimeTool()
         ]
 
         let contextProvider: @Sendable () -> any AssistantContext = { [sceneManager] in
@@ -91,6 +94,8 @@ struct ContentView: View {
             - Query scene state
             - Duplicate and delete entities
             - Fetch data from URLs (GET, POST, PUT, PATCH, DELETE)
+            - Perform calculations (arithmetic, trigonometry, logarithms)
+            - Work with dates and times (parse, format, calculate differences)
 
             ## Guidelines
             1. Execute operations directly - you have full scene access
@@ -125,6 +130,7 @@ struct ContentView: View {
 
 // MARK: - Toolbar View
 
+@MainActor
 struct ToolbarView: View {
     @Binding var selectedTool: AppModel.EditingTool
 
