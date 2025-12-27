@@ -15,7 +15,8 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "Packages/SwiftUIAssistant")
+        .package(path: "Packages/SwiftUIAssistant"),
+        .package(path: "Packages/SwiftUIAssistantTools")
     ],
     targets: [
         .executableTarget(
