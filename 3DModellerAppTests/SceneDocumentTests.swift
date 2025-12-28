@@ -1,5 +1,7 @@
 import Testing
 import Foundation
+import SwiftUI
+import UniformTypeIdentifiers
 @testable import _D_Modeller
 
 @Suite("SceneDocument Tests")
@@ -231,5 +233,103 @@ struct SceneDocumentTests {
             let decoded = try decoder.decode(EntityData.self, from: data)
             #expect(decoded.type == type)
         }
+    }
+
+    // MARK: - FileDocument Tests
+
+    @Test("SceneData JSON encoding creates valid data")
+    func testSceneDataJSONEncoding() throws {
+        var sceneData = SceneData()
+        sceneData.entities = [
+            EntityData(name: "SavedBox", type: .box)
+        ]
+        sceneData.metadata.name = "Saved Scene"
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(sceneData)
+
+        #expect(!data.isEmpty)
+
+        // Verify it's valid JSON by decoding
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(SceneData.self, from: data)
+        #expect(decoded.entities.count == 1)
+        #expect(decoded.metadata.name == "Saved Scene")
+    }
+
+    @Test("SceneData save and load round-trip")
+    func testSaveLoadRoundTrip() throws {
+        // Create original scene data
+        var originalData = SceneData()
+        originalData.entities = [
+            EntityData(
+                name: "TestCube",
+                type: .box,
+                transform: TransformData(position: [1, 2, 3]),
+                material: MaterialData(color: ColorData(named: "red"))
+            ),
+            EntityData(name: "TestSphere", type: .sphere)
+        ]
+        originalData.metadata.name = "RoundTrip Test"
+
+        // Encode
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let data = try encoder.encode(originalData)
+
+        // Decode
+        let decoder = JSONDecoder()
+        let loadedData = try decoder.decode(SceneData.self, from: data)
+
+        // Verify
+        #expect(loadedData.entities.count == 2)
+        #expect(loadedData.metadata.name == "RoundTrip Test")
+        #expect(loadedData.entities[0].name == "TestCube")
+        #expect(loadedData.entities[0].transform.position == [1, 2, 3])
+        #expect(loadedData.entities[1].type == .sphere)
+    }
+
+    @Test("SceneData decoding handles empty data")
+    func testEmptyDataThrows() {
+        let emptyData = Data()
+        let decoder = JSONDecoder()
+
+        #expect(throws: (any Error).self) {
+            _ = try decoder.decode(SceneData.self, from: emptyData)
+        }
+    }
+
+    @Test("SceneData decoding handles invalid JSON")
+    func testInvalidJSONThrows() {
+        let invalidJSON = "{ invalid json }".data(using: .utf8)!
+        let decoder = JSONDecoder()
+
+        #expect(throws: (any Error).self) {
+            _ = try decoder.decode(SceneData.self, from: invalidJSON)
+        }
+    }
+
+    @Test("SceneData preserves entity IDs on round-trip")
+    func testEntityIDsPreserved() throws {
+        let entityId = UUID()
+
+        var originalData = SceneData()
+        originalData.entities = [
+            EntityData(id: entityId, name: "IDTest", type: .cone)
+        ]
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(originalData)
+
+        let decoder = JSONDecoder()
+        let loadedData = try decoder.decode(SceneData.self, from: data)
+
+        #expect(loadedData.entities[0].id == entityId)
+    }
+
+    @Test("SceneDocument content type")
+    func testContentTypes() {
+        #expect(SceneDocument.readableContentTypes.contains(.sceneDocument))
+        #expect(SceneDocument.writableContentTypes.contains(.sceneDocument))
     }
 }

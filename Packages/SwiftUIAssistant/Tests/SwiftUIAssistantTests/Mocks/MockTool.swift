@@ -9,14 +9,14 @@ struct MockTool: AssistantTool {
     var parameters: [ToolParameter]
 
     /// Closure to customize execution behavior in tests
-    var executeHandler: (([String: Any]) async throws -> ToolExecutionResult)?
+    var executeHandler: (@Sendable ([String: JSONValue]) async throws -> ToolExecutionResult)?
 
     init(
         id: String,
         name: String,
         description: String,
         parameters: [ToolParameter] = [],
-        executeHandler: (([String: Any]) async throws -> ToolExecutionResult)? = nil
+        executeHandler: (@Sendable ([String: JSONValue]) async throws -> ToolExecutionResult)? = nil
     ) {
         self.id = id
         self.name = name
@@ -25,7 +25,7 @@ struct MockTool: AssistantTool {
         self.executeHandler = executeHandler
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
         if let handler = executeHandler {
             return try await handler(arguments)
         }
@@ -34,7 +34,7 @@ struct MockTool: AssistantTool {
         return ToolExecutionResult(
             success: true,
             message: "Mock tool '\(name)' executed successfully",
-            data: ["arguments": arguments]
+            data: nil
         )
     }
 }
@@ -52,7 +52,7 @@ struct FailingMockTool: AssistantTool {
         self.errorMessage = errorMessage
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
         return ToolExecutionResult(
             success: false,
             message: errorMessage,
@@ -68,7 +68,7 @@ struct ThrowingMockTool: AssistantTool {
     let description: String = "A tool that throws"
     let parameters: [ToolParameter] = []
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
         throw AssistantError.toolExecutionFailed(toolName: name, reason: "Intentional test error")
     }
 }
@@ -86,7 +86,7 @@ struct DelayedMockTool: AssistantTool {
         self.delayNanoseconds = UInt64(delaySeconds * 1_000_000_000)
     }
 
-    func execute(arguments: [String: Any]) async throws -> ToolExecutionResult {
+    func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
         try await Task.sleep(nanoseconds: delayNanoseconds)
         return ToolExecutionResult(
             success: true,

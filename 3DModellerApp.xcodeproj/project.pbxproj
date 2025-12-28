@@ -12,6 +12,7 @@
 		253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */; };
 		2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */; };
 		3421FFE62CDDE5FE33F8E869 /* DeleteEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963AE036BDBB748EFA641D79 /* DeleteEntityTool.swift */; };
+		40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFBB66155410ABDA8497C94 /* AppModelTests.swift */; };
 		43CDAC7D090816997579D77A /* SwiftUIAssistant in Frameworks */ = {isa = PBXBuildFile; productRef = E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */; };
 		446BE25C8DA24E3904E8713C /* Viewport3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA075440578BA6785256D06A /* Viewport3DView.swift */; };
 		4F05D0C8531E7F0B37C9D533 /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77262B7DF955D154F10B319F /* SceneManager.swift */; };
@@ -65,6 +66,7 @@
 		E66F087DC4792997AB310824 /* 3DModellerApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = 3DModellerApp.entitlements; sourceTree = "<group>"; };
 		EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateEntityTool.swift; sourceTree = "<group>"; };
 		ED6058937E5DD57AD2F2ED9A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		EFFBB66155410ABDA8497C94 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		FF9128DE107552B2F45B1F81 /* SceneContextAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneContextAdapter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -133,6 +135,7 @@
 		976F0DAA64C5943C333EBD87 /* 3DModellerAppTests */ = {
 			isa = PBXGroup;
 			children = (
+				EFFBB66155410ABDA8497C94 /* AppModelTests.swift */,
 				48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */,
 				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
 				C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */,
@@ -304,6 +307,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */,
 				7723F1930A49B110243FCFD9 /* AssistantIntegrationTests.swift in Sources */,
 				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,
 				B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */,

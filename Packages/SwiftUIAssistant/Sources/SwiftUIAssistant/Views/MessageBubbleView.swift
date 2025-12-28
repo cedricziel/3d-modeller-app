@@ -17,9 +17,8 @@ public struct MessageBubbleView: View {
             }
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
-                // Message content
-                Text(message.content)
-                    .font(theme.messageFont)
+                // Message content with markdown rendering
+                Text(formattedContent)
                     .foregroundStyle(textColor)
                     .textSelection(.enabled)
                     .padding(theme.bubblePadding)
@@ -60,6 +59,20 @@ public struct MessageBubbleView: View {
             return theme.userMessageTextColor
         case .assistant, .system, .toolResult:
             return theme.assistantMessageTextColor
+        }
+    }
+
+    private var formattedContent: AttributedString {
+        do {
+            var attributed = try AttributedString(markdown: message.content)
+            // Apply theme font as base
+            attributed.font = theme.messageFont
+            return attributed
+        } catch {
+            // Fallback to plain text if markdown parsing fails
+            var plain = AttributedString(message.content)
+            plain.font = theme.messageFont
+            return plain
         }
     }
 }
@@ -127,17 +140,25 @@ struct ToolCallsIndicatorView: View {
 #Preview {
     VStack(spacing: 16) {
         MessageBubbleView(
-            message: Message(role: .user, content: "Create a red cube"),
+            message: Message(role: .user, content: "Create a **red** cube"),
             theme: DefaultAssistantTheme()
         )
 
         MessageBubbleView(
             message: Message(
                 role: .assistant,
-                content: "I'll create a red cube for you.",
+                content: "I'll create a **red cube** for you using `create_primitive`.",
                 toolCalls: [
                     ToolCall(id: "1", name: "create_primitive", arguments: [:], status: .completed)
                 ]
+            ),
+            theme: DefaultAssistantTheme()
+        )
+
+        MessageBubbleView(
+            message: Message(
+                role: .assistant,
+                content: "Here's what I can do:\n- *Create* primitives\n- **Transform** objects\n- Set `materials`"
             ),
             theme: DefaultAssistantTheme()
         )

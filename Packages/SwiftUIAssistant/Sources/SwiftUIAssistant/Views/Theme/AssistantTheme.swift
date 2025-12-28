@@ -54,7 +54,7 @@ public struct DefaultAssistantTheme: AssistantTheme {
     }
 
     public var assistantMessageBackground: Color {
-        Color(.controlBackgroundColor)
+        Color(.unemphasizedSelectedContentBackgroundColor)
     }
 
     public var userMessageTextColor: Color {

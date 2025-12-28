@@ -45,13 +45,13 @@ struct AssistantTests {
     func testToolExecution() async throws {
         let provider = MockLLMProvider()
 
-        var toolWasExecuted = false
+        let executionTracker = ExecutionTracker()
         let tool = MockTool(
             id: "test_tool",
             name: "test_tool",
             description: "Test",
             executeHandler: { _ in
-                toolWasExecuted = true
+                await executionTracker.markExecuted()
                 return ToolExecutionResult(success: true, message: "Done", data: nil)
             }
         )
@@ -73,7 +73,8 @@ struct AssistantTests {
 
         try await assistant.send("Run the tool")
 
-        #expect(toolWasExecuted)
+        let wasExecuted = await executionTracker.wasExecuted
+        #expect(wasExecuted)
     }
 
     @Test("Assistant handles tool execution failure gracefully")
@@ -233,6 +234,20 @@ final class ContextCallTracker: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         _wasCalled = true
+    }
+}
+
+// MARK: - Execution Tracker
+
+actor ExecutionTracker {
+    private var _wasExecuted = false
+
+    var wasExecuted: Bool {
+        _wasExecuted
+    }
+
+    func markExecuted() {
+        _wasExecuted = true
     }
 }
 

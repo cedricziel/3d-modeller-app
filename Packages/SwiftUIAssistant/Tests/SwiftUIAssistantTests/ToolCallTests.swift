@@ -11,14 +11,14 @@ struct ToolCallTests {
             id: "call_abc123",
             name: "transform_entity",
             arguments: [
-                "entityName": "Cube",
-                "position": [1.0, 2.0, 3.0]
+                "entityName": .string("Cube"),
+                "position": .array([.number(1.0), .number(2.0), .number(3.0)])
             ]
         )
 
         #expect(toolCall.id == "call_abc123")
         #expect(toolCall.name == "transform_entity")
-        #expect(toolCall.arguments["entityName"] as? String == "Cube")
+        #expect(toolCall.arguments["entityName"] == .string("Cube"))
     }
 
     @Test("ToolCall status transitions")
@@ -26,7 +26,7 @@ struct ToolCallTests {
         var toolCall = ToolCall(
             id: "call_123",
             name: "delete_entity",
-            arguments: ["entityName": "Sphere"]
+            arguments: ["entityName": .string("Sphere")]
         )
 
         #expect(toolCall.status == .pending)
@@ -43,7 +43,7 @@ struct ToolCallTests {
         var toolCall = ToolCall(
             id: "call_123",
             name: "create_primitive",
-            arguments: ["type": "sphere"]
+            arguments: ["type": .string("sphere")]
         )
 
         let result = ToolExecutionResult(
@@ -64,7 +64,7 @@ struct ToolCallTests {
         var toolCall = ToolCall(
             id: "call_123",
             name: "delete_entity",
-            arguments: ["entityName": "NonExistent"]
+            arguments: ["entityName": .string("NonExistent")]
         )
 
         let result = ToolExecutionResult(

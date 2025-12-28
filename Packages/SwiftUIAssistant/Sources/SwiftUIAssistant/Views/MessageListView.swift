@@ -32,22 +32,36 @@ public struct MessageListView: View {
                 }
                 .padding()
             }
+            .onAppear {
+                scrollToBottom(proxy: proxy, animated: false)
+            }
             .onChange(of: messages.count) { _, _ in
-                scrollToBottom(proxy: proxy)
+                scrollToBottom(proxy: proxy, animated: true)
             }
             .onChange(of: isProcessing) { _, _ in
-                scrollToBottom(proxy: proxy)
+                scrollToBottom(proxy: proxy, animated: true)
             }
         }
     }
 
-    private func scrollToBottom(proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: 0.2)) {
-            if isProcessing {
-                proxy.scrollTo("typing-indicator", anchor: .bottom)
-            } else if let lastMessage = messages.last {
-                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+    private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool) {
+        // Defer to next run loop to avoid "Publishing changes from within view updates" warning
+        DispatchQueue.main.async {
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    performScroll(proxy: proxy)
+                }
+            } else {
+                performScroll(proxy: proxy)
             }
+        }
+    }
+
+    private func performScroll(proxy: ScrollViewProxy) {
+        if isProcessing {
+            proxy.scrollTo("typing-indicator", anchor: .bottom)
+        } else if let lastMessage = messages.last {
+            proxy.scrollTo(lastMessage.id, anchor: .bottom)
         }
     }
 }
@@ -81,9 +95,11 @@ public struct TypingIndicatorView: View {
     }
 
     private func startAnimation() {
-        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                dotIndex = (dotIndex + 1) % 3
+        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [self] _ in
+            Task { @MainActor in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    dotIndex = (dotIndex + 1) % 3
+                }
             }
         }
     }

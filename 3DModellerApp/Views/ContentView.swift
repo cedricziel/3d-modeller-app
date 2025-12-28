@@ -29,17 +29,38 @@ struct ContentView: View {
                         .padding()
                 }
         } detail: {
-            // Right sidebar: Assistant or Properties
-            if appModel.showAssistant, let assistant = assistant {
+            // Right sidebar: Properties Inspector (always visible)
+            PropertiesInspectorView(sceneManager: sceneManager)
+                .frame(minWidth: 250)
+        }
+        .inspector(isPresented: $appModel.showAssistant) {
+            if let assistant = assistant {
                 AssistantPanel(
                     assistant: assistant,
                     isPresented: $appModel.showAssistant
                 )
             } else {
-                PropertiesInspectorView(sceneManager: sceneManager)
-                    .frame(minWidth: 250)
+                // No API key configured - show setup prompt
+                VStack(spacing: 16) {
+                    Image(systemName: "key.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text("Assistant Not Configured")
+                        .font(.headline)
+                    Text("Add your API key in Settings to enable the AI assistant.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    SettingsLink {
+                        Text("Open Settings")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(minWidth: 300)
+                .padding()
             }
         }
+        .inspectorColumnWidth(min: 300, ideal: 350, max: 500)
         .navigationTitle(document.sceneData.metadata.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
