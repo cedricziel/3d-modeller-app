@@ -243,6 +243,10 @@
 						DevelopmentTeam = WPW3QSLZ2F;
 						ProvisioningStyle = Automatic;
 					};
+					BE7E4BACF0CE180291BC23B5 = {
+						DevelopmentTeam = WPW3QSLZ2F;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = B36FF59B1AB4730D95054C51 /* Build configuration list for PBXProject "3DModellerApp" */;
@@ -401,7 +405,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = WPW3QSLZ2F;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -419,7 +425,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = WPW3QSLZ2F;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

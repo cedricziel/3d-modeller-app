@@ -10,13 +10,6 @@ struct ModellerApp: App {
                 .environmentObject(appModel)
         }
         .commands {
-            CommandGroup(replacing: .newItem) {
-                Button("New Scene") {
-                    // Handle via DocumentGroup
-                }
-                .keyboardShortcut("n", modifiers: .command)
-            }
-
             CommandMenu("Tools") {
                 Button("Select") {
                     appModel.selectedTool = .select
