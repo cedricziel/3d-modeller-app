@@ -17,6 +17,7 @@
 		4F05D0C8531E7F0B37C9D533 /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77262B7DF955D154F10B319F /* SceneManager.swift */; };
 		521165A128D2584BE448AA8F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C7AC13B8AFB6810059AB22A /* ContentView.swift */; };
 		7320708B043C83252FCD0400 /* CreatePrimitiveTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37DED0741689842B141AD2E6 /* CreatePrimitiveTool.swift */; };
+		7723F1930A49B110243FCFD9 /* AssistantIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */; };
 		7EEE685822D00C28AAEB9425 /* PropertiesInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */; };
 		826056080647BCD726193BE1 /* ModellerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17993460361E0DC0931AD47F /* ModellerApp.swift */; };
 		8D3AA70BBDCFA304A57D3CB9 /* SceneContextAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9128DE107552B2F45B1F81 /* SceneContextAdapter.swift */; };
@@ -44,6 +45,7 @@
 		24E6BB346016D6BB0545D19E /* SwiftUIAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistant; path = Packages/SwiftUIAssistant; sourceTree = SOURCE_ROOT; };
 		27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertiesInspectorView.swift; sourceTree = "<group>"; };
 		37DED0741689842B141AD2E6 /* CreatePrimitiveTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePrimitiveTool.swift; sourceTree = "<group>"; };
+		48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantIntegrationTests.swift; sourceTree = "<group>"; };
 		50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDocumentTests.swift; sourceTree = "<group>"; };
 		50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = 3DModellerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -131,6 +133,7 @@
 		976F0DAA64C5943C333EBD87 /* 3DModellerAppTests */ = {
 			isa = PBXGroup;
 			children = (
+				48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */,
 				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
 				C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */,
 			);
@@ -301,6 +304,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7723F1930A49B110243FCFD9 /* AssistantIntegrationTests.swift in Sources */,
 				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,
 				B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */,
 			);
