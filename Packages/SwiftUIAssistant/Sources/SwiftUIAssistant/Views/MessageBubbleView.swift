@@ -64,7 +64,13 @@ public struct MessageBubbleView: View {
 
     private var formattedContent: AttributedString {
         do {
-            var attributed = try AttributedString(markdown: message.content)
+            // Use inlineOnlyPreservingWhitespace to keep line breaks while parsing inline markdown
+            var attributed = try AttributedString(
+                markdown: message.content,
+                options: AttributedString.MarkdownParsingOptions(
+                    interpretedSyntax: .inlineOnlyPreservingWhitespace
+                )
+            )
             // Apply theme font as base
             attributed.font = theme.messageFont
             return attributed

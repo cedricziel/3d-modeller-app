@@ -23,15 +23,17 @@ struct MarkdownRenderingTests {
 
     @Test
     func testMultilineText() throws {
-        // Note: Markdown typically converts single newlines to spaces
-        // Double newlines create paragraph breaks
+        // With inlineOnlyPreservingWhitespace, newlines are preserved
         let content = "Line 1\nLine 2\nLine 3"
-        let attributed = try AttributedString(markdown: content)
+        let attributed = try AttributedString(
+            markdown: content,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+        )
         let text = String(attributed.characters)
-        // Just verify all content is present
-        #expect(text.contains("Line 1"))
-        #expect(text.contains("Line 2"))
-        #expect(text.contains("Line 3"))
+        // Verify line breaks are preserved
+        #expect(text == "Line 1\nLine 2\nLine 3")
     }
 
     // MARK: - Bold
@@ -192,6 +194,23 @@ struct MarkdownRenderingTests {
         #expect(text.contains("Item 2"))
     }
 
+    // MARK: - Paragraph Preservation
+
+    @Test
+    func testParagraphsPreserved() throws {
+        let content = "First paragraph.\n\nSecond paragraph."
+        let attributed = try AttributedString(
+            markdown: content,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+        )
+        let text = String(attributed.characters)
+        // Double newlines should be preserved
+        #expect(text.contains("\n\n"))
+        #expect(text == "First paragraph.\n\nSecond paragraph.")
+    }
+
     // MARK: - Typical Assistant Messages
 
     @Test
@@ -203,12 +222,19 @@ struct MarkdownRenderingTests {
             - Created a *box* primitive
             - Set the color to **red**
             """
-        let attributed = try AttributedString(markdown: content)
+        let attributed = try AttributedString(
+            markdown: content,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+        )
         let text = String(attributed.characters)
 
         #expect(text.contains("red cube"))
         #expect(text.contains("create_primitive"))
         #expect(text.contains("box"))
         #expect(text.contains("red"))
+        // Verify paragraph break is preserved
+        #expect(text.contains("\n\n"))
     }
 }
