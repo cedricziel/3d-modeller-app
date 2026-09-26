@@ -24,6 +24,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
     case invalidTools(String)
     case reference(String)
     case sketch(String)
+    case extent(String)
     case kernel(String)
 
     public var description: String {
@@ -35,6 +36,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
         case .invalidTools(let detail): detail
         case .reference(let detail): detail
         case .sketch(let detail): detail
+        case .extent(let detail): detail
         case .kernel(let detail): detail
         }
     }
@@ -60,6 +62,7 @@ public struct PartResult: Sendable, Equatable, Identifiable {
     public let name: String
     public let features: [FeatureResult]
     public let bodies: [BodyResult]
+    public let sketches: [SketchResult]
 }
 
 public struct RebuildResult: Sendable, Equatable {
@@ -74,5 +77,9 @@ public struct RebuildResult: Sendable, Equatable {
 
     public func feature(id: UUID) -> FeatureResult? {
         parts.lazy.flatMap(\.features).first { $0.id == id }
+    }
+
+    public func sketch(id: UUID) -> SketchResult? {
+        parts.lazy.flatMap(\.sketches).first { $0.id == id }
     }
 }

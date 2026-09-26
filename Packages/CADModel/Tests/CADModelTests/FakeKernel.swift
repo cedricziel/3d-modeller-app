@@ -6,6 +6,7 @@ import simd
 struct FakeBody: Sendable, Equatable {
     var volume: Double
     var topology = BodyTopology(faces: [], edges: [])
+    var bounds: Bounds?
 }
 
 extension BodyTopology {
@@ -93,9 +94,10 @@ final class FakeKernel: GeometryKernel {
     {
         record("box \(Scalar.number(width))x\(Scalar.number(depth))x\(Scalar.number(height)) \(Self.text(placement))")
         try Self.requirePositive(width, depth, height)
+        let size = SIMD3(width, depth, height)
         return FakeBody(
-            volume: width * depth * height,
-            topology: .box(feature, origin: placement.translation, size: SIMD3(width, depth, height)))
+            volume: width * depth * height, topology: .box(feature, origin: placement.translation, size: size),
+            bounds: Bounds(min: placement.translation, max: placement.translation + size))
     }
 
     func cylinder(radius: Double, height: Double, placement: ResolvedPlacement, feature: String) throws -> FakeBody {
@@ -139,7 +141,7 @@ final class FakeKernel: GeometryKernel {
             case .intersect: min(target.volume, tool.volume)
             }
         guard volume > 0 else { throw FakeKernelError(description: "The operation left no solid") }
-        return FakeBody(volume: volume, topology: target.topology + tool.topology)
+        return FakeBody(volume: volume, topology: target.topology + tool.topology, bounds: target.bounds)
     }
 
     func transform(_ body: FakeBody, by placement: ResolvedPlacement) throws -> FakeBody {
@@ -184,6 +186,36 @@ final class FakeKernel: GeometryKernel {
         return result
     }
 
+    /// Records the regions, the offsets and the curve names; each curve becomes a side face.
+    func extrude(_ profile: SketchProfile, from: Double, to: Double, feature: String) throws -> FakeBody {
+        let curves = profile.regions.flatMap { $0.outer + $0.holes.flatMap(\.self) }.map(\.entity)
+        record(
+            "extrude \(profile.regions.count) regions \(Scalar.number(from))...\(Scalar.number(to)) as \(feature): "
+                + curves.joined(separator: ", "))
+        return FakeBody(volume: abs(to - from), topology: Self.sides(curves, feature))
+    }
+
+    func revolve(
+        _ profile: SketchProfile, axisOrigin: SIMD3<Double>, axisDirection: SIMD3<Double>, angleDegrees: Double,
+        feature: String
+    ) throws -> FakeBody {
+        func text(_ v: SIMD3<Double>) -> String {
+            "(\(Scalar.number(v.x)),\(Scalar.number(v.y)),\(Scalar.number(v.z)))"
+        }
+        record(
+            "revolve \(profile.regions.count) regions about \(text(axisOrigin)) along \(text(axisDirection)) "
+                + "by \(Scalar.number(angleDegrees)) as \(feature)")
+        let curves = profile.regions.flatMap { $0.outer + $0.holes.flatMap(\.self) }.map(\.entity)
+        return FakeBody(volume: angleDegrees, topology: Self.sides(curves, feature))
+    }
+
+    private static func sides(_ curves: [String], _ feature: String) -> BodyTopology {
+        BodyTopology(
+            faces: curves.map {
+                FaceDescriptor(names: ["\(feature).side[\($0)]"], surface: .plane, centroid: .zero, area: 1)
+            }, edges: [])
+    }
+
     func topology(of body: FakeBody) throws -> BodyTopology {
         body.topology
     }
@@ -210,7 +242,8 @@ final class FakeKernel: GeometryKernel {
     }
 
     func bounds(of operand: GeometryOperand<FakeBody>) throws -> Bounds {
-        Bounds(min: .zero, max: SIMD3(repeating: Self.volume(operand)))
+        if case .body(let body) = operand, let bounds = body.bounds { return bounds }
+        return Bounds(min: .zero, max: SIMD3(repeating: Self.volume(operand)))
     }
 
     private static func volume(_ operand: GeometryOperand<FakeBody>) -> Double {

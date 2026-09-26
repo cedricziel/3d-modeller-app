@@ -124,6 +124,34 @@ struct FakeKernel: GeometryKernel {
         return result
     }
 
+    /// The bounding box of the profile's curve ends swept from `from` to `to`; its volume is that box's.
+    func extrude(_ profile: SketchProfile, from: Double, to: Double, feature: String) throws -> FakeBody {
+        let curves = profile.regions.flatMap { $0.outer + $0.holes.flatMap(\.self) }
+        let points = curves.flatMap { curve in
+            [from, to].flatMap { offset in
+                [curve.geometry.start, curve.geometry.end].map {
+                    profile.frame.point($0) + offset * profile.frame.normal
+                }
+            }
+        }
+        let low = points.dropFirst().reduce(points[0]) { simd_min($0, $1) }
+        let high = points.dropFirst().reduce(points[0]) { simd_max($0, $1) }
+        let size = high - low
+        let faces = curves.map {
+            FaceDescriptor(names: ["\(feature).side[\($0.entity)]"], surface: .plane, centroid: .zero, area: 1)
+        }
+        return FakeBody(
+            volume: [size.x, size.y, size.z].filter { $0 > 1e-9 }.reduce(1, *), boundsMin: low, boundsMax: high,
+            topology: BodyTopology(faces: faces, edges: []))
+    }
+
+    func revolve(
+        _ profile: SketchProfile, axisOrigin: SIMD3<Double>, axisDirection: SIMD3<Double>, angleDegrees: Double,
+        feature: String
+    ) throws -> FakeBody {
+        FakeBody(volume: angleDegrees, boundsMin: .zero, boundsMax: SIMD3(1, 1, 1))
+    }
+
     func topology(of body: FakeBody) throws -> BodyTopology {
         body.topology
     }
