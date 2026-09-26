@@ -326,6 +326,16 @@ struct SceneDocumentTests {
         #expect(loadedData.entities[0].id == entityId)
     }
 
+    @Test("Saving writes the scene data the document currently holds")
+    func snapshotReturnsCurrentSceneData() throws {
+        let doc = SceneDocument()
+        doc.sceneData.entities = [EntityData(name: "Saved", type: .cone)]
+
+        let snapshot = try doc.snapshot(contentType: .sceneDocument)
+
+        #expect(snapshot.entities.map(\.name) == ["Saved"])
+    }
+
     @Test("SceneDocument content type")
     func contentTypes() {
         #expect(SceneDocument.readableContentTypes.contains(.sceneDocument))

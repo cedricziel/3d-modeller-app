@@ -446,7 +446,7 @@ struct SceneManagerTests {
         let revision = sceneManager.revision
 
         sceneManager.loadSceneData(sampleSceneData())
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         #expect(sceneManager.revision == revision)
         #expect(sceneManager.entities.count == 1)
@@ -459,7 +459,7 @@ struct SceneManagerTests {
         let entity = sceneManager.createPrimitive(type: .box, position: [1, 0, 0])
 
         _ = sceneManager.transformEntity(id: entity.id, position: [5, 5, 5], scale: [2, 2, 2])
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         let restored = sceneManager.entities[entity.id]
         #expect(restored?.entity.position == [1, 0, 0])
@@ -478,16 +478,16 @@ struct SceneManagerTests {
         _ = sceneManager.transformEntity(id: id, scale: [3, 3, 3])
         let edited = try #require(sceneManager.toSceneData().entities.first)
 
-        sceneManager.undo()
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
+        sceneManager.undoManager.undo()
         let undone = try #require(sceneManager.toSceneData().entities.first)
         #expect(undone.id == loaded.id)
         #expect(undone.material.metallic == loaded.material.metallic)
         #expect(isClose(undone.transform.scale, loaded.transform.scale))
         #expect(isClose(undone.transform.rotation, loaded.transform.rotation))
 
-        sceneManager.redo()
-        sceneManager.redo()
+        sceneManager.undoManager.redo()
+        sceneManager.undoManager.redo()
         let redone = try #require(sceneManager.toSceneData().entities.first)
         #expect(redone.id == edited.id)
         #expect(redone.material.metallic == 0.1)
@@ -502,14 +502,14 @@ struct SceneManagerTests {
         _ = sceneManager.createPrimitive(type: .box, name: "A")
         _ = sceneManager.createPrimitive(type: .box, name: "B")
 
-        sceneManager.undo()
-        sceneManager.undo()
-        sceneManager.redo()
-        sceneManager.redo()
+        sceneManager.undoManager.undo()
+        sceneManager.undoManager.undo()
+        sceneManager.undoManager.redo()
+        sceneManager.undoManager.redo()
 
         #expect(sceneManager.entity(named: "A") != nil)
         #expect(sceneManager.entity(named: "B") != nil)
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
         #expect(sceneManager.entity(named: "B") == nil)
     }
 
@@ -533,12 +533,78 @@ struct SceneManagerTests {
         sceneData.entities = [EntityData(name: "LoadedBox", type: .box)]
         sceneManager.loadSceneData(sceneData)
 
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         #expect(sceneManager.entity(named: "LoadedBox") != nil)
     }
 
     // MARK: - Undo/Redo Tests
+
+    @Test("Edits show up in the Edit menu's undo manager, named after the change")
+    func editsRegisterWithInjectedUndoManager() {
+        let sceneManager = SceneManager()
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        sceneManager.undoManager = undoManager
+        let box = sceneManager.createPrimitive(type: .box, name: "Crate")
+        #expect(undoManager.undoActionName == "Add Crate")
+
+        _ = sceneManager.deleteEntity(id: box.id)
+        #expect(undoManager.canUndo)
+        #expect(undoManager.undoActionName == "Delete Crate")
+        #expect(!undoManager.canRedo)
+
+        undoManager.undo()
+        #expect(sceneManager.entities[box.id] != nil)
+        #expect(undoManager.canRedo)
+        #expect(undoManager.redoActionName == "Delete Crate")
+        #expect(undoManager.undoActionName == "Add Crate")
+
+        undoManager.redo()
+        #expect(sceneManager.entities[box.id] == nil)
+        #expect(undoManager.undoActionName == "Delete Crate")
+    }
+
+    @Test("Transform and material edits get their own undo names")
+    func transformAndMaterialActionNames() {
+        let sceneManager = SceneManager()
+        let box = sceneManager.createPrimitive(type: .box, name: "Crate")
+
+        _ = sceneManager.transformEntity(id: box.id, position: [1, 1, 1])
+        #expect(sceneManager.undoManager.undoActionName == "Transform Crate")
+
+        _ = sceneManager.setMaterial(id: box.id, metallic: 1)
+        #expect(sceneManager.undoManager.undoActionName == "Change Material of Crate")
+    }
+
+    @Test("Undo and redo bump the revision so the document is updated")
+    func undoAndRedoBumpRevision() {
+        let sceneManager = SceneManager()
+        _ = sceneManager.createPrimitive(type: .box)
+        let edited = sceneManager.revision
+
+        sceneManager.undoManager.undo()
+        #expect(sceneManager.revision > edited)
+
+        let undone = sceneManager.revision
+        sceneManager.undoManager.redo()
+        #expect(sceneManager.revision > undone)
+    }
+
+    @Test("Loading a scene leaves nothing to undo or redo")
+    func loadClearsUndoManager() {
+        let sceneManager = SceneManager()
+        _ = sceneManager.createPrimitive(type: .box)
+        _ = sceneManager.createPrimitive(type: .box)
+        sceneManager.undoManager.undo()
+        #expect(sceneManager.undoManager.canUndo)
+        #expect(sceneManager.undoManager.canRedo)
+
+        sceneManager.loadSceneData(sampleSceneData())
+
+        #expect(!sceneManager.undoManager.canUndo)
+        #expect(!sceneManager.undoManager.canRedo)
+    }
 
     @Test("Undoing a delete restores exactly one entity with the original id")
     func undoDeleteRestoresOriginalEntity() {
@@ -546,7 +612,7 @@ struct SceneManagerTests {
         let entity = sceneManager.createPrimitive(type: .box, name: "Keeper")
         _ = sceneManager.deleteEntity(id: entity.id)
 
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         #expect(sceneManager.entities.count == 1)
         #expect(sceneManager.entities[entity.id]?.name == "Keeper")
@@ -559,14 +625,14 @@ struct SceneManagerTests {
         let first = sceneManager.createPrimitive(type: .box, name: "First")
         let second = sceneManager.createPrimitive(type: .sphere, name: "Second")
 
-        sceneManager.undo()
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
+        sceneManager.undoManager.undo()
         #expect(sceneManager.entities.isEmpty)
 
-        sceneManager.redo()
+        sceneManager.undoManager.redo()
         #expect(Set(sceneManager.entities.keys) == [first.id])
 
-        sceneManager.redo()
+        sceneManager.undoManager.redo()
         #expect(Set(sceneManager.entities.keys) == [first.id, second.id])
     }
 
@@ -581,7 +647,7 @@ struct SceneManagerTests {
         let orientation = entity.entity.orientation
         _ = sceneManager.deleteEntity(id: entity.id)
 
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         let restored = try #require(sceneManager.entities[entity.id])
         #expect(restored.material.color == ColorData(r: 0, g: 0, b: 1))
@@ -598,7 +664,7 @@ struct SceneManagerTests {
         let entity = sceneManager.createPrimitive(type: .box, position: [1, 0, 0])
         _ = sceneManager.transformEntity(id: entity.id, position: [5, 5, 5])
 
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         let restored = try #require(sceneManager.entities[entity.id])
         #expect(restored.entity.position == [1, 0, 0])
@@ -610,7 +676,7 @@ struct SceneManagerTests {
         let entity = sceneManager.createPrimitive(type: .box, size: 2)
 
         _ = sceneManager.transformEntity(id: entity.id, position: [1, 0, 0])
-        sceneManager.undo()
+        sceneManager.undoManager.undo()
 
         let extents = sceneManager.entities[entity.id]?.entity.visualBounds(relativeTo: nil).extents
         #expect(extents.map { isClose($0, [2, 2, 2]) } == true)

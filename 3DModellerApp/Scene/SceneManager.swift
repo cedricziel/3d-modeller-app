@@ -35,8 +35,12 @@ final class SceneManager: ObservableObject {
 
     // MARK: - Undo/Redo
 
-    private var undoStack: [SceneSnapshot] = []
-    private var redoStack: [SceneSnapshot] = []
+    /// Where edits are recorded. The document window's undo manager in the app, so Edit ▸ Undo and ⌘Z drive it.
+    var undoManager: UndoManager = {
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        return undoManager
+    }()
 
     // MARK: - Initialization
 
@@ -106,14 +110,13 @@ final class SceneManager: ObservableObject {
         size: Float = 0.5,
         color: ColorData = ColorData(r: 0.8, g: 0.8, b: 0.8)
     ) -> CADEntity {
-        saveUndoState()
-
         let data = EntityData(
             name: name ?? generateName(for: type),
             type: type,
             transform: TransformData(position: position),
             material: MaterialData(color: color)
         )
+        saveUndoState(actionName: "Add \(data.name)")
         let cadEntity = addEntity(from: data, size: size)
         sceneDidChange()
 
@@ -212,7 +215,7 @@ final class SceneManager: ObservableObject {
     func deleteEntity(id: UUID) -> Bool {
         guard let cadEntity = entities[id] else { return false }
 
-        saveUndoState()
+        saveUndoState(actionName: "Delete \(cadEntity.name)")
 
         cadEntity.entity.removeFromParent()
         entities.removeValue(forKey: id)
@@ -242,7 +245,7 @@ final class SceneManager: ObservableObject {
     ) -> Bool {
         guard let cadEntity = entities[id] else { return false }
 
-        saveUndoState()
+        saveUndoState(actionName: "Transform \(cadEntity.name)")
 
         if let pos = position {
             cadEntity.entity.position = pos
@@ -286,7 +289,7 @@ final class SceneManager: ObservableObject {
             return false
         }
 
-        saveUndoState()
+        saveUndoState(actionName: "Change Material of \(cadEntity.name)")
 
         if let color = color {
             cadEntity.material.color = color
@@ -405,26 +408,24 @@ final class SceneManager: ObservableObject {
 
     // MARK: - Undo/Redo
 
-    private func saveUndoState() {
-        undoStack.append(SceneSnapshot(entities: entities))
-        redoStack.removeAll()
-
-        // Limit undo stack size
-        if undoStack.count > 50 {
-            undoStack.removeFirst()
+    /// Records the scene as it is now, before an edit, as one undo step
+    private func saveUndoState(actionName: String) {
+        let opensGroup = !undoManager.isUndoing && !undoManager.isRedoing
+        if opensGroup {
+            undoManager.beginUndoGrouping()
+        }
+        let snapshot = SceneSnapshot(entities: entities)
+        undoManager.registerUndo(withTarget: self) { manager in
+            manager.revert(to: snapshot, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
+        if opensGroup {
+            undoManager.endUndoGrouping()
         }
     }
 
-    func undo() {
-        guard let snapshot = undoStack.popLast() else { return }
-        redoStack.append(SceneSnapshot(entities: entities))
-        restoreSnapshot(snapshot)
-        sceneDidChange()
-    }
-
-    func redo() {
-        guard let snapshot = redoStack.popLast() else { return }
-        undoStack.append(SceneSnapshot(entities: entities))
+    private func revert(to snapshot: SceneSnapshot, actionName: String) {
+        saveUndoState(actionName: actionName)
         restoreSnapshot(snapshot)
         sceneDidChange()
     }
@@ -488,8 +489,7 @@ final class SceneManager: ObservableObject {
         }
         metadata = data.metadata
         entityCounters.removeAll()
-        undoStack.removeAll()
-        redoStack.removeAll()
+        undoManager.removeAllActions(withTarget: self)
         updateStatistics()
     }
 }

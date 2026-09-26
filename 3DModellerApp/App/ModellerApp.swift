@@ -5,8 +5,8 @@ struct ModellerApp: App {
     @StateObject private var appModel = AppModel()
 
     var body: some Scene {
-        DocumentGroup(newDocument: SceneDocument()) { configuration in
-            ContentView(document: configuration.$document)
+        DocumentGroup(newDocument: { SceneDocument() }) { configuration in
+            ContentView(document: configuration.document)
                 .environmentObject(appModel)
         }
         .defaultSize(width: 1440, height: 860)
