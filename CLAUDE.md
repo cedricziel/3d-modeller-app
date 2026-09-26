@@ -40,6 +40,7 @@ cd Packages/SwiftUIAssistantTools && xcrun swift test
 cd Packages/CADKernel && xcrun swift test
 cd Packages/CADModel && xcrun swift test
 cd Packages/CADAssistantTools && xcrun swift test   # includes the CADBench tests
+cd Packages/CADSolvers && xcrun swift test
 
 # Benchmark (calls the Claude API; see Bench/README.md)
 xcrun swift run --package-path Packages/CADAssistantTools cadbench run
@@ -68,6 +69,8 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 **SwiftUIAssistantTools** (`Packages/SwiftUIAssistantTools/`) - Common `AssistantTool`s: `FetchTool`, `CalculatorTool`, `TimeTool`
 
 **CADKernel** (`Packages/CADKernel/`) - The only code that imports OCCTSwift/Open CASCADE (pinned to OCCTSwift `3.0.0`, arm64 only). Static `Kernel` functions over opaque `Solid` values: placed primitives, booleans, transforms, `metrics`, `tessellate` (plain `KernelMesh` triangles, Z-up). Angles are radians.
+
+**CADSolvers** (`Packages/CADSolvers/`) - The only C++ solver code: FreeCAD's PlaneGCS (LGPL-2.1, pinned commit) with an Eigen 3.4.1 header subset (MPL-2.0), vendored unmodified under `Sources/PlaneGCS/include` with small shims for the FreeCAD/Boost headers it includes (see `Sources/PlaneGCS/VENDORED.md`; `Scripts/vendor-planegcs.sh` rebuilds the tree). `CPlaneGCS` is a C shim (opaque handle; catches every C++ exception). Swift API: `SketchSolver().solve(Sketch)` → `SketchSolution` (entities, `SketchState`: fullyConstrained / underConstrained(dof:) / overConstrained(conflicting:) / redundant / failed, DOF). Entities: point, line, circle, arc (radians, counter-clockwise), construction flag. Constraints reference entities by index and points by `SketchPointRef` (`.point/.start/.end/.center`); invalid input throws `SketchSolverError` before any C++ runs. Use `tangentAt` for tangent joints: coincident plus edge `tangent` only converges to about 1e-5. Unoptimised (debug) builds are about 20× slower than release: a 100-line sketch takes about 1.3 s in debug and 0.06 s in release
 
 **CADModel** (`Packages/CADModel/`) - Pure Swift, no OCCT:
 
@@ -109,6 +112,7 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 - Body names are ordinal (`Body<n>` = n-th newBody feature). Tool edits that add, delete or change a body-creating feature renumber later references to keep them on the same creating feature, and refuse the edit if a used body would disappear
 - Claude Opus 5.5 always thinks, and its thinking blocks must go back to the API unchanged. `ClaudeProvider` keeps each response's content blocks in `Message.rawContent` and replays them verbatim. Never rebuild or edit an assistant turn that has `rawContent`
 - Only `CADKernel` imports OCCTSwift; every OCCT call runs inside `OCCTSerial.withLock {}`
+- Only `CADSolvers` contains C++ solver code; vendored files are never edited by hand (change the shims or the pins)
 
 ## Project Configuration
 
