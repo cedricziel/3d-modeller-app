@@ -27,15 +27,17 @@ public struct Grade: Sendable, Codable, Equatable {
 
 public struct Grader<Kernel: GeometryKernel>: Sendable {
     public let kernel: Kernel
+    public let sketchSolver: (any SketchSolving)?
 
-    public init(kernel: Kernel) {
+    public init(kernel: Kernel, sketchSolver: (any SketchSolving)? = nil) {
         self.kernel = kernel
+        self.sketchSolver = sketchSolver
     }
 
     public func grade(_ task: BenchTask, document: CADDocument) async -> Grade {
         let result: RebuildResult
         do {
-            result = try await RebuildEngine(kernel: kernel).rebuild(document)
+            result = try await RebuildEngine(kernel: kernel, sketchSolver: sketchSolver).rebuild(document)
         } catch {
             return Grade(
                 outcomes: task.checks.map {
@@ -191,7 +193,7 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
 
     /// Intersection over union by inclusion–exclusion, because an empty intersection is a kernel error.
     private func overlap(_ document: CADDocument, _ reference: CADDocument) async throws -> Overlap? {
-        let engine = RebuildEngine(kernel: kernel)
+        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
         let candidate = try await engine.solids(of: document).map(\.body)
         let expected = try await engine.solids(of: reference).map(\.body)
         guard let a = try fuse(candidate), let b = try fuse(expected) else { return nil }
