@@ -19,6 +19,9 @@ extension FeatureKind {
             }
         case .boolean: "Boolean"
         case .transform: "Transform"
+        case .fillet: "Fillet"
+        case .chamfer: "Chamfer"
+        case .shell: "Shell"
         }
     }
 
@@ -34,6 +37,9 @@ extension FeatureKind {
             }
         case .boolean: "square.on.square.intersection.dashed"
         case .transform: "move.3d"
+        case .fillet: "rectangle.roundedtop"
+        case .chamfer: "octagon"
+        case .shell: "cube.transparent"
         }
     }
 
@@ -50,6 +56,24 @@ extension FeatureKind {
             ]
         case .transform(let transform):
             return [FeatureProperty(label: "Body", value: transform.body)] + transform.placement.properties
+        case .fillet(let fillet):
+            return [
+                FeatureProperty(label: "Body", value: fillet.body),
+                FeatureProperty(label: "Edges", value: fillet.edges.label),
+                FeatureProperty(label: "Radius", value: fillet.radius.description),
+            ]
+        case .chamfer(let chamfer):
+            return [
+                FeatureProperty(label: "Body", value: chamfer.body),
+                FeatureProperty(label: "Edges", value: chamfer.edges.label),
+                FeatureProperty(label: "Distance", value: chamfer.distance.description),
+            ]
+        case .shell(let shell):
+            return [
+                FeatureProperty(label: "Body", value: shell.body),
+                FeatureProperty(label: "Open faces", value: shell.faces.label),
+                FeatureProperty(label: "Thickness", value: shell.thickness.description),
+            ]
         }
     }
 }
@@ -89,6 +113,10 @@ extension Placement {
             FeatureProperty(label: "Rotation", value: "\(rotationDegrees)° about \(rotationAxis.label)"),
         ]
     }
+}
+
+extension [GeometryReference] {
+    var label: String { map(\.description).joined(separator: "; ") }
 }
 
 extension Vector3 {

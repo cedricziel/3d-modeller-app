@@ -62,4 +62,23 @@ struct FeatureDisplayTests {
         ]
         #expect(symbols.count == 4)
     }
+
+    @Test("Fillets, chamfers and shells list their body, references and size")
+    func dressUp() {
+        let fillet = FeatureKind.fillet(
+            FilletFeature(body: "Body1", edges: [.name("edge(A.front, A.top)"), .filter("parallel Z")], radius: 2))
+        #expect(fillet.title == "Fillet")
+        #expect(
+            fillet.properties == [
+                FeatureProperty(label: "Body", value: "Body1"),
+                FeatureProperty(label: "Edges", value: #"edge(A.front, A.top); "parallel Z""#),
+                FeatureProperty(label: "Radius", value: "2"),
+            ])
+        #expect(
+            FeatureKind.shell(ShellFeature(body: "Body1", faces: [.name("A.top")], thickness: "t")).properties.last
+                == FeatureProperty(label: "Thickness", value: "t"))
+        #expect(
+            FeatureKind.chamfer(ChamferFeature(body: "Body1", edges: [.filter("circular")], distance: 1)).title
+                == "Chamfer")
+    }
 }
