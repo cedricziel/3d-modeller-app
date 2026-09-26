@@ -39,6 +39,7 @@ cd Packages/SwiftUIAssistant && xcrun swift test
 cd Packages/SwiftUIAssistantTools && xcrun swift test
 cd Packages/CADKernel && xcrun swift test
 cd Packages/CADModel && xcrun swift test
+cd Packages/CADAssistantTools && xcrun swift test
 
 # Run a single test
 xcrun swift test --filter SwiftUIAssistantTests.AssistantTests/testSendMessage
@@ -48,7 +49,7 @@ Always use `xcrun swift`, not bare `swift`: the `swift` on `$PATH` may be a tool
 
 ## Architecture
 
-This is an AI-first parametric CAD app for macOS. A document holds parameters and parts with feature trees; a rebuild engine replays the features through the Open CASCADE kernel. The chat assistant will edit documents through typed tools (next layer; see `docs/superpowers/specs/2026-09-26-cad-roadmap-design.md`).
+This is an AI-first parametric CAD app for macOS. A document holds parameters and parts with feature trees; a rebuild engine replays the features through the Open CASCADE kernel. The chat assistant reads a text listing of the document and edits it through typed tools (see `docs/superpowers/specs/2026-09-26-cad-roadmap-design.md`).
 
 ### Package Structure
 
@@ -57,7 +58,8 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 - `LLMProvider` protocol - Abstraction for AI backends (Claude implemented; `ClaudeProvider` defaults to `claude-opus-5-5`, effort `medium`)
 - `AssistantTool` protocol - Define executable tools the AI can invoke
 - `Assistant` class - Orchestrates LLM calls and tool execution loops
-- `AssistantContext` protocol - Host app provides scene state to AI
+- `AssistantContext` protocol - Host app provides scene state to AI. With `AssistantConfiguration.attachesContextToMessages` the context travels with each user message (`Message.context`) instead of the system prompt, which stays fixed per conversation
+- `ToolParameter.custom` - a parameter with its own JSON Schema (unions, nested objects, arrays)
 - SwiftUI views: `AssistantPanel`, `AssistantView`, `MessageBubbleView`, etc.
 
 **SwiftUIAssistantTools** (`Packages/SwiftUIAssistantTools/`) - Common `AssistantTool`s: `FetchTool`, `CalculatorTool`, `TimeTool`
@@ -71,26 +73,36 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 - `Feature` - `{id, name, suppressed, kind}`; kinds: box/cylinder/sphere/cone/torus (with `Placement` in degrees and a `SolidOperation`: newBody, join/cut/intersect into a named body), boolean, transform. The n-th newBody feature in a part owns `Body<n>`
 - `GeometryKernel` protocol and `RebuildEngine` - replays features off the main actor (`@concurrent`, cancellable) into an immutable `RebuildResult`: per-feature `FeatureStatus` (ok / failed / skipped(dependsOn) / suppressed), bodies with `BodyMetrics` and `BodyMesh`, evaluated parameters. A failure never aborts the rebuild
 - `CADModelKernel` target - `OCCTGeometryKernel`, the adapter to CADKernel (degrees → radians happen here). `CADModelTests` use a fake kernel; `CADModelKernelTests` use the real one
+- `Part.createdBodies()` / `affectedBodies()` and `FeatureKind.bodyReferences` / `renameBodyReferences` - body naming shared by the rebuild and the tools
+
+**CADAssistantTools** (`Packages/CADAssistantTools/`) - Headless agent surface over CADModel (no UI, no OCCT import):
+
+- `CADSession` - `@MainActor @Observable`; owns a `CADDocument`, a rebuild engine for any `GeometryKernel` and the latest `RebuildResult`. `apply(_:actionName:)` commits an edit (calls `onCommit`, then rebuilds); `load(_:)` adopts a document changed elsewhere; a rebuild of an older document never replaces a newer result
+- `DocumentListing` - the compact text listing (parameters with values; per part, one line per feature: name, summary with expressions, → body, status). `CADSession.assistantContext()` returns it as `ListingContext`, readable from any isolation
+- Tools (`CADTools.all(session:)`): `get_listing`, `set_parameter`, `add_feature`, `edit_feature`, `delete_feature`, `rename_feature`, `suppress_feature`. Every write is one commit: it is validated first (unknown names, duplicates, bad arguments, and any expression that would newly fail are refused with nothing changed), body references are renumbered when body-creating features move, and the result reports the feature's status, status changes elsewhere, every body's validity/volume/bounds and the changed listing lines
+- `CADAssistantPrompt.system` / `.configuration` - the modelling system prompt (mm, degrees, check statuses after each write) with per-message context
+- Tests use a fake kernel, plus `OCCTGeometryKernel` for integration and a scripted `LLMProvider` driving the `Assistant` loop
 
 **3DModellerApp** - The main application:
 
 - `CADModelDocument` - `ReferenceFileDocument` for `.cadmodel` files holding a `CADDocument` value; `edit(_:undoManager:_:)` registers the previous value on the window's `UndoManager` (Edit ▸ Undo, ⌘Z)
-- `ContentView` - rebuilds with `.task(id: document.model)`, so each edit cancels the previous rebuild
+- `ContentView` - owns a `CADSession`; `.task(id: document.model)` calls `session.load`, so each edit cancels the previous rebuild. `CADModelDocument.connect(_:undoManager:)` routes session commits through `edit`, one named undo step per tool call
 - `FeatureOutlineView` (parameters, parts → features with status icons; context menu Suppress/Delete), `FeatureInspectorView` (read-only), `ModelStatisticsView`
 - `Viewport3DView` + `ViewportScene` - draws the result's meshes; `ViewportFrame` converts model millimetres, Z-up, to RealityKit metres, Y-up
-- Assistant tools: only the generic `FetchTool`, `CalculatorTool`, `TimeTool` until the CAD tools land
+- Assistant: `CADTools.all(session:)` with the listing as per-message context (`CADAssistantPrompt.configuration`); the generic SwiftUIAssistantTools are no longer registered
 
 ### Key Data Flow
 
 1. The document opens → `CADModelDocument` decodes `CADDocument`
-2. `ContentView` runs `RebuildEngine.rebuild` off the main actor → `RebuildResult`
-3. The outline, inspector, status bar and viewport read the result
-4. An edit (`CADModelDocument.edit`) changes the value and registers undo → the rebuild task restarts
-5. The assistant loop (`Assistant.send()` → `LLMProvider` → `AssistantTool.execute()`) runs beside it, currently with generic tools only
+2. `ContentView` loads it into its `CADSession`, which rebuilds off the main actor → `RebuildResult`
+3. The outline, inspector, status bar and viewport read `session.result`
+4. A UI edit (`CADModelDocument.edit`) changes the value and registers undo → the task calls `session.load` → rebuild
+5. The assistant (`Assistant.send()` → `LLMProvider` → CAD tool) edits through `CADSession.apply` → `onCommit` → `CADModelDocument.edit` (undo step) → rebuild; the tool result reports statuses, bodies and listing changes
 
 ### Important Patterns
 
-- The document is a value; every edit goes through `CADModelDocument.edit` with an action name
+- The document is a value; every edit goes through `CADModelDocument.edit` with an action name, including assistant edits (via `CADSession.onCommit`)
+- Body names are ordinal (`Body<n>` = n-th newBody feature). Tool edits that add, delete or change a body-creating feature renumber later references to keep them on the same creating feature, and refuse the edit if a used body would disappear
 - Claude Opus 5.5 always thinks, and its thinking blocks must go back to the API unchanged. `ClaudeProvider` keeps each response's content blocks in `Message.rawContent` and replays them verbatim. Never rebuild or edit an assistant turn that has `rawContent`
 - Only `CADKernel` imports OCCTSwift; every OCCT call runs inside `OCCTSerial.withLock {}`
 

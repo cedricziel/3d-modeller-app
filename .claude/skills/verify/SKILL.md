@@ -35,7 +35,8 @@ Bundle id: `com.example.3dmodeller`. Open a hand-written `.cadmodel` rather than
 - **Status bar (bottom):** bodies, triangles, and failed features when any.
 - **Edits without an API key:** right-click a feature → Suppress/Unsuppress or Delete. Each is one undo step; Edit ▸ Undo shows its name (`Undo Suppress BadCone`).
 - **Save:** ⌘S or autosave rewrites the file with sorted keys and generated ids; read it back with `python3 -m json.tool`.
-- The assistant panel needs an API key and has only the fetch, calculator and time tools until the CAD tools land.
+- **Assistant (needs an API key in Settings):** ask e.g. "add a pin named Pin, a cylinder r=2 h=5 standing on the plate at x=10, y=10, joined to the plate". Each tool call shows in the panel; the outline and viewport update after each write; Edit ▸ Undo names the tool action (`Undo Add Pin`, `Undo Set Parameter t`), one step per call. The tool results (expand a call in the panel) list statuses, bodies with volume and bounds, and changed listing lines. Refused calls show `Error: …` and leave the model unchanged.
+- **Without an API key** the tools are covered headlessly by `cd Packages/CADAssistantTools && xcrun swift test` (fake kernel, OCCT integration and a scripted assistant loop).
 
 ## Gotchas
 
