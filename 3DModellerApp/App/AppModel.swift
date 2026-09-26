@@ -6,8 +6,9 @@ import Combine
 final class AppModel: ObservableObject {
     // MARK: - UI State
 
-    /// Whether the assistant panel is visible
-    @Published var showAssistant: Bool = true
+    @Published var showInspector: Bool = true
+
+    @Published var inspectorTab: InspectorTab = .assistant
 
     /// Currently selected tool
     @Published var selectedTool: EditingTool = .select
@@ -17,6 +18,20 @@ final class AppModel: ObservableObject {
 
     /// Selected LLM provider
     @AppStorage("llmProvider") var llmProvider: String = "claude"
+
+    enum InspectorTab: String, CaseIterable, Identifiable {
+        case properties
+        case assistant
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .properties: return "Properties"
+            case .assistant: return "Assistant"
+            }
+        }
+    }
 
     // MARK: - Editing Tools
 
@@ -57,6 +72,15 @@ final class AppModel: ObservableObject {
     }
 
     // MARK: - View Actions
+
+    func toggleAssistant() {
+        if showInspector && inspectorTab == .assistant {
+            showInspector = false
+        } else {
+            inspectorTab = .assistant
+            showInspector = true
+        }
+    }
 
     func frameSelection() {
         // Will be implemented with scene manager

@@ -406,7 +406,7 @@ final class SceneManager: ObservableObject {
     // MARK: - Undo/Redo
 
     private func saveUndoState() {
-        undoStack.append(snapshot())
+        undoStack.append(SceneSnapshot(entities: entities))
         redoStack.removeAll()
 
         // Limit undo stack size
@@ -417,30 +417,34 @@ final class SceneManager: ObservableObject {
 
     func undo() {
         guard let snapshot = undoStack.popLast() else { return }
-        redoStack.append(self.snapshot())
+        redoStack.append(SceneSnapshot(entities: entities))
         restoreSnapshot(snapshot)
         sceneDidChange()
     }
 
     func redo() {
         guard let snapshot = redoStack.popLast() else { return }
-        undoStack.append(self.snapshot())
+        undoStack.append(SceneSnapshot(entities: entities))
         restoreSnapshot(snapshot)
         sceneDidChange()
-    }
-
-    private func snapshot() -> SceneSnapshot {
-        SceneSnapshot(entities: entities.values.map(entityData(for:)))
     }
 
     private func restoreSnapshot(_ snapshot: SceneSnapshot) {
         for entity in entities.values {
             entity.entity.removeFromParent()
         }
-        entities.removeAll()
 
-        for data in snapshot.entities {
-            addEntity(from: data)
+        entities = snapshot.entities.mapValues { saved in
+            let entity = saved.entity.clone(recursive: true)
+            rootEntity.addChild(entity)
+            return CADEntity(
+                id: saved.id,
+                name: saved.name,
+                type: saved.type,
+                entity: entity,
+                material: saved.material,
+                parentId: saved.parentId
+            )
         }
 
         if let selected = selectedEntityId, entities[selected] == nil {
@@ -474,7 +478,14 @@ final class SceneManager: ObservableObject {
 
     /// Replaces the scene with `data`. Not an edit: the undo history is cleared and `revision` is unchanged.
     func loadSceneData(_ data: SceneData) {
-        restoreSnapshot(SceneSnapshot(entities: data.entities))
+        for entity in entities.values {
+            entity.entity.removeFromParent()
+        }
+        entities.removeAll()
+        selectedEntityId = nil
+        for entityData in data.entities {
+            addEntity(from: entityData)
+        }
         metadata = data.metadata
         entityCounters.removeAll()
         undoStack.removeAll()
@@ -520,5 +531,18 @@ struct SceneStatistics {
 
 /// Snapshot for undo/redo
 struct SceneSnapshot {
-    let entities: [EntityData]
+    let entities: [UUID: CADEntity]
+
+    init(entities: [UUID: CADEntity]) {
+        self.entities = entities.mapValues { live in
+            CADEntity(
+                id: live.id,
+                name: live.name,
+                type: live.type,
+                entity: live.entity.clone(recursive: true),
+                material: live.material,
+                parentId: live.parentId
+            )
+        }
+    }
 }

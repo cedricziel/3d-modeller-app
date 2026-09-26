@@ -17,7 +17,6 @@ struct PropertiesInspectorView: View {
             .padding()
         }
         .frame(maxWidth: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor))
     }
 
     // MARK: - No Selection

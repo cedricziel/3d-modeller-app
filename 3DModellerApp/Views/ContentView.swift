@@ -14,64 +14,32 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            // Left sidebar: Scene outline
             SceneOutlineView(sceneManager: sceneManager)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 280)
-        } content: {
-            // Center: 3D Viewport
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+        } detail: {
             Viewport3DView(sceneManager: sceneManager)
-                .overlay(alignment: .topLeading) {
-                    ToolbarView(selectedTool: $appModel.selectedTool)
-                        .padding()
-                }
                 .overlay(alignment: .bottom) {
                     SceneStatisticsView(statistics: sceneManager.statistics)
                         .padding()
                 }
-                .navigationSplitViewColumnWidth(min: 400, ideal: 700)
-        } detail: {
-            // Right sidebar: Properties Inspector (always visible)
-            PropertiesInspectorView(sceneManager: sceneManager)
-                .frame(minWidth: 250, idealWidth: 280, maxWidth: 360)
         }
-        .inspector(isPresented: $appModel.showAssistant) {
-            if let assistant = assistant {
-                AssistantPanel(
-                    assistant: assistant,
-                    isPresented: $appModel.showAssistant
-                )
-            } else {
-                // No API key configured - show setup prompt
-                VStack(spacing: 16) {
-                    Image(systemName: "key.fill")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text("Assistant Not Configured")
-                        .font(.headline)
-                    Text("Add your API key in Settings to enable the AI assistant.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                    SettingsLink {
-                        Text("Open Settings")
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .frame(minWidth: 300)
-                .padding()
-            }
+        .inspector(isPresented: $appModel.showInspector) {
+            InspectorView(sceneManager: sceneManager, assistant: assistant)
+                .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
         }
-        .inspectorColumnWidth(min: 300, ideal: 350, max: 500)
-        .frame(minWidth: 1150, minHeight: 600)
+        .frame(minWidth: 900, minHeight: 600)
         .navigationTitle(document.sceneData.metadata.name)
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItem(placement: .principal) {
+                ToolPicker(selectedTool: $appModel.selectedTool)
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
-                    appModel.showAssistant.toggle()
+                    appModel.showInspector.toggle()
                 } label: {
-                    Image(systemName: appModel.showAssistant ? "bubble.left.fill" : "bubble.left")
+                    Label("Inspector", systemImage: "sidebar.trailing")
                 }
-                .help("Toggle Assistant (⌘\\)")
+                .help("Toggle Inspector (⌃⌘I)")
             }
         }
         .task {
@@ -151,29 +119,103 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Toolbar View
+// MARK: - Tool Picker
 
 @MainActor
-struct ToolbarView: View {
+struct ToolPicker: View {
     @Binding var selectedTool: AppModel.EditingTool
 
     var body: some View {
-        HStack(spacing: 4) {
+        Picker("Tool", selection: $selectedTool) {
             ForEach(AppModel.EditingTool.allCases) { tool in
-                Button {
-                    selectedTool = tool
-                } label: {
-                    Image(systemName: tool.icon)
-                        .font(.title2)
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.bordered)
-                .tint(selectedTool == tool ? .accentColor : .secondary)
-                .help("\(tool.label) (\(tool.shortcut))")
+                Label(tool.label, systemImage: tool.icon)
+                    .help("\(tool.label) (\(tool.shortcut))")
+                    .tag(tool)
             }
         }
-        .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .pickerStyle(.segmented)
+        .labelStyle(.iconOnly)
+    }
+}
+
+// MARK: - Inspector
+
+@MainActor
+struct InspectorView: View {
+    @ObservedObject var sceneManager: SceneManager
+    let assistant: Assistant?
+    @EnvironmentObject private var appModel: AppModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Picker("Inspector", selection: $appModel.inspectorTab) {
+                    ForEach(AppModel.InspectorTab.allCases) { tab in
+                        Text(tab.label).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                if appModel.inspectorTab == .assistant, let assistant {
+                    ClearConversationButton(assistant: assistant)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            switch appModel.inspectorTab {
+            case .properties:
+                PropertiesInspectorView(sceneManager: sceneManager)
+            case .assistant:
+                if let assistant {
+                    AssistantView(assistant: assistant)
+                } else {
+                    AssistantNotConfiguredView()
+                }
+            }
+        }
+    }
+}
+
+@MainActor
+private struct ClearConversationButton: View {
+    @ObservedObject var assistant: Assistant
+
+    var body: some View {
+        Button {
+            assistant.clearHistory()
+        } label: {
+            Label("Clear Conversation", systemImage: "trash")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.borderless)
+        .help("Clear conversation")
+        .disabled(assistant.messages.isEmpty)
+    }
+}
+
+private struct AssistantNotConfiguredView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "key.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Assistant Not Configured")
+                .font(.headline)
+            Text("Add your API key in Settings to enable the AI assistant.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            SettingsLink {
+                Text("Open Settings")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

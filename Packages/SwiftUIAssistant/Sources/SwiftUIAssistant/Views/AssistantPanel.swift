@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// A collapsible panel containing the assistant chat
+/// A panel containing the assistant chat, with a header to clear or close it
 ///
-/// This is designed to be used as a trailing sidebar in your app layout.
+/// Presenting and hiding the panel is up to the host. The close button sets
+/// `isPresented` to `false`.
 ///
 /// ```swift
-/// HSplitView {
-///     MainContentView()
-///     AssistantPanel(assistant: assistant, isPresented: $showAssistant)
-/// }
+/// MainContentView()
+///     .inspector(isPresented: $showAssistant) {
+///         AssistantPanel(assistant: assistant, isPresented: $showAssistant)
+///     }
 /// ```
 public struct AssistantPanel: View {
     @ObservedObject var assistant: Assistant
@@ -35,45 +36,43 @@ public struct AssistantPanel: View {
     }
 
     public var body: some View {
-        if isPresented {
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Text("Assistant")
-                        .font(.headline)
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Assistant")
+                    .font(.headline)
 
-                    Spacer()
+                Spacer()
 
-                    Button {
-                        assistant.clearHistory()
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Clear conversation")
-                    .disabled(assistant.messages.isEmpty)
-
-                    Button {
-                        withAnimation {
-                            isPresented = false
-                        }
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Close assistant")
+                Button {
+                    assistant.clearHistory()
+                } label: {
+                    Image(systemName: "trash")
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 10)
-                .background(.regularMaterial)
+                .buttonStyle(.borderless)
+                .help("Clear conversation")
+                .disabled(assistant.messages.isEmpty)
 
-                Divider()
-
-                // Chat
-                AssistantView(assistant: assistant, theme: theme)
+                Button {
+                    withAnimation {
+                        isPresented = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .help("Close assistant")
             }
-            .frame(minWidth: minWidth, idealWidth: idealWidth, maxWidth: maxWidth)
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(.regularMaterial)
+
+            Divider()
+
+            // Chat
+            AssistantView(assistant: assistant, theme: theme)
         }
+        .frame(minWidth: minWidth, idealWidth: idealWidth, maxWidth: maxWidth)
     }
 }
 

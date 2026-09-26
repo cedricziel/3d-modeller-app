@@ -7,9 +7,13 @@ struct Viewport3DView: View {
     @ObservedObject var sceneManager: SceneManager
     @EnvironmentObject private var appModel: AppModel
 
-    // Camera state
-    @State private var cameraDistance: Float = 5.0
-    @State private var cameraRotation: SIMD2<Float> = [Float.pi / 6, Float.pi / 4] // pitch, yaw
+    @State private var camera = OrbitCamera()
+    @State private var cameraAtGestureStart: OrbitCamera?
+    @State private var cameraEntity: Entity = {
+        let entity = Entity()
+        entity.components.set(PerspectiveCameraComponent())
+        return entity
+    }()
 
     // Track if scene is ready
     @State private var isSceneReady = false
@@ -19,6 +23,10 @@ struct Viewport3DView: View {
             if isSceneReady {
                 RealityView { content in
                     content.add(sceneManager.rootEntity)
+                    content.add(cameraEntity)
+                    aimCamera()
+                } update: { _ in
+                    aimCamera()
                 }
                 .gesture(orbitGesture)
                 .gesture(zoomGesture)
@@ -38,35 +46,35 @@ struct Viewport3DView: View {
         }
     }
 
-    // MARK: - Camera Update
+    // MARK: - Camera
 
-    private func updateCamera() {
-        // Calculate camera position from spherical coordinates
-        // Note: RealityView handles camera automatically in SwiftUI
-        // This is a placeholder for future camera manipulation
+    private func aimCamera() {
+        cameraEntity.look(at: .zero, from: camera.position, relativeTo: nil)
     }
 
     // MARK: - Gestures
 
-    /// Orbit camera with two-finger drag
     private var orbitGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                let sensitivity: Float = 0.01
-                cameraRotation.y += Float(value.translation.width) * sensitivity
-                cameraRotation.x -= Float(value.translation.height) * sensitivity
-
-                // Clamp pitch to avoid gimbal lock
-                cameraRotation.x = max(-Float.pi / 2 + 0.1, min(Float.pi / 2 - 0.1, cameraRotation.x))
+                let start = cameraAtGestureStart ?? camera
+                cameraAtGestureStart = start
+                camera = start.orbited(by: value.translation)
+            }
+            .onEnded { _ in
+                cameraAtGestureStart = nil
             }
     }
 
-    /// Zoom with magnification gesture
     private var zoomGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                let scale = Float(value.magnification)
-                cameraDistance = max(1.0, min(20.0, cameraDistance / scale))
+                let start = cameraAtGestureStart ?? camera
+                cameraAtGestureStart = start
+                camera = start.zoomed(by: value.magnification)
+            }
+            .onEnded { _ in
+                cameraAtGestureStart = nil
             }
     }
 
@@ -93,7 +101,8 @@ extension Viewport3DView {
 
         // Add highlight to selected entity
         if let selectedId = sceneManager.selectedEntityId,
-           let cadEntity = sceneManager.entities[selectedId] {
+            let cadEntity = sceneManager.entities[selectedId]
+        {
             // Apply selection highlight material
         }
     }
