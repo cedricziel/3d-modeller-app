@@ -1,41 +1,44 @@
+import CADAssistantTools
 import CADModel
 import CADModelKernel
 import SwiftUI
 import SwiftUIAssistant
-import SwiftUIAssistantTools
 
 @MainActor
 struct ContentView: View {
     @ObservedObject var document: CADModelDocument
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.undoManager) private var undoManager
-    @State private var result: RebuildResult?
+    @State private var session: CADSession
     @State private var selection: UUID?
     @State private var assistant: Assistant?
 
-    private static let engine = RebuildEngine(kernel: OCCTGeometryKernel())
+    init(document: CADModelDocument) {
+        _document = ObservedObject(wrappedValue: document)
+        _session = State(wrappedValue: CADSession(document: document.model, kernel: OCCTGeometryKernel()))
+    }
 
     var body: some View {
         NavigationSplitView {
             FeatureOutlineView(
                 model: document.model,
-                result: result,
+                result: session.result,
                 selection: $selection,
                 setSuppressed: setSuppressed,
                 delete: delete
             )
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
         } detail: {
-            Viewport3DView(result: result)
+            Viewport3DView(result: session.result)
                 .overlay(alignment: .bottom) {
-                    ModelStatisticsView(result: result)
+                    ModelStatisticsView(result: session.result)
                         .padding()
                 }
         }
         .inspector(isPresented: $appModel.showInspector) {
             InspectorView(
                 feature: selection.flatMap(document.model.feature(id:)),
-                featureResult: selection.flatMap { result?.feature(id: $0) },
+                featureResult: selection.flatMap { session.result?.feature(id: $0) },
                 assistant: assistant
             )
             .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
@@ -58,9 +61,10 @@ struct ContentView: View {
             setupAssistant()
         }
         .task(id: document.model) {
-            if let rebuilt = try? await Self.engine.rebuild(document.model), !Task.isCancelled {
-                result = rebuilt
-            }
+            await session.load(document.model)
+        }
+        .onChange(of: undoManager, initial: true) { _, undoManager in
+            document.connect(session, undoManager: undoManager)
         }
     }
 
@@ -84,26 +88,11 @@ struct ContentView: View {
     private func setupAssistant() {
         guard !appModel.llmApiKey.isEmpty else { return }
 
-        let systemPrompt = """
-            You are the assistant of a parametric CAD app. Models are measured in millimetres.
-            You cannot read or change the model yet; modelling tools arrive in a later release.
-            If asked to model something, say so briefly and describe how you would build it
-            from boxes, cylinders, spheres, cones and tori combined with booleans.
-
-            You can:
-            - Fetch data from URLs (GET, POST, PUT, PATCH, DELETE)
-            - Perform calculations (arithmetic, trigonometry, logarithms)
-            - Work with dates and times (parse, format, calculate differences)
-
-            ## Current Context
-            {context}
-            """
-
         assistant = Assistant(
             provider: ClaudeProvider(apiKey: appModel.llmApiKey),
-            tools: [FetchTool(), CalculatorTool(), TimeTool()],
-            contextProvider: { EmptyContext() },
-            configuration: AssistantConfiguration(systemPromptTemplate: systemPrompt)
+            tools: CADTools.all(session: session),
+            contextProvider: { [session] in session.assistantContext() },
+            configuration: CADAssistantPrompt.configuration
         )
     }
 }

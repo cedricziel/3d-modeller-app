@@ -9,10 +9,10 @@ options:
 packages:
   SwiftUIAssistant:
     path: Packages/SwiftUIAssistant
-  SwiftUIAssistantTools:
-    path: Packages/SwiftUIAssistantTools
   CADModel:
     path: Packages/CADModel
+  CADAssistantTools:
+    path: Packages/CADAssistantTools
 
 targets:
   3DModellerApp:
@@ -47,12 +47,12 @@ targets:
     dependencies:
       - package: SwiftUIAssistant
         product: SwiftUIAssistant
-      - package: SwiftUIAssistantTools
-        product: SwiftUIAssistantTools
       - package: CADModel
         product: CADModel
       - package: CADModel
         product: CADModelKernel
+      - package: CADAssistantTools
+        product: CADAssistantTools
     info:
       path: 3DModellerApp/Info.plist
       properties:
