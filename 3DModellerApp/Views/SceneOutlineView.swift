@@ -6,10 +6,12 @@ struct SceneOutlineView: View {
     @ObservedObject var sceneManager: SceneManager
 
     var body: some View {
-        List(selection: Binding(
-            get: { sceneManager.selectedEntityId },
-            set: { sceneManager.select(id: $0) }
-        )) {
+        List(
+            selection: Binding(
+                get: { sceneManager.selectedEntityId },
+                set: { sceneManager.select(id: $0) }
+            )
+        ) {
             Section("Objects") {
                 if sceneManager.entities.isEmpty {
                     Text("No objects in scene")
@@ -28,7 +30,6 @@ struct SceneOutlineView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("Scene")
     }
 
     // MARK: - Helpers

@@ -9,9 +9,10 @@ struct AppModelTests {
     // MARK: - Initial State Tests
 
     @Test
-    func testInitialShowAssistantIsTrue() {
+    func testInspectorIsShownOnAssistantTabInitially() {
         let appModel = AppModel()
-        #expect(appModel.showAssistant == true)
+        #expect(appModel.showInspector == true)
+        #expect(appModel.inspectorTab == .assistant)
     }
 
     @Test
@@ -23,46 +24,35 @@ struct AppModelTests {
     // MARK: - Toggle Tests
 
     @Test
-    func testToggleShowAssistant() {
+    func testToggleAssistantHidesInspectorWhenAssistantIsShowing() {
         let appModel = AppModel()
-        #expect(appModel.showAssistant == true)
 
-        appModel.showAssistant.toggle()
-        #expect(appModel.showAssistant == false)
+        appModel.toggleAssistant()
 
-        appModel.showAssistant.toggle()
-        #expect(appModel.showAssistant == true)
+        #expect(appModel.showInspector == false)
     }
 
     @Test
-    func testSetShowAssistantDirectly() {
+    func testToggleAssistantShowsInspectorOnAssistantTabWhenHidden() {
         let appModel = AppModel()
+        appModel.showInspector = false
+        appModel.inspectorTab = .properties
 
-        appModel.showAssistant = false
-        #expect(appModel.showAssistant == false)
+        appModel.toggleAssistant()
 
-        appModel.showAssistant = true
-        #expect(appModel.showAssistant == true)
+        #expect(appModel.showInspector == true)
+        #expect(appModel.inspectorTab == .assistant)
     }
 
-    // MARK: - Published Property Tests
-
     @Test
-    func testShowAssistantPublishesChanges() {
+    func testToggleAssistantSwitchesTabWhenPropertiesIsShowing() {
         let appModel = AppModel()
-        var receivedValues: [Bool] = []
+        appModel.inspectorTab = .properties
 
-        let cancellable = appModel.$showAssistant.sink { value in
-            receivedValues.append(value)
-        }
+        appModel.toggleAssistant()
 
-        appModel.showAssistant = false
-        appModel.showAssistant = true
-
-        // Initial value + 2 changes = 3 values
-        #expect(receivedValues == [true, false, true])
-
-        cancellable.cancel()
+        #expect(appModel.showInspector == true)
+        #expect(appModel.inspectorTab == .assistant)
     }
 
     @Test
