@@ -26,12 +26,15 @@ struct DocumentListingTests {
 
     @Test("Without a rebuild result features read as not built, suppressed ones as suppressed")
     func notBuilt() {
-        #expect(
-            DocumentListing.render(Fixtures.plate(), result: nil).split(separator: "\n").map(String.init)[2...4] == [
-                "  Base  box width×depth×t at origin → Body1  not built",
-                "  Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  not built",
-                "  Pin  cylinder r=2 h=5 at (0, 0, 10) rotated 90° about (1, 0, 0) → Body2  suppressed",
-            ])
+        let lines: [String] = DocumentListing.render(Fixtures.plate(), result: nil).split(separator: "\n").map(
+            String.init)
+        let expected: [String] = [
+            "  Base  box width×depth×t at origin → Body1  not built",
+            "  Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  not built",
+            "  Pin  cylinder r=2 h=5 at (0, 0, 10) rotated 90° about (1, 0, 0) → Body2  suppressed",
+        ]
+
+        #expect(Array(lines[2...4]) == expected)
     }
 
     @Test("Empty documents, empty parts and failing parameters are listed plainly")
