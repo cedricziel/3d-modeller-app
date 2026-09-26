@@ -6,7 +6,7 @@
 #include <exception>
 #include <new>
 #include <numbers>
-#include <string>
+#include <cstring>
 #include <vector>
 
 #include <Sketcher/App/planegcs/GCS.h>
@@ -29,7 +29,7 @@ struct Entity
 
 struct ArgumentError
 {
-    std::string message;
+    const char* message;
 };
 
 }  // namespace
@@ -46,8 +46,8 @@ struct PGSSketch
     std::vector<Entity> entities;
     std::vector<int> conflicting;
     std::vector<int> redundant;
-    int highestTag = 0;
-    std::string lastError;
+    std::vector<int> tags;
+    char lastError[256] = "";
 
     double* unknown(double value)
     {
@@ -138,22 +138,27 @@ struct PGSSketch
 
 namespace
 {
+void recordError(const PGSSketch* sketch, const char* message) noexcept
+{
+    auto* mutableSketch = const_cast<PGSSketch*>(sketch);
+    strlcpy(mutableSketch->lastError, message, sizeof(mutableSketch->lastError));
+}
+
 template<typename Body>
 int32_t guarded(const PGSSketch* sketch, Body&& body) noexcept
 {
-    auto* mutableSketch = const_cast<PGSSketch*>(sketch);
     try {
         return body();
     }
     catch (const ArgumentError& error) {
-        mutableSketch->lastError = error.message;
+        recordError(sketch, error.message);
         return PGS_ERR_ARGUMENT;
     }
     catch (const std::exception& error) {
-        mutableSketch->lastError = error.what();
+        recordError(sketch, error.what());
     }
     catch (...) {
-        mutableSketch->lastError = "unknown C++ exception";
+        recordError(sketch, "unknown C++ exception");
     }
     return PGS_ERR_EXCEPTION;
 }
@@ -289,19 +294,21 @@ void readDiagnosis(PGSSketch& sketch, PGSReport& report)
     report.redundantCount = static_cast<int32_t>(sketch.redundant.size());
 }
 
+bool satisfiesTag(PGSSketch& sketch, int tag)
+{
+    const double error = sketch.system.calculateConstraintErrorByTag(tag);
+    return error * error <= sketch.system.convergence;
+}
+
 /// PlaneGCS checks redundant constraints against the parameters before it writes the solution
 /// back, so a sketch with a redundant constraint solved from a rough start reports `Converged`
 /// although it is solved. Every constraint is therefore checked on the applied solution instead.
 bool satisfiesEveryConstraint(PGSSketch& sketch)
 {
-    const int firstTag = sketch.arcs.empty() ? 1 : 0;
-    for (int tag = firstTag; tag <= sketch.highestTag; ++tag) {
-        const double error = sketch.system.calculateConstraintErrorByTag(tag);
-        if (!(error * error <= sketch.system.convergence)) {
-            return false;
-        }
+    if (!sketch.arcs.empty() && !satisfiesTag(sketch, 0)) {
+        return false;
     }
-    return true;
+    return std::ranges::all_of(sketch.tags, [&](int tag) { return satisfiesTag(sketch, tag); });
 }
 
 int32_t copyTags(const std::vector<int>& source, int32_t* tags, int32_t capacity)
@@ -384,7 +391,7 @@ int32_t pgs_add_constraint(PGSSketch* sketch, int32_t tag, PGSConstraint constra
             throw ArgumentError {"constraint tags must be greater than 0"};
         }
         addConstraint(*sketch, tag, constraint);
-        sketch->highestTag = std::max(sketch->highestTag, int(tag));
+        sketch->tags.push_back(tag);
         return int32_t {PGS_OK};
     });
 }
@@ -469,6 +476,6 @@ int32_t pgs_entity_values(const PGSSketch* sketch, int32_t entity, double* value
 
 const char* pgs_last_error(const PGSSketch* sketch)
 {
-    return sketch->lastError.c_str();
+    return sketch->lastError;
 }
 }
