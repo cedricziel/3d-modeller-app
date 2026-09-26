@@ -108,6 +108,12 @@ public enum CADAssistantPrompt {
         free: true releases it. Give a hinge or slide its range with limits {min, max} on add_joint or edit_joint.
         - To make a joint hold still at a pose, drive it with a value instead of replacing it with a fixed joint.
 
+        ## Export
+        - export writes the rebuilt model to a file when the user asks for one: step for CAD (exact geometry; an \
+        assembly keeps its parts, instances, names and colours), stl or 3mf for printing (triangles; tolerance sets \
+        the largest gap in mm). Without part, body or instance it exports the assembly when there are instances, \
+        else every part. Paths are relative to the export folder; never overwrite a file unless the user said so.
+
         ## Working
         - The message you receive starts with the current listing in <context>: parameters with values, then each \
         feature with what it does, the body it creates or changes, and its status. Call get_listing when you need \
