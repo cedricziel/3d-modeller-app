@@ -27,7 +27,7 @@ vendor_planegcs() {
 }
 
 vendor_eigen() {
-    git clone --quiet --depth 1 --branch "$EIGEN_TAG" "$EIGEN_URL" "$WORK_DIR/eigen"
+    git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$EIGEN_TAG" "$EIGEN_URL" "$WORK_DIR/eigen"
     test "$(git -C "$WORK_DIR/eigen" rev-parse HEAD)" = "$EIGEN_COMMIT"
     rm -rf "$INCLUDE_DIR/Eigen"
     local sources=("$INCLUDE_DIR"/Sketcher/App/planegcs/*.cpp)
