@@ -1,16 +1,16 @@
 # 3D Modeller
 
-An AI-first 3D modeling application for macOS where users interact primarily through a chat assistant that has full autonomous access to create, manipulate, and modify 3D models.
+An AI-first parametric CAD application for macOS. A model is a list of parameters and features that the app rebuilds with the Open CASCADE kernel; a chat assistant will build and change models through typed tools.
 
 ## Features
 
-- **AI-Powered Modeling** - Chat with an assistant to create and modify 3D objects
-- **RealityKit Viewport** - Hardware-accelerated 3D rendering with orbit, zoom, and pan controls
-- **Primitive Shapes** - Box, sphere, cylinder, cone, plane, torus
-- **Exact CAD Geometry** - Blocks with filleted edges built by the Open CASCADE kernel (early spike)
-- **Material System** - Color, metallic, and roughness properties
-- **Document-Based** - Save and load scenes as `.scene3d` files
-- **Undo/Redo** - Full history support for all operations
+- **Parametric documents** - `.cadmodel` files: plain, key-sorted JSON in millimetres
+- **Parameters** - Named values and expressions (`width / 2 + t`) usable in every numeric field
+- **Feature trees** - Box, cylinder, sphere, cone and torus with placements; booleans (union, subtract, intersect) and transforms; each solid can start a new body or join, cut or intersect an existing one
+- **Robust rebuild** - Each feature reports ok, failed (with the reason), skipped (with the feature it depends on) or suppressed; one failure never stops the rest
+- **Exact CAD geometry** - Solids built by the Open CASCADE kernel and drawn in a RealityKit viewport
+- **Undo/Redo** - Document edits go through the window's undo history (Edit ▸ Undo, ⌘Z)
+- **AI assistant** - Chat panel backed by Claude; modelling tools arrive in the next release
 
 ## Requirements
 
@@ -51,6 +51,8 @@ xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
 # Package tests
 (cd Packages/SwiftUIAssistant && xcrun swift test)
 (cd Packages/SwiftUIAssistantTools && xcrun swift test)
+(cd Packages/CADKernel && xcrun swift test)
+(cd Packages/CADModel && xcrun swift test)
 ```
 
 ### Configure API Key
@@ -61,41 +63,50 @@ xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
 
 ## Usage
 
-Type natural language commands in the assistant panel:
+Open or create a `.cadmodel` document. A small example, a plate with a hole:
 
-- "Create a red cube"
-- "Add a blue sphere next to it"
-- "Make the cube bigger"
-- "Rotate the sphere 45 degrees"
-- "Delete the cube"
+```json
+{
+  "format": 1,
+  "units": "mm",
+  "parameters": [{ "name": "t", "expression": 10 }],
+  "parts": [
+    {
+      "name": "Plate",
+      "features": [
+        { "name": "Base", "kind": { "type": "box", "width": 60, "depth": 40, "height": "t" } },
+        {
+          "name": "Hole",
+          "kind": {
+            "type": "cylinder", "radius": 5, "height": "t",
+            "placement": { "translation": { "x": 30, "y": 20 } },
+            "operation": { "mode": "cut", "body": "Body1" }
+          }
+        }
+      ]
+    }
+  ],
+  "assembly": null
+}
+```
 
-The assistant has access to these tools:
-
-- `create_primitive` - Create box, sphere, cylinder, cone, plane, torus
-- `transform_entity` - Move, rotate, scale objects
-- `set_material` - Change color, metallic, roughness
-- `duplicate_entity` - Copy objects
-- `delete_entity` - Remove objects
-- `query_scene` - List and filter scene contents
-- `fetch`, `calculator`, `time` - General-purpose helpers from `SwiftUIAssistantTools`
+The outline lists parameters and features with their rebuild status; select a feature to see its values in the inspector. Right-click a feature to suppress or delete it. Until the CAD tools land, the assistant can only use the general-purpose `fetch`, `calculator` and `time` tools.
 
 ## Architecture
 
 ```
 ├── Packages/
-│   ├── SwiftUIAssistant/     # Reusable AI assistant library
-│   │   ├── Core/             # Assistant orchestration
-│   │   ├── Providers/        # LLM backends (Claude)
-│   │   ├── Tools/            # Tool protocol & registry
-│   │   └── Views/            # Chat UI components
-│   └── SwiftUIAssistantTools/ # Common tools (fetch, calculator, time)
+│   ├── SwiftUIAssistant/      # Reusable AI assistant library
+│   ├── SwiftUIAssistantTools/ # Common tools (fetch, calculator, time)
+│   ├── CADKernel/             # Open CASCADE geometry (the only OCCT importer)
+│   └── CADModel/              # Document, parameters, features, rebuild engine
+│                              # (+ CADModelKernel: the CADKernel adapter)
 │
-└── 3DModellerApp/            # Main application
-    ├── App/                  # Entry point, global state
-    ├── Scene/                # RealityKit scene management
-    ├── Tools/                # AI tool implementations
-    ├── Context/              # Scene context for AI
-    └── Views/                # UI components
+└── 3DModellerApp/             # Main application
+    ├── App/                   # Entry point, global state
+    ├── Document/              # .cadmodel document type and undo
+    ├── Viewport/              # RealityKit scene built from rebuild results
+    └── Views/                 # Outline, inspector, viewport, assistant UI
 ```
 
 ### SwiftUIAssistant
@@ -120,7 +131,8 @@ Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorT
 | 3D Rendering | RealityKit |
 | AI Integration | Claude API |
 | State Management | @Observable, @MainActor |
-| File Format | JSON (Codable) |
+| Geometry | Open CASCADE via OCCTSwift |
+| File Format | JSON (Codable), `.cadmodel` |
 
 ## Acknowledgements
 

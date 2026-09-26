@@ -11,8 +11,8 @@ packages:
     path: Packages/SwiftUIAssistant
   SwiftUIAssistantTools:
     path: Packages/SwiftUIAssistantTools
-  CADKernel:
-    path: Packages/CADKernel
+  CADModel:
+    path: Packages/CADModel
 
 targets:
   3DModellerApp:
@@ -49,26 +49,28 @@ targets:
         product: SwiftUIAssistant
       - package: SwiftUIAssistantTools
         product: SwiftUIAssistantTools
-      - package: CADKernel
-        product: CADKernel
+      - package: CADModel
+        product: CADModel
+      - package: CADModel
+        product: CADModelKernel
     info:
       path: 3DModellerApp/Info.plist
       properties:
         CFBundleDocumentTypes:
-          - CFBundleTypeName: 3D Scene
+          - CFBundleTypeName: CAD Model
             CFBundleTypeRole: Editor
             LSHandlerRank: Owner
             LSItemContentTypes:
-              - com.example.3dmodeller.scene
+              - com.example.3dmodeller.cadmodel
         UTExportedTypeDeclarations:
-          - UTTypeIdentifier: com.example.3dmodeller.scene
-            UTTypeDescription: 3D Modeller Scene
+          - UTTypeIdentifier: com.example.3dmodeller.cadmodel
+            UTTypeDescription: 3D Modeller CAD Model
             UTTypeConformsTo:
-              - public.data
+              - public.json
               - public.content
             UTTypeTagSpecification:
               public.filename-extension:
-                - scene3d
+                - cadmodel
 
   3DModellerAppTests:
     type: bundle.unit-test
