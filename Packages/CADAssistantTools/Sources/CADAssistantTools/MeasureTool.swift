@@ -188,11 +188,13 @@ enum Measurement {
             throw ToolError(
                 "interference compares two bodies; give 'a' and 'b' as {\"body\": …} without a face, edge or point.")
         }
+        let clearance = try kernel { () throws(MeasureError) in try geometry.distance(a.target, b.target) }.distance
+        if Format.number(clearance) != "0" {
+            return "\(a.label) and \(b.label) do not overlap; clearance \(Format.number(clearance)) mm"
+        }
         let overlap = try kernel { () throws(MeasureError) in try geometry.interference(first, second) }
         if overlap > 0 { return "\(a.label) and \(b.label) overlap by \(Format.number(overlap)) mm³" }
-        let clearance = try kernel { () throws(MeasureError) in try geometry.distance(a.target, b.target) }.distance
-        if Format.number(clearance) == "0" { return "\(a.label) and \(b.label) touch without overlapping" }
-        return "\(a.label) and \(b.label) do not overlap; clearance \(Format.number(clearance)) mm"
+        return "\(a.label) and \(b.label) touch without overlapping"
     }
 
     private static func kernel<T>(_ call: () throws(MeasureError) -> T) throws(ToolError) -> T {

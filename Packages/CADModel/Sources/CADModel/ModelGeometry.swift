@@ -84,7 +84,8 @@ private struct Measurer<Kernel: GeometryKernel>: Sendable {
             throw MeasureError("the kernel could not compute the volumes")
         }
         let overlap = va + vb - vu
-        return overlap > 1e-6 * min(va, vb) ? overlap : 0
+        // OCCT's volumes of curved bodies carry a relative error around 1e-6, so touching bodies can show a sliver.
+        return overlap > 1e-5 * min(va, vb) ? overlap : 0
     }
 
     private func body(_ key: BodyKey) throws(MeasureError) -> Kernel.Body {
