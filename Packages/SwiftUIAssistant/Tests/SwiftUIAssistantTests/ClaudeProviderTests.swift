@@ -9,6 +9,13 @@ struct ClaudeProviderTests {
         return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
+    @Test("Requests allow a long wait, since a thinking model sends nothing until its answer is complete")
+    func requestTimeout() async throws {
+        let request = try await ClaudeProvider(apiKey: "test").buildRequest(
+            systemPrompt: "system", messages: [.user("hi")], tools: [])
+        #expect(request.timeoutInterval == 600)
+    }
+
     @Test("Defaults to Claude Opus 5.5 with explicit effort and no disabled thinking")
     func defaultRequestShape() async throws {
         let provider = ClaudeProvider(apiKey: "test")
