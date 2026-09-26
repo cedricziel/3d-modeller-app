@@ -1,11 +1,14 @@
 import CADModel
 import SwiftUI
 
-/// Read-only details of an assembly joint.
+/// Details of an assembly joint, and the controls that drive it.
 struct JointInspectorView: View {
     let joint: Joint
     let model: CADDocument
     let result: JointResult?
+    let driver: JointDriver
+    /// Drives the joint to a value in the document, as one undo step.
+    let move: (Double) -> Void
 
     var body: some View {
         Form {
@@ -20,6 +23,9 @@ struct JointInspectorView: View {
                             .textSelection(.enabled)
                     }
                 }
+            }
+            if let result, result.motion != nil {
+                JointMotionView(joint: joint, result: result, document: model, driver: driver, commit: move)
             }
             side("Side A", joint.a)
             side("Side B", joint.b)

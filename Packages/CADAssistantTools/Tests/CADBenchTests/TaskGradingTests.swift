@@ -12,6 +12,7 @@ enum WrongSolution: String, CaseIterable, Sendable {
     case lProfileTooThick, cupBottomTooThin, slotTooWide, heightEditedInSketch
     case topPlateSunk, platesAsBodies, legTooLong, movedByEditingPart, movedSpacer
     case pinPlacedWithoutJoint, pinThroughTop, lidFloating, lidUpsideDown, cylindricalInsteadOfSlider
+    case lidHalfOpen, lidPastLimit, carriageMovedByPlacement
 
     var task: String {
         switch self {
@@ -37,6 +38,8 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .pinPlacedWithoutJoint, .pinThroughTop: "pin-in-hole"
         case .lidFloating, .lidUpsideDown: "lid-on-box"
         case .cylindricalInsteadOfSlider: "slider-on-rail"
+        case .lidHalfOpen, .lidPastLimit: "hinged-lid"
+        case .carriageMovedByPlacement: "slider-end-stop"
         }
     }
 
@@ -60,6 +63,8 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .pinPlacedWithoutJoint, .lidFloating, .cylindricalInsteadOfSlider: "joints"
         case .pinThroughTop: "position"
         case .lidUpsideDown: "no interference"
+        case .lidHalfOpen, .carriageMovedByPlacement: "value of joint"
+        case .lidPastLimit: "joints"
         }
     }
 
@@ -163,6 +168,12 @@ enum WrongSolution: String, CaseIterable, Sendable {
             return reference.editingJoint("Seat") { $0.flip = true }
         case .cylindricalInsteadOfSlider:
             return reference.editingJoint("Guide") { $0.kind = .cylindrical }
+        case .lidHalfOpen:
+            return reference.editingJoint("Hinge") { $0.value = 45 }
+        case .lidPastLimit:
+            return reference.editingJoint("Hinge") { $0.value = 120 }
+        case .carriageMovedByPlacement:
+            return try #require(task.seed).moving("Slide", to: Vector3(170, 0, 10))
         }
     }
 }
@@ -262,9 +273,11 @@ extension FeatureKind {
 @Suite("Seed tasks")
 struct TaskGradingTests {
     static let ids = [
-        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "lid-on-box",
+        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "hinged-lid", "l-bracket", "l-profile",
+        "lid-on-box",
         "move-instance", "open-box", "pin-in-hole", "plate-hole", "plate-move-hole", "plate-second-hole",
-        "plate-thickness", "profile-height", "revolved-cup", "rounded-plate", "slider-on-rail", "slotted-plate",
+        "plate-thickness", "profile-height", "revolved-cup", "rounded-plate", "slider-end-stop", "slider-on-rail",
+        "slotted-plate",
         "stacked-plates", "table-legs", "washer",
     ]
     let grader = Grader(

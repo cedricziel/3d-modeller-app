@@ -22,6 +22,9 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
     public let transform: RigidTransform?
     /// Whether the joints moved the instance away from its document placement.
     public let movedByJoints: Bool
+    /// How many ways the instance can still move, when the assembly has joints: 0 when grounded or held, 6 when
+    /// nothing holds it.
+    public let freedoms: Int?
     /// The part's bodies in assembly coordinates, under the part's body names.
     public let bodies: [BodyResult]
     /// The part's own face and edge names for each body, index-aligned with the moved topology. Computed before the
@@ -30,9 +33,10 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
 
     public init(
         id: UUID, name: String, part: UUID, status: InstanceStatus, transform: RigidTransform?, bodies: [BodyResult],
-        names: [String: TopologyNames] = [:], movedByJoints: Bool = false
+        names: [String: TopologyNames] = [:], movedByJoints: Bool = false, freedoms: Int? = nil
     ) {
         self.movedByJoints = movedByJoints
+        self.freedoms = freedoms
         self.id = id
         self.name = name
         self.part = part
@@ -40,6 +44,12 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
         self.transform = transform
         self.bodies = bodies
         self.names = names
+    }
+
+    func with(freedoms: Int) -> InstanceResult {
+        InstanceResult(
+            id: id, name: name, part: part, status: status, transform: transform, bodies: bodies, names: names,
+            movedByJoints: movedByJoints, freedoms: freedoms)
     }
 
     /// The part's names for the faces and edges of one of the instance's bodies.
@@ -69,11 +79,36 @@ public struct JointResult: Sendable, Equatable, Identifiable {
     public let id: UUID
     public let name: String
     public let status: JointStatus
+    /// The joint's motion; nil for kinds that have none.
+    public let motion: JointMotion?
+    /// The driven value when the joint is driven and holds, else the value measured at the solved placements.
+    public let value: Double?
+    public let minimum: Double?
+    public let maximum: Double?
+    /// Whether a value drives the joint.
+    public let driven: Bool
+    /// How many ways the joint still lets its instances move against each other.
+    public let freedoms: Int
 
-    public init(id: UUID, name: String, status: JointStatus) {
+    public init(
+        id: UUID, name: String, status: JointStatus, motion: JointMotion? = nil, value: Double? = nil,
+        minimum: Double? = nil, maximum: Double? = nil, driven: Bool = false, freedoms: Int = 0
+    ) {
         self.id = id
         self.name = name
         self.status = status
+        self.motion = motion
+        self.value = value
+        self.minimum = minimum
+        self.maximum = maximum
+        self.driven = driven
+        self.freedoms = freedoms
+    }
+
+    /// Whether a free joint rests outside its limits.
+    public var isOutsideLimits: Bool {
+        guard let value else { return false }
+        return value < (minimum ?? -.infinity) - 1e-9 || value > (maximum ?? .infinity) + 1e-9
     }
 }
 

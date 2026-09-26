@@ -118,4 +118,33 @@ struct RealJointTests {
         #expect(joint.message.contains("Top (Lid): ok, bounds (0, 0, 30) to (60, 40, 35)"), "\(joint.message)")
         #expect(joint.message.contains("Moved by joints: Top (100, 0, 80) → (0, 0, 30)"), "\(joint.message)")
     }
+
+    @Test("move_joint opens a hinged lid upright, and measure sees it there")
+    func moveJointOpensLid() async throws {
+        let session = CADSession(
+            document: CADDocument(parts: [Part(name: "Box"), Part(name: "Lid")]), kernel: OCCTGeometryKernel(),
+            assemblySolver: OndselAssemblySolver())
+        let tools = Dictionary(uniqueKeysWithValues: CADTools.all(session: session).map { ($0.name, $0) })
+        _ = try await tools["add_feature"]!.execute(arguments: [
+            "part": "Box", "name": "Shell", "type": "box", "width": 60, "depth": 40, "height": 30,
+        ])
+        _ = try await tools["add_feature"]!.execute(arguments: [
+            "part": "Lid", "name": "Cap", "type": "box", "width": 60, "depth": 40, "height": 5,
+        ])
+        _ = try await tools["add_instance"]!.execute(arguments: ["part": "Box", "name": "Base", "grounded": true])
+        _ = try await tools["add_instance"]!.execute(arguments: ["part": "Lid", "name": "Top"])
+        let hinge = try await tools["add_joint"]!.execute(arguments: [
+            "kind": "revolute", "name": "Hinge", "flip": true, "limits": ["min": 0, "max": 110], "value": 0,
+            "a": ["instance": "Base", "face": "Shell.left", "offset": ["x": 20, "y": -15]],
+            "b": ["instance": "Top", "face": "Cap.left", "offset": ["x": 20, "y": 2.5]],
+        ])
+        #expect(hinge.message.contains("Top (Lid): ok, bounds (0, 0, 30) to (60, 40, 35)"), "\(hinge.message)")
+
+        let moved = try await tools["move_joint"]!.execute(arguments: ["joint": "Hinge", "value": 90])
+        let measured = try await tools["measure"]!.execute(arguments: ["kind": "size", "a": ["instance": "Top"]])
+
+        #expect(moved.message.contains("Hinge: ok, at 90° driven, limits 0°…110°, 0 dof"), "\(moved.message)")
+        #expect(moved.message.contains("Top (Lid): ok, bounds (0, 40, 30) to (60, 45, 70)"), "\(moved.message)")
+        #expect(measured.message.contains("(0, 40, 30)"), "\(measured.message)")
+    }
 }

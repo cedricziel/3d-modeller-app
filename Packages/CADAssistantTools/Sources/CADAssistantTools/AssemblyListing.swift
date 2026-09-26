@@ -18,13 +18,16 @@ enum AssemblyListing {
         let solved = built.flatMap { built in
             built.movedByJoints ? built.transform.map { " → solved \(WriteReport.pose($0))" } : nil
         }
-        return "\(instance.name)  \(summary(instance, document))\(solved ?? "")  \(status)"
+        let freedoms = JointMotionText.freedoms(instance, built)
+        return "\(instance.name)  \(summary(instance, document))\(solved ?? "")  \(status)\(freedoms)"
     }
 
     static func line(_ joint: Joint, _ document: CADDocument, result: RebuildResult?) -> String {
-        let status = result?.assembly?.joint(id: joint.id)?.status.description ?? "not built"
+        let built = result?.assembly?.joint(id: joint.id)
+        let status = built?.status.description ?? "not built"
         let sides = "\(side(joint.a, document)) ↔ \(side(joint.b, document))"
-        return "\(joint.name)  \(joint.kind.rawValue) \(sides)\(joint.flip ? ", flipped" : "")  \(status)"
+        let motion = JointMotionText.describe(joint, built).map { ", \($0)" } ?? ""
+        return "\(joint.name)  \(joint.kind.rawValue) \(sides)\(joint.flip ? ", flipped" : "")\(motion)  \(status)"
     }
 
     private static func side(_ side: JointFrameRef, _ document: CADDocument) -> String {

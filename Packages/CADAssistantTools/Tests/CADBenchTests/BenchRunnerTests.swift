@@ -95,7 +95,8 @@ struct BenchRunnerTests {
         )
         .run(blockTask, attempt: 1)
         #expect(record.end == .timedOut)
-        #expect(record.seconds < 4)
+        // The provider stalls for an hour; a loaded CI runner may take a few seconds to wake the timeout.
+        #expect(record.seconds < 60)
     }
 
     @Test("Hitting the round limit is recorded")

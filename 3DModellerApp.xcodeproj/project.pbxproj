@@ -20,6 +20,7 @@
 		4A1F4945EDD2BA1A2B9E81A8 /* OrbitCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F31C0DE83507BAECFFFEAC /* OrbitCamera.swift */; };
 		521165A128D2584BE448AA8F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C7AC13B8AFB6810059AB22A /* ContentView.swift */; };
 		5B03B08C6B1C796B63A1BFE6 /* CADAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 0EF84F36DC10B512B62FFFB3 /* CADAssistantTools */; };
+		5FA392426CFF200885DD94BA /* JointMotionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D79F880036C5BF90B4154030 /* JointMotionView.swift */; };
 		65C6A3586725C22631370CB6 /* FeatureInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 488500E0ED65C12E5916808C /* FeatureInspectorView.swift */; };
 		683FAE83DCDD77DD017BA2ED /* ModelStatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DF87A2AB971C73BA924219D /* ModelStatisticsView.swift */; };
 		826056080647BCD726193BE1 /* ModellerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17993460361E0DC0931AD47F /* ModellerApp.swift */; };
@@ -33,8 +34,10 @@
 		B7BADF3D799E3131DEB3334E /* SketchDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF902A5D2F3F4EC0160C8C4 /* SketchDisplayTests.swift */; };
 		BB2A346C051A3267FA37A8BF /* AssistantEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */; };
 		CD41F82ECF59B15BFD7C876A /* JointInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B5D07417AC13067E5C3C7F9 /* JointInspectorView.swift */; };
+		CFA0A9BA8165B7338FBCB35C /* JointDriverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C272AE103827CB40BD32124 /* JointDriverTests.swift */; };
 		DCA230D5524643F73D85E084 /* CADModelDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22BBC70F86C8A8821D8F016 /* CADModelDocumentTests.swift */; };
 		DE18A31C4839F5A95A3A6ADC /* SketchDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC2406D364440B7BDC0892D /* SketchDisplay.swift */; };
+		DE2B6CC5F51DFFE3ED839474 /* JointDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8383A2693DB64751C29EC97F /* JointDriver.swift */; };
 		E7A65BCB7D99D36D826A1140 /* AssemblyDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5378FF521C0686F41B87CF7A /* AssemblyDisplayTests.swift */; };
 		EA371F2D8FD108B39C20FADC /* ViewportFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3F2E04AA00D8C342CEE1CF /* ViewportFrameTests.swift */; };
 		EB2E77A9DA5298103727F0CC /* FeatureOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6618266206397FAD09464B0 /* FeatureOutlineView.swift */; };
@@ -68,6 +71,8 @@
 		5DC3E078A1804AE63ED08F94 /* ViewportScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportScene.swift; sourceTree = "<group>"; };
 		6A5F6A4548E9DD7364A36CBB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6C7AC13B8AFB6810059AB22A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7C272AE103827CB40BD32124 /* JointDriverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JointDriverTests.swift; sourceTree = "<group>"; };
+		8383A2693DB64751C29EC97F /* JointDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JointDriver.swift; sourceTree = "<group>"; };
 		874F5D00B1A921F766635031 /* CADModel */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CADModel; path = Packages/CADModel; sourceTree = SOURCE_ROOT; };
 		8DBA6D56A9AEEA0376524690 /* FeatureDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureDisplay.swift; sourceTree = "<group>"; };
 		97F31C0DE83507BAECFFFEAC /* OrbitCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitCamera.swift; sourceTree = "<group>"; };
@@ -77,6 +82,7 @@
 		AA075440578BA6785256D06A /* Viewport3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Viewport3DView.swift; sourceTree = "<group>"; };
 		C3472816753BD59DD3D099D2 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
 		C348D3B3408BC57F176142F2 /* 3DModellerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 3DModellerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D79F880036C5BF90B4154030 /* JointMotionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JointMotionView.swift; sourceTree = "<group>"; };
 		E2DC61CADEBAF78C7E027963 /* InstanceInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstanceInspectorView.swift; sourceTree = "<group>"; };
 		E5DFDE87E68FC93F8E89BFB7 /* ViewportFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportFrame.swift; sourceTree = "<group>"; };
 		E6618266206397FAD09464B0 /* FeatureOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureOutlineView.swift; sourceTree = "<group>"; };
@@ -136,6 +142,7 @@
 				FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */,
 				A22BBC70F86C8A8821D8F016 /* CADModelDocumentTests.swift */,
 				E9F869442913BB8FF10B2B1D /* FeatureDisplayTests.swift */,
+				7C272AE103827CB40BD32124 /* JointDriverTests.swift */,
 				1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */,
 				1CF902A5D2F3F4EC0160C8C4 /* SketchDisplayTests.swift */,
 				4C3F2E04AA00D8C342CEE1CF /* ViewportFrameTests.swift */,
@@ -181,7 +188,9 @@
 				488500E0ED65C12E5916808C /* FeatureInspectorView.swift */,
 				E6618266206397FAD09464B0 /* FeatureOutlineView.swift */,
 				E2DC61CADEBAF78C7E027963 /* InstanceInspectorView.swift */,
+				8383A2693DB64751C29EC97F /* JointDriver.swift */,
 				0B5D07417AC13067E5C3C7F9 /* JointInspectorView.swift */,
+				D79F880036C5BF90B4154030 /* JointMotionView.swift */,
 				1DF87A2AB971C73BA924219D /* ModelStatisticsView.swift */,
 				97F31C0DE83507BAECFFFEAC /* OrbitCamera.swift */,
 				50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */,
@@ -321,7 +330,9 @@
 				65C6A3586725C22631370CB6 /* FeatureInspectorView.swift in Sources */,
 				EB2E77A9DA5298103727F0CC /* FeatureOutlineView.swift in Sources */,
 				97A798E2EAD2FB31F6ECDAC0 /* InstanceInspectorView.swift in Sources */,
+				DE2B6CC5F51DFFE3ED839474 /* JointDriver.swift in Sources */,
 				CD41F82ECF59B15BFD7C876A /* JointInspectorView.swift in Sources */,
+				5FA392426CFF200885DD94BA /* JointMotionView.swift in Sources */,
 				683FAE83DCDD77DD017BA2ED /* ModelStatisticsView.swift in Sources */,
 				826056080647BCD726193BE1 /* ModellerApp.swift in Sources */,
 				4A1F4945EDD2BA1A2B9E81A8 /* OrbitCamera.swift in Sources */,
@@ -343,6 +354,7 @@
 				BB2A346C051A3267FA37A8BF /* AssistantEditingTests.swift in Sources */,
 				DCA230D5524643F73D85E084 /* CADModelDocumentTests.swift in Sources */,
 				3B2AAB9C5A3ED7E6564760A5 /* FeatureDisplayTests.swift in Sources */,
+				CFA0A9BA8165B7338FBCB35C /* JointDriverTests.swift in Sources */,
 				A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */,
 				B7BADF3D799E3131DEB3334E /* SketchDisplayTests.swift in Sources */,
 				EA371F2D8FD108B39C20FADC /* ViewportFrameTests.swift in Sources */,

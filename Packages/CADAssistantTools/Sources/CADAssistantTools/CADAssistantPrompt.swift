@@ -97,6 +97,17 @@ public enum CADAssistantPrompt {
         point the same way, such as both along +Z; leave it off when they point opposite ways); or cylindrical on the axes plus planar on the two faces. Slider on a rail: slider between \
         faces whose normals run along the rail, with an offset that puts the carriage on top.
 
+        ## Motion
+        - A revolute has an angle (degrees, from a's x axis to b's about a's z), a slider or cylindrical joint a \
+        travel (mm along a's z). The listing shows it after the sides: "at 90° driven" when a value holds it, "at \
+        12° free" when the solver left it there, then the limits and the freedoms ("1 dof") the joint leaves. \
+        Each instance that is not grounded shows how many freedoms it has left ("1 dof free") or "fully \
+        constrained".
+        - To open, turn, slide or pose a mechanism, use move_joint(joint, value); never move a jointed instance by \
+        its placement, which is only the solver's starting guess. The value must lie within the joint's limits; \
+        free: true releases it. Give a hinge or slide its range with limits {min, max} on add_joint or edit_joint.
+        - To make a joint hold still at a pose, drive it with a value instead of replacing it with a fixed joint.
+
         ## Working
         - The message you receive starts with the current listing in <context>: parameters with values, then each \
         feature with what it does, the body it creates or changes, and its status. Call get_listing when you need \

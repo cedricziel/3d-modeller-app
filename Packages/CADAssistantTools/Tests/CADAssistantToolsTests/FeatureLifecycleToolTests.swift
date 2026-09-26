@@ -165,11 +165,11 @@ struct FeatureLifecycleToolTests {
                 "edit_feature",
                 "delete_feature", "rename_feature", "suppress_feature", "add_sketch", "edit_sketch", "get_sketch",
                 "add_part", "rename_part", "delete_part", "add_instance", "edit_instance", "delete_instance",
-                "add_joint", "edit_joint", "delete_joint",
+                "add_joint", "edit_joint", "delete_joint", "move_joint",
             ])
         for name in [
             "get_listing", "measure", "set_parameter", "add_feature", "edit_feature", "add_sketch", "add_instance",
-            "add_joint",
+            "add_joint", "move_joint",
         ] {
             let description = tools.first { $0.name == name }?.description ?? ""
             #expect(description.contains("mm") && description.contains("degrees"), "\(name)")

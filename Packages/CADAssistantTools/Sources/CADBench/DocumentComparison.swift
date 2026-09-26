@@ -78,6 +78,7 @@ enum DocumentComparison {
         let b: Side
         let flip: Bool
         let limits: JointLimits?
+        let value: Scalar?
 
         init(_ joint: Joint, in document: CADDocument) {
             func side(_ side: JointFrameRef) -> Side {
@@ -90,6 +91,7 @@ enum DocumentComparison {
             b = side(joint.b)
             flip = joint.flip
             limits = joint.limits
+            value = joint.value
         }
     }
 

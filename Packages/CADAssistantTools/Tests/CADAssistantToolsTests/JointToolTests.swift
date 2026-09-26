@@ -95,7 +95,7 @@ struct JointToolTests {
         #expect(harness.commits.last == "Edit Fixed1")
         #expect(
             try await harness.refused("edit_joint", ["joint": "Rest"])
-                == "Give at least one of kind, a, b, flip, new_name.")
+                == "Give at least one of kind, a, b, flip, limits, new_name.")
         #expect(
             try await harness.refused("edit_joint", ["joint": "Nope", "flip": true])
                 == "No joint named 'Nope'. Joints: Rest.")

@@ -51,6 +51,12 @@ struct CheckDecodingTests {
                 #"{"type": "instancePosition", "instance": "Pin", "relativeTo": "Base", "translation": [20, 20, 0]}"#)
                 == .instancePosition(
                     instance: "Pin", relativeTo: "Base", translation: SIMD3(20, 20, 0), tolerance: 0.01))
+        #expect(
+            try Bench.check(#"{"type": "jointValue", "joint": "Hinge", "value": 90}"#)
+                == .jointValue(joint: "Hinge", value: 90, tolerance: 0.01))
+        #expect(
+            try Bench.check(#"{"type": "instanceFreedoms", "instance": "Pin", "equals": 1}"#)
+                == .instanceFreedoms(instance: "Pin", equals: 1))
     }
 
     @Test(
@@ -69,6 +75,10 @@ struct CheckDecodingTests {
             #"{"type": "jointsSatisfied", "count": 1}"#,
             #"{"type": "instancePosition", "instance": "Pin"}"#,
             #"{"type": "instancePosition", "translation": [1, 2, 3]}"#,
+            #"{"type": "jointValue", "joint": "Hinge"}"#,
+            #"{"type": "jointValue", "value": 90}"#,
+            #"{"type": "instanceFreedoms", "instance": "Pin"}"#,
+            #"{"type": "instanceFreedoms", "instance": "Pin", "equals": 1, "tolerance": 0}"#,
         ])
     func decodingRefusals(json: String) {
         #expect(throws: (any Error).self) { try Bench.check(json) }
@@ -99,6 +109,11 @@ struct CheckDecodingTests {
             Check.instanceBounds(instance: nil, min: nil, max: SIMD3(1, 2, 3), size: nil, tolerance: 0.01)
                 .description == "bounds of all instances: max (1, 2, 3) ±0.01 mm")
         #expect(Check.noInterference.description == "no interference between instances")
+        #expect(
+            Check.jointValue(joint: "Hinge", value: 90, tolerance: 0.01).description
+                == "value of joint Hinge = 90 ±0.01")
+        #expect(
+            Check.instanceFreedoms(instance: "Pin", equals: 1).description == "freedoms of instance Pin = 1 dof")
         #expect(
             Check.unchangedExcept(features: [], parameters: [], instances: ["Top"], joints: [], allowNewFeatures: false)
                 .description == "unchanged except instances Top")

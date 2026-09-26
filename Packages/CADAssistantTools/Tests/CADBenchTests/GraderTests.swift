@@ -271,4 +271,35 @@ struct GraderTests {
         #expect(exempt.passed, "\(exempt.failures)")
         #expect(fresh.outcomes[0].detail == "joint Rest changed")
     }
+
+    @Test("A joint's value and an instance's freedoms are graded on the solved assembly")
+    func motionChecks() async {
+        var driven = joined(kind: .slider)
+        driven.assembly?.joints[0].value = 3
+        let checks: [Check] = [
+            .jointValue(joint: "Rest", value: 3, tolerance: 1e-6), .instanceFreedoms(instance: "Top", equals: 0),
+            .jointValue(joint: "Rest", value: 4, tolerance: 0.01), .instanceFreedoms(instance: "Top", equals: 1),
+            .jointValue(joint: "Nope", value: 0, tolerance: 0.01),
+        ]
+        let result = await gradeSolved(checks, driven)
+        let free = await gradeSolved([.instanceFreedoms(instance: "Top", equals: 1)], joined(kind: .slider))
+
+        #expect(result.outcomes.map(\.passed) == [true, true, false, false, false])
+        #expect(result.outcomes[2].detail == "Rest is at 3 mm")
+        #expect(result.outcomes[3].detail == "Top has 0 dof")
+        #expect(result.outcomes[4].detail == "no joint named Nope (joints: Rest)")
+        #expect(free.passed, "\(free.failures)")
+    }
+
+    @Test("Unchanged-elsewhere sees a joint driven to another value")
+    func unchangedJointValue() async {
+        let seed = joined(kind: .slider)
+        var edited = seed
+        edited.assembly?.joints[0].value = 2
+        let fresh = await grade(
+            [.unchangedExcept(features: [], parameters: [], instances: [], joints: [], allowNewFeatures: false)],
+            edited, seed: seed)
+
+        #expect(fresh.outcomes[0].detail == "joint Rest changed")
+    }
 }

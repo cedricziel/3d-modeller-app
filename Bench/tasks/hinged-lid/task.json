@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "kinds": [
+        "revolute"
+      ],
+      "type": "jointsSatisfied"
+    },
+    {
+      "joint": "Hinge",
+      "type": "jointValue",
+      "value": 90
+    },
+    {
+      "instance": "Lid",
+      "max": [
+        60,
+        45,
+        70
+      ],
+      "min": [
+        0,
+        40,
+        30
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "joints": [
+        "Hinge"
+      ],
+      "type": "unchangedExcept"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "modify",
+  "prompt": "The lid of this box hangs on a hinge along the box's back top edge and is closed. Open the lid so that it stands straight up, at a right angle to the box's top. Leave everything else as it is."
+}
