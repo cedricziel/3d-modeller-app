@@ -39,6 +39,7 @@ let package = Package(
                 .product(name: "SwiftUIAssistant", package: "SwiftUIAssistant"),
                 .product(name: "CADModel", package: "CADModel"),
                 .product(name: "CADModelKernel", package: "CADModel"),
+                .product(name: "CADModelSolvers", package: "CADModel"),
             ],
             path: "Sources/CADBenchCLI"
         ),
@@ -49,6 +50,7 @@ let package = Package(
                 .product(name: "SwiftUIAssistant", package: "SwiftUIAssistant"),
                 .product(name: "CADModel", package: "CADModel"),
                 .product(name: "CADModelKernel", package: "CADModel"),
+                .product(name: "CADModelSolvers", package: "CADModel"),
             ]
         ),
         .testTarget(
@@ -59,6 +61,7 @@ let package = Package(
                 .product(name: "SwiftUIAssistant", package: "SwiftUIAssistant"),
                 .product(name: "CADModel", package: "CADModel"),
                 .product(name: "CADModelKernel", package: "CADModel"),
+                .product(name: "CADModelSolvers", package: "CADModel"),
             ]
         ),
     ]

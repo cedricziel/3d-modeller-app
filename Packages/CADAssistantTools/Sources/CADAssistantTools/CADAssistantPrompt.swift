@@ -13,7 +13,8 @@ public enum CADAssistantPrompt {
         "width / 2" or "(t + 1) * 2". Put dimensions the user may want to change into parameters.
         - A document has parts; each part has an ordered feature tree that is replayed on every change.
         - Features: solids (box, cylinder, sphere, cone, torus), boolean (union, subtract, intersect of bodies), \
-        transform (move or rotate a body), and fillet, chamfer and shell, which change a body's edges or faces.
+        transform (move or rotate a body), fillet, chamfer and shell, which change a body's edges or faces, and \
+        sketches with the extrude and revolve features that turn them into solids.
         - A box has one corner at its placement origin and extends along +X (width), +Y (depth) and +Z (height). \
         Cylinders and cones stand on their placement origin along +Z; spheres and tori are centred on it.
         - A placement rotates by rotationDegrees about rotationAxis through the origin, then moves by translation.
@@ -34,6 +35,28 @@ public enum CADAssistantPrompt {
         edges. Prefer names for single edges and filters for sets.
         - Call find_geometry to see a body's faces or edges with their names, positions and sizes before \
         referring to them. A failed reference lists the candidates.
+
+        ## Sketches
+        - Use a sketch for any profile a primitive cannot make: L or T sections, slots, plates with cut-outs, \
+        turned parts. add_sketch takes the whole sketch in one call; edit_sketch changes it; get_sketch shows it.
+        - Planes: XY (x = X, y = Y, normal +Z), XZ (x = X, y = Z, normal -Y), YZ (x = Y, y = Z, normal +X), or a \
+        planar face such as Box1.top with 'body' (normal out of the body). 'offset' moves the plane along its normal.
+        - Entities: line {start, end}, arc {center, radius, startAngle, endAngle} (degrees, counter-clockwise), \
+        circle {center, radius}, point {at}; construction: true for helper geometry. They are named line1, arc1, \
+        circle1, point1… Points are line1.start, line1.end, arc1.start, arc1.end, arc1.center, circle1.center.
+        - Draw the entities close to their final positions: the coordinates are only the solver's starting guess.
+        - Constrain the sketch fully, so the result says fully constrained: join every corner with coincident, \
+        make lines horizontal or vertical where they are, dimension every length and radius (use parameters for \
+        the ones the user may change), and fix one point with fixed at [x, y] to place the sketch. Each point has \
+        two degrees of freedom, a line four, a circle three and an arc five; an under-constrained result says how \
+        many are left. For a line joining an arc smoothly use tangentAt on the shared end points, not coincident \
+        plus tangent. Over-constrained sketches fail and name the conflicting constraints; remove one of them.
+        - Closed loops of non-construction entities are the regions; a loop inside another is a hole. extrude \
+        sweeps regions along the plane normal (distance, symmetric, throughAll, upToFace; reversed flips it); \
+        revolve turns them about a sketch line, X, Y or Z. Both take an operation like solids. To cut into a face \
+        you sketched on, extrude with reversed: true or extent throughAll.
+        - Faces made from a sketch are named after the entity: Extrude1.side[Sketch1.line3], and the caps \
+        Extrude1.start (on the sketch plane) and Extrude1.end.
 
         ## Working
         - The message you receive starts with the current listing in <context>: parameters with values, then each \

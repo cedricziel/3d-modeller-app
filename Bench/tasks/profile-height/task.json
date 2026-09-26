@@ -1,0 +1,12 @@
+{
+  "kind": "modify",
+  "prompt": "The bar's L-shaped profile is 30 mm tall along Y. Make it 45 mm tall by changing the height parameter the sketch uses. Change nothing else.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "parameter", "name": "height", "value": 45},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [40, 45, 25], "tolerance": 0.01},
+    {"type": "volume", "expected": 15400, "tolerance": 0.002},
+    {"type": "unchangedExcept", "parameters": ["height"]}
+  ]
+}

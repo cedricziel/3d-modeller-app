@@ -1,0 +1,12 @@
+{
+  "kind": "build",
+  "prompt": "Model a plate 80 mm along X, 40 mm along Y and 6 mm thick, with one corner at the origin so that it occupies x 0–80, y 0–40, z 0–6. Cut a straight slot through it from a sketch: the slot runs along X, is 8 mm wide with round ends, 28 mm long overall (its end centres 20 mm apart), and is centred on the plate at x = 40, y = 20.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [80, 40, 6], "tolerance": 0.01},
+    {"type": "volume", "expected": 17938.407, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "sketch", "min": 1},
+    {"type": "referenceIoU", "threshold": 0.999}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "build",
+  "prompt": "Model a straight bar with an L-shaped cross-section. Sketch the L on the XY plane: its outer corner at the origin, one leg 40 mm long along +X and the other 30 mm long along +Y, both legs 8 mm thick, so the profile occupies x 0–40 for y 0–8 and x 0–8 for y 0–30. Extrude it 25 mm along +Z. Use parameters for the leg lengths, the thickness and the extrusion length.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [40, 30, 25], "tolerance": 0.01},
+    {"type": "volume", "expected": 12400, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "sketch", "min": 1},
+    {"type": "featureCount", "feature": "extrude", "min": 1},
+    {"type": "referenceIoU", "threshold": 0.999}
+  ]
+}

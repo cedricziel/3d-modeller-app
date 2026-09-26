@@ -55,6 +55,12 @@ struct Arguments {
         return names
     }
 
+    func array(_ key: String) throws(ToolError) -> [JSONValue]? {
+        guard let value = values[key] else { return nil }
+        guard let items = value.arrayValue else { throw ToolError("'\(key)' must be an array.") }
+        return items
+    }
+
     func object(_ key: String) throws(ToolError) -> [String: JSONValue]? {
         guard let value = values[key] else { return nil }
         guard let object = value.objectValue else { throw ToolError("'\(key)' must be an object.") }

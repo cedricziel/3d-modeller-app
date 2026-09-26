@@ -1,0 +1,12 @@
+{
+  "kind": "build",
+  "prompt": "Model a cylindrical cup by revolving one sketched cross-section about the Z axis. The cup stands on the XY plane with its axis on Z: outer radius 30 mm, overall height 50 mm (z 0–50), wall 3 mm thick, bottom 4 mm thick, open at the top.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [-30, -30, 0], "max": [30, 30, 50], "tolerance": 0.01},
+    {"type": "volume", "expected": 36021.501, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "revolve", "min": 1},
+    {"type": "referenceIoU", "threshold": 0.999}
+  ]
+}

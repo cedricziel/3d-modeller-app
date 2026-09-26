@@ -11,7 +11,7 @@ extension RebuildEngine {
         let parameters = ParameterTable(document.parameters)
         var solids: [BuiltBody<Kernel.Body>] = []
         for part in document.parts {
-            var builder = PartBuilder(kernel: kernel, parameters: parameters)
+            var builder = PartBuilder(kernel: kernel, sketchSolver: sketchSolver, parameters: parameters)
             for feature in part.features {
                 try Task.checkCancellation()
                 _ = builder.apply(feature)

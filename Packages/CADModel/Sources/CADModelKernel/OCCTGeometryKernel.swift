@@ -72,6 +72,19 @@ public struct OCCTGeometryKernel: GeometryKernel {
         try Kernel.shell(body, removing: faces, thickness: thickness, feature: feature)
     }
 
+    public func extrude(_ profile: SketchProfile, from: Double, to: Double, feature: String) throws -> Solid {
+        try Kernel.extrude(Profile(profile), from: from, to: to, feature: feature)
+    }
+
+    public func revolve(
+        _ profile: SketchProfile, axisOrigin: SIMD3<Double>, axisDirection: SIMD3<Double>, angleDegrees: Double,
+        feature: String
+    ) throws -> Solid {
+        try Kernel.revolve(
+            Profile(profile), axisOrigin: axisOrigin, axisDirection: axisDirection, angle: angleDegrees * .pi / 180,
+            feature: feature)
+    }
+
     public func topology(of body: Solid) throws -> BodyTopology {
         let topology = try Kernel.topology(of: body)
         return BodyTopology(
@@ -154,5 +167,25 @@ extension CADKernel.Placement {
             axis: placement.rotationAxis,
             angle: placement.rotationDegrees * .pi / 180
         )
+    }
+}
+
+extension Profile {
+    init(_ profile: SketchProfile) {
+        func loop(_ curves: [SketchCurve]) -> [ProfileCurve] {
+            curves.map { curve in
+                let geometry: ProfileGeometry =
+                    switch curve.geometry {
+                    case .line(let a, let b): .line(a, b)
+                    case .arc(let center, let radius, let start, let mid, let end):
+                        .arc(center: center, radius: radius, start: start, mid: mid, end: end)
+                    case .circle(let center, let radius): .circle(center: center, radius: radius)
+                    }
+                return ProfileCurve(name: curve.entity, geometry: geometry)
+            }
+        }
+        self.init(
+            plane: ProfilePlane(origin: profile.frame.origin, xAxis: profile.frame.xAxis, yAxis: profile.frame.yAxis),
+            regions: profile.regions.map { ProfileRegion(outer: loop($0.outer), holes: $0.holes.map(loop)) })
     }
 }

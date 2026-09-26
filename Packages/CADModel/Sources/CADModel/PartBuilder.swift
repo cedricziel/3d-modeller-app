@@ -4,20 +4,28 @@ struct PartBuilder<Kernel: GeometryKernel> {
         case consumedBy(String)
     }
 
-    private enum Stop: Error {
+    enum Stop: Error {
         case failed(FeatureError)
         case skipped(dependsOn: String)
     }
 
     let kernel: Kernel
+    let sketchSolver: (any SketchSolving)?
     let parameters: ParameterTable
     private var bodies: [(name: String, body: Kernel.Body)] = []
     private var unavailable: [String: Unavailable] = [:]
     private var names: Set<String> = []
     private var newBodyCount = 0
+    /// Usable sketches by feature name.
+    var sketches: [String: SketchResult] = [:]
+    /// Sketches that did not build, with the feature that broke them.
+    var unavailableSketches: [String: String] = [:]
+    /// Every sketch the rebuild solved, usable or not, in feature order.
+    var sketchResults: [SketchResult] = []
 
-    init(kernel: Kernel, parameters: ParameterTable) {
+    init(kernel: Kernel, sketchSolver: (any SketchSolving)?, parameters: ParameterTable) {
         self.kernel = kernel
+        self.sketchSolver = sketchSolver
         self.parameters = parameters
     }
 
@@ -41,6 +49,13 @@ struct PartBuilder<Kernel: GeometryKernel> {
                 case .failed(let error): status = .failed(error)
                 case .skipped(let dependency): status = .skipped(dependsOn: dependency)
                 }
+            }
+        }
+        if case .sketch = feature.kind, status != .ok {
+            if case .skipped(let root) = status {
+                unavailableSketches[feature.name] = root
+            } else {
+                unavailableSketches[feature.name] = feature.name
             }
         }
         if let newBody, status != .ok {
@@ -87,17 +102,9 @@ struct PartBuilder<Kernel: GeometryKernel> {
     private mutating func build(_ feature: Feature, newBody: String?) throws(Stop) {
         switch feature.kind {
         case .primitive(let primitive):
-            var target: Kernel.Body?
-            if let name = primitive.operation.targetBody { target = try body(named: name) }
+            let target = try primitive.operation.targetBody.map { (name) throws(Stop) in try body(named: name) }
             let solid = try make(primitive.shape, primitive.placement, feature: feature.name)
-            if let name = primitive.operation.targetBody, let target,
-                let operation = primitive.operation.booleanOperation
-            {
-                let combined = try kernelCall { try kernel.boolean(operation, target, solid, feature: feature.name) }
-                store(combined, as: name)
-            } else if let newBody {
-                store(solid, as: newBody)
-            }
+            try combine(solid, into: target, primitive.operation, newBody: newBody, feature: feature.name)
         case .boolean(let boolean):
             guard !boolean.tools.isEmpty else { throw .failed(.invalidTools("a boolean needs at least one tool body")) }
             guard !boolean.tools.contains(boolean.target) else {
@@ -145,10 +152,28 @@ struct PartBuilder<Kernel: GeometryKernel> {
                 try kernelCall {
                     try kernel.shell(original, faces: faces, thickness: thickness, feature: feature.name)
                 }, as: shell.body)
+        case .sketch(let sketch):
+            try buildSketch(sketch, feature: feature)
+        case .extrude(let extrude):
+            try buildExtrude(extrude, newBody: newBody, feature: feature.name)
+        case .revolve(let revolve):
+            try buildRevolve(revolve, newBody: newBody, feature: feature.name)
         }
     }
 
-    private func select(_ references: [GeometryReference], _ kind: GeometryKind, of body: Kernel.Body) throws(Stop)
+    /// Stores a new solid as a new body, or combines it into `target` as the operation says.
+    mutating func combine(
+        _ solid: Kernel.Body, into target: Kernel.Body?, _ operation: SolidOperation, newBody: String?,
+        feature: String
+    ) throws(Stop) {
+        if let name = operation.targetBody, let target, let boolean = operation.booleanOperation {
+            store(try kernelCall { try kernel.boolean(boolean, target, solid, feature: feature) }, as: name)
+        } else if let newBody {
+            store(solid, as: newBody)
+        }
+    }
+
+    func select(_ references: [GeometryReference], _ kind: GeometryKind, of body: Kernel.Body) throws(Stop)
         -> [Int]
     {
         guard !references.isEmpty else { throw .failed(.reference("no \(kind.rawValue) are referenced")) }
@@ -160,7 +185,7 @@ struct PartBuilder<Kernel: GeometryKernel> {
         }
     }
 
-    private func body(named name: String) throws(Stop) -> Kernel.Body {
+    func body(named name: String) throws(Stop) -> Kernel.Body {
         if let entry = bodies.first(where: { $0.name == name }) { return entry.body }
         switch unavailable[name] {
         case .brokenBy(let feature)?: throw .skipped(dependsOn: feature)
@@ -220,7 +245,7 @@ struct PartBuilder<Kernel: GeometryKernel> {
         SIMD3(try value(vector.x, "\(field).x"), try value(vector.y, "\(field).y"), try value(vector.z, "\(field).z"))
     }
 
-    private func value(_ scalar: Scalar, _ field: String) throws(Stop) -> Double {
+    func value(_ scalar: Scalar, _ field: String) throws(Stop) -> Double {
         do {
             return try parameters.evaluate(scalar)
         } catch {
@@ -228,7 +253,7 @@ struct PartBuilder<Kernel: GeometryKernel> {
         }
     }
 
-    private func kernelCall<T>(_ operation: () throws -> T) throws(Stop) -> T {
+    func kernelCall<T>(_ operation: () throws -> T) throws(Stop) -> T {
         do {
             return try operation()
         } catch {

@@ -36,19 +36,35 @@ extension FeatureKind {
         case .fillet(let fillet): [fillet.body]
         case .chamfer(let chamfer): [chamfer.body]
         case .shell(let shell): [shell.body]
+        case .sketch(let sketch):
+            if case .face(let body, _, _) = sketch.plane { [body] } else { [] }
+        case .extrude(let extrude):
+            [extrude.operation.targetBody, extrude.extent.referenceBody].compactMap(\.self)
+        case .revolve(let revolve):
+            [revolve.operation.targetBody, revolve.axis.referenceBody].compactMap(\.self)
         }
     }
 
     public mutating func renameBodyReferences(_ rename: (String) -> String) {
         switch self {
         case .primitive(var primitive):
-            switch primitive.operation {
-            case .newBody: return
-            case .join(let body): primitive.operation = .join(rename(body))
-            case .cut(let body): primitive.operation = .cut(rename(body))
-            case .intersect(let body): primitive.operation = .intersect(rename(body))
-            }
+            primitive.operation = primitive.operation.renamingBody(rename)
             self = .primitive(primitive)
+        case .sketch(var sketch):
+            if case .face(let body, let face, let offset) = sketch.plane {
+                sketch.plane = .face(body: rename(body), face: face, offset: offset)
+            }
+            self = .sketch(sketch)
+        case .extrude(var extrude):
+            extrude.operation = extrude.operation.renamingBody(rename)
+            if case .upToFace(let body, let face) = extrude.extent {
+                extrude.extent = .upToFace(body: rename(body), face: face)
+            }
+            self = .extrude(extrude)
+        case .revolve(var revolve):
+            revolve.operation = revolve.operation.renamingBody(rename)
+            if case .edge(let body, let edge) = revolve.axis { revolve.axis = .edge(body: rename(body), edge: edge) }
+            self = .revolve(revolve)
         case .boolean(var boolean):
             boolean.target = rename(boolean.target)
             boolean.tools = boolean.tools.map(rename)
@@ -66,5 +82,30 @@ extension FeatureKind {
             shell.body = rename(shell.body)
             self = .shell(shell)
         }
+    }
+}
+
+extension SolidOperation {
+    func renamingBody(_ rename: (String) -> String) -> SolidOperation {
+        switch self {
+        case .newBody: .newBody
+        case .join(let body): .join(rename(body))
+        case .cut(let body): .cut(rename(body))
+        case .intersect(let body): .intersect(rename(body))
+        }
+    }
+}
+
+extension ExtrudeExtent {
+    /// The body an up-to face belongs to.
+    public var referenceBody: String? {
+        if case .upToFace(let body, _) = self { body } else { nil }
+    }
+}
+
+extension RevolveAxis {
+    /// The body an axis edge belongs to.
+    public var referenceBody: String? {
+        if case .edge(let body, _) = self { body } else { nil }
     }
 }

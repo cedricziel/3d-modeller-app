@@ -43,11 +43,16 @@ public struct RunRecord: Sendable {
 @MainActor
 public struct BenchRunner<Kernel: GeometryKernel> {
     public let kernel: Kernel
+    public let sketchSolver: (any SketchSolving)?
     public let settings: RunSettings
     public let makeProvider: @Sendable () -> any LLMProvider
 
-    public init(kernel: Kernel, settings: RunSettings, makeProvider: @escaping @Sendable () -> any LLMProvider) {
+    public init(
+        kernel: Kernel, sketchSolver: (any SketchSolving)? = nil, settings: RunSettings,
+        makeProvider: @escaping @Sendable () -> any LLMProvider
+    ) {
         self.kernel = kernel
+        self.sketchSolver = sketchSolver
         self.settings = settings
         self.makeProvider = makeProvider
     }
@@ -55,7 +60,7 @@ public struct BenchRunner<Kernel: GeometryKernel> {
     public func run(_ task: BenchTask, attempt: Int) async -> RunRecord {
         let clock = ContinuousClock()
         let start = clock.now
-        let session = CADSession(document: task.seed ?? CADDocument(), kernel: kernel)
+        let session = CADSession(document: task.seed ?? CADDocument(), kernel: kernel, sketchSolver: sketchSolver)
         if task.seed != nil { _ = try? await session.rebuild() }
         let provider = RecordingProvider(makeProvider())
         var configuration = CADAssistantPrompt.configuration
@@ -69,7 +74,7 @@ public struct BenchRunner<Kernel: GeometryKernel> {
 
         let document = session.document
         _ = await session.currentResult()
-        let grade = await Grader(kernel: kernel).grade(task, document: document)
+        let grade = await Grader(kernel: kernel, sketchSolver: sketchSolver).grade(task, document: document)
         let renders = await session.renderViews().views
         let usage = await provider.usage
         let messages = assistant.messages

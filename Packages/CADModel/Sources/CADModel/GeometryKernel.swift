@@ -18,6 +18,14 @@ public protocol GeometryKernel: Sendable {
     func chamfer(_ body: Body, edges: [Int], distance: Double, feature: String) throws -> Body
     /// Hollows the body with walls `thickness` thick inside its outline, open where `faces` were.
     func shell(_ body: Body, faces: [Int], thickness: Double, feature: String) throws -> Body
+    /// Sweeps the profile along its normal from offset `from` to `to` (mm). Faces are named `<feature>.start`,
+    /// `<feature>.end` and `<feature>.side[<curve name>]`.
+    func extrude(_ profile: SketchProfile, from: Double, to: Double, feature: String) throws -> Body
+    /// Turns the profile about the axis by `angleDegrees`, counter-clockwise about `axisDirection` (a unit vector).
+    func revolve(
+        _ profile: SketchProfile, axisOrigin: SIMD3<Double>, axisDirection: SIMD3<Double>, angleDegrees: Double,
+        feature: String
+    ) throws -> Body
     func topology(of body: Body) throws -> BodyTopology
     func metrics(of body: Body) throws -> BodyMetrics
     func mesh(of body: Body) throws -> BodyMesh

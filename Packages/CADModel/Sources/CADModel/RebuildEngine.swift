@@ -6,9 +6,12 @@ public struct RebuiltModel: Sendable {
 
 public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
     public let kernel: Kernel
+    public let sketchSolver: (any SketchSolving)?
 
-    public init(kernel: Kernel) {
+    /// Without a sketch solver every sketch fails, and the features that use one are skipped.
+    public init(kernel: Kernel, sketchSolver: (any SketchSolving)? = nil) {
         self.kernel = kernel
+        self.sketchSolver = sketchSolver
     }
 
     @concurrent
@@ -23,14 +26,16 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
         var parts: [PartResult] = []
         var bodies: [BodyKey: Kernel.Body] = [:]
         for part in document.parts {
-            var builder = PartBuilder(kernel: kernel, parameters: parameters)
+            var builder = PartBuilder(kernel: kernel, sketchSolver: sketchSolver, parameters: parameters)
             var features: [FeatureResult] = []
             for feature in part.features {
                 try Task.checkCancellation()
                 features.append(builder.apply(feature))
             }
             parts.append(
-                PartResult(id: part.id, name: part.name, features: features, bodies: try builder.bodyResults()))
+                PartResult(
+                    id: part.id, name: part.name, features: features, bodies: try builder.bodyResults(),
+                    sketches: builder.sketchResults))
             for (name, body) in builder.builtBodies {
                 bodies[BodyKey(part: part.name, body: name)] = body
             }

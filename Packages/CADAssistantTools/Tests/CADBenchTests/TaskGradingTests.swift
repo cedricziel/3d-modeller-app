@@ -1,5 +1,6 @@
 import CADModel
 import CADModelKernel
+import CADModelSolvers
 import Testing
 
 @testable import CADBench
@@ -8,6 +9,7 @@ enum WrongSolution: String, CaseIterable, Sendable {
     case plateHoleTooSmall, washerBoreTooSmall, flangeNotJoined, pocketTooDeep, uprightOnFarEdge, fullSphere
     case thicknessEditedDirectly, holeMovedAlongY, extraFeatureInMove, plateUnparametrised, secondHoleMisplaced
     case filletTooSmall, cornersCutAway, chamferOnBottom, boxOpenAtBottom, boxCutInsteadOfShelled
+    case lProfileTooThick, cupBottomTooThin, slotTooWide, heightEditedInSketch
 
     var task: String {
         switch self {
@@ -23,6 +25,10 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .filletTooSmall, .cornersCutAway: "rounded-plate"
         case .chamferOnBottom: "chamfered-hole"
         case .boxOpenAtBottom, .boxCutInsteadOfShelled: "open-box"
+        case .lProfileTooThick: "l-profile"
+        case .cupBottomTooThin: "revolved-cup"
+        case .slotTooWide: "slotted-plate"
+        case .heightEditedInSketch: "profile-height"
         }
     }
 
@@ -38,6 +44,8 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .fullSphere: "bounding box"
         case .thicknessEditedDirectly: "parameter t"
         case .plateUnparametrised: "unchanged"
+        case .lProfileTooThick, .cupBottomTooThin, .slotTooWide: "volume"
+        case .heightEditedInSketch: "parameter height"
         }
     }
 
@@ -91,6 +99,20 @@ enum WrongSolution: String, CaseIterable, Sendable {
             var document = reference.removing("Hollow")
             document.parts[0].features.append(box("Inside", 56, 36, 28, at: Vector3(2, 2, 2), operation: .cut("Body1")))
             return document
+        case .lProfileTooThick:
+            return reference.setting("leg", 10)
+        case .cupBottomTooThin:
+            return reference.setting("bottom", 1)
+        case .slotTooWide:
+            return reference.setting("slot_w", 10)
+        case .heightEditedInSketch:
+            return try #require(task.seed).editing("Profile") { kind in
+                guard case .sketch(var sketch) = kind else { return }
+                for index in sketch.constraints.indices where sketch.constraints[index].value == "height" {
+                    sketch.constraints[index].value = 45
+                }
+                kind = .sketch(sketch)
+            }
         }
     }
 }
@@ -102,6 +124,14 @@ extension CADDocument {
             for index in copy.parts[part].features.indices where copy.parts[part].features[index].name == name {
                 change(&copy.parts[part].features[index].kind)
             }
+        }
+        return copy
+    }
+
+    func setting(_ parameter: String, _ value: Scalar) -> CADDocument {
+        var copy = self
+        for index in copy.parameters.indices where copy.parameters[index].name == parameter {
+            copy.parameters[index].expression = value
         }
         return copy
     }
@@ -160,10 +190,11 @@ extension FeatureKind {
 @Suite("Seed tasks")
 struct TaskGradingTests {
     static let ids = [
-        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "open-box", "plate-hole",
-        "plate-move-hole", "plate-second-hole", "plate-thickness", "rounded-plate", "washer",
+        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "open-box",
+        "plate-hole", "plate-move-hole", "plate-second-hole", "plate-thickness", "profile-height", "revolved-cup",
+        "rounded-plate", "slotted-plate", "washer",
     ]
-    let grader = Grader(kernel: OCCTGeometryKernel())
+    let grader = Grader(kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
 
     @Test("Every task directory loads")
     func allLoad() throws {
