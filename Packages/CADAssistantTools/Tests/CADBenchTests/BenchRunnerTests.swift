@@ -50,6 +50,16 @@ struct BenchRunnerTests {
         #expect(record.seconds >= 0)
         #expect(record.renders.map(\.view) == ViewDirection.allCases)
         #expect(record.renders.allSatisfy { $0.png.starts(with: [0x89, 0x50, 0x4E, 0x47]) })
+        #expect(record.exportError == nil)
+        #expect(record.step.map { String(decoding: $0, as: UTF8.self).hasPrefix("ISO-10303-21;") } == true)
+    }
+
+    @Test("A run without bodies records why it has no final STEP")
+    func emptyRunHasNoStep() async {
+        let record = await runner([reply("I will not model this.")]).run(blockTask, attempt: 1)
+
+        #expect(record.step == nil)
+        #expect(record.exportError?.hasPrefix("Nothing to export") == true)
     }
 
     @Test("The transcript keeps the captions of rendered views, not the images")

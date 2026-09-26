@@ -49,9 +49,12 @@ summary.md                 table per task: passes, pass@1, pass@K, tool calls, t
 summary.json               the same data, plus every check outcome of every run
 <task>/run-<n>/
   document.cadmodel        the final document; open it in the app
+  final.step               the final document exported as STEP (the assembly when it has instances); missing
+                           when the export failed, and run.json then gives exportError
+  exports/                 files the model wrote with the export tool; the only folder that tool may write to
   listing.txt              the final listing, as the model saw it
   transcript.json          every message, tool call, tool result and per-turn context (image captions only)
-  run.json                 how the run ended, check outcomes, usage and cost
+  run.json                 how the run ended, check outcomes, usage, cost and any export error
   view-<name>.png          the final model rendered iso, top, front and right, as render_views returns it
 ```
 

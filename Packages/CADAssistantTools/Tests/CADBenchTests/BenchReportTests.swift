@@ -26,7 +26,8 @@ struct BenchReportTests {
             costUSD: 0.01, seconds: 2, listing: "part P\n  (no features) \(secret)",
             document: CADDocument(parts: [Part(name: "P \(secret)")]),
             transcript: [TranscriptEntry(.user("hello \(secret)"))],
-            renders: [RenderedView(view: .top, png: png, millimetresPerPixel: 0.1)])
+            renders: [RenderedView(view: .top, png: png, millimetresPerPixel: 0.1)],
+            step: Data("ISO-10303-21; \(secret)".utf8))
     }
 
     private let png = Data([0x89, 0x50, 0x4E, 0x47, 0xFF, 0x00])
@@ -67,7 +68,7 @@ struct BenchReportTests {
         let files = try FileManager.default.subpathsOfDirectory(atPath: directory.path).sorted()
         for expected in [
             "a/run-1/document.cadmodel", "a/run-1/transcript.json", "a/run-1/listing.txt", "a/run-1/run.json",
-            "a/run-1/view-top.png", "summary.json", "summary.md",
+            "a/run-1/view-top.png", "a/run-1/final.step", "summary.json", "summary.md",
         ] {
             #expect(files.contains(expected), "\(expected)")
         }

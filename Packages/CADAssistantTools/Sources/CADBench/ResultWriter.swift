@@ -31,13 +31,21 @@ public struct ResultWriter {
         self.redactor = redactor
     }
 
+    /// The folder of one run's files.
+    public func folder(task: String, attempt: Int) -> URL {
+        directory.appending(path: task).appending(path: "run-\(attempt)")
+    }
+
     public func write(_ record: RunRecord) throws {
-        let folder = directory.appending(path: record.task).appending(path: "run-\(record.attempt)")
+        let folder = folder(task: record.task, attempt: record.attempt)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try write(record.document.jsonData(), to: folder.appending(path: "document.cadmodel"))
         try write(Data(record.listing.utf8), to: folder.appending(path: "listing.txt"))
         try write(Self.json(record.transcript), to: folder.appending(path: "transcript.json"))
         try write(Self.json(RunSummary(record)), to: folder.appending(path: "run.json"))
+        if let step = record.step {
+            try write(step, to: folder.appending(path: "final.step"))
+        }
         for render in record.renders {
             try render.png.write(to: folder.appending(path: "view-\(render.view.rawValue).png"), options: .atomic)
         }

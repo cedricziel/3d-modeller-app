@@ -26,6 +26,8 @@ public struct RunSummary: Sendable, Codable, Equatable {
     public let costUSD: Double?
     public let seconds: Double
     public let outcomes: [CheckOutcome]
+    /// Why `final.step` is missing.
+    public let exportError: String?
 
     public init(_ record: RunRecord) {
         task = record.task
@@ -42,6 +44,7 @@ public struct RunSummary: Sendable, Codable, Equatable {
         costUSD = record.costUSD
         seconds = record.seconds
         outcomes = record.grade.outcomes
+        exportError = record.exportError
     }
 }
 
