@@ -84,4 +84,17 @@ struct ViewRendererTests {
         #expect(decoded.width == 512 && decoded.height == 512)
         #expect(abs(views[0].millimetresPerPixel - 20 / (512 * 0.88)) < 1e-6)
     }
+
+    @Test("A mesh with a non-finite position is skipped instead of crashing the renderer")
+    func nonFiniteMesh() {
+        var broken = Self.boxMesh(SIMD3(1, 1, 1))
+        broken.positions[0] = SIMD3(.nan, 0, 0)
+        let far = Self.boxMesh(SIMD3(1, 1, 1), at: SIMD3(1e6, 0, 0))
+
+        let result = ViewRenderer.image(
+            [RenderBody(mesh: broken, colour: Self.blue), RenderBody(mesh: far, colour: Self.blue)], view: .top,
+            size: 64)
+
+        #expect(result.millimetresPerPixel > 0)
+    }
 }

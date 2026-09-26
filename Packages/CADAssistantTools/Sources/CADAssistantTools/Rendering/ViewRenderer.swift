@@ -4,7 +4,7 @@ import simd
 
 public struct RenderBody: Sendable {
     public let mesh: BodyMesh
-    /// Linear RGB, each component 0…1.
+    /// sRGB, each component 0…1.
     public let colour: SIMD3<Float>
 
     public init(mesh: BodyMesh, colour: SIMD3<Float>) {
@@ -48,6 +48,9 @@ public enum ViewRenderer {
         image: RGBAImage, millimetresPerPixel: Float
     ) {
         let (right, up, forward) = view.basis
+        let bodies = bodies.filter { body in
+            body.mesh.positions.allSatisfy { $0.x.isFinite && $0.y.isFinite && $0.z.isFinite }
+        }
         var low = SIMD2<Float>(repeating: .infinity)
         var high = SIMD2<Float>(repeating: -.infinity)
         var nearest = Float.infinity
@@ -105,11 +108,11 @@ public enum ViewRenderer {
     /// its own vertices; the unsigned angle ignores the winding, which is not consistent across faces.
     private static func featureLines(_ mesh: BodyMesh, _ normals: [SIMD3<Float>]) -> [(SIMD3<Float>, SIMD3<Float>)] {
         struct Key: Hashable {
-            let a: SIMD3<Int32>
-            let b: SIMD3<Int32>
+            let a: SIMD3<Int64>
+            let b: SIMD3<Int64>
         }
-        func quantized(_ point: SIMD3<Float>) -> SIMD3<Int32> {
-            SIMD3<Int32>((point * 1e4).rounded(.toNearestOrAwayFromZero))
+        func quantized(_ point: SIMD3<Float>) -> SIMD3<Int64> {
+            SIMD3<Int64>((SIMD3<Double>(point) * 1e4).rounded(.toNearestOrAwayFromZero))
         }
         var triangles: [Key: [Int]] = [:]
         var ends: [Key: (SIMD3<Float>, SIMD3<Float>)] = [:]
