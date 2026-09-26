@@ -76,7 +76,9 @@ struct WriteReport {
                 let key = "\(body.name) (\(part.name))"
                 seen.insert(key)
                 let line = Self.describe(body, in: part.name)
-                if Self.isSound(body), let previous = old[key], Self.describe(previous, in: part.name) == line {
+                if Self.isSound(body), let previous = old[key], Self.describe(previous, in: part.name) == line,
+                    !featuresChanged(body: body.name, part: part.id)
+                {
                     unchanged.append(key)
                 } else {
                     changed.append(line)
@@ -88,10 +90,33 @@ struct WriteReport {
         var lines: [String] = []
         if changed.isEmpty && unchanged.isEmpty { lines.append("Bodies: none") }
         if !changed.isEmpty { lines.append("Bodies:") }
-        lines += changed.map { "  \($0)" }
+        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
+        if changed.count > Self.diffLimit {
+            lines.append("  … \(changed.count - Self.diffLimit) more changed bodies; call measure for their sizes")
+        }
         if !unchanged.isEmpty { lines.append("Unchanged bodies: \(unchanged.joined(separator: ", "))") }
         if !removed.isEmpty { lines.append("Removed bodies: \(removed.joined(separator: ", "))") }
         return lines
+    }
+
+    /// Whether an edit touched a feature that builds, changes or reads the body, or changed the value of one of
+    /// their numeric fields through a parameter. The body's size alone cannot tell: a moved hole keeps the volume.
+    private func featuresChanged(body: String, part id: UUID) -> Bool {
+        guard let oldPart = before.parts.first(where: { $0.id == id }),
+            let newPart = after.parts.first(where: { $0.id == id })
+        else { return true }
+        func touching(_ part: Part) -> [Feature] {
+            let affected = part.affectedBodies()
+            return part.features.filter { affected[$0.id] == body || $0.kind.bodyReferences.contains(body) }
+        }
+        let features = touching(newPart)
+        guard touching(oldPart) == features else { return true }
+        let (oldTable, newTable) = (ParameterTable(before.parameters), ParameterTable(after.parameters))
+        return features.contains { feature in
+            feature.kind.scalarFields.contains { _, scalar in
+                (try? oldTable.evaluate(scalar)) != (try? newTable.evaluate(scalar))
+            }
+        }
     }
 
     static func isSound(_ body: BodyResult) -> Bool {

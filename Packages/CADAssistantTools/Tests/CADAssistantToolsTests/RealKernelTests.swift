@@ -49,6 +49,6 @@ struct RealKernelTests {
         #expect(result.success)
         #expect(result.message.contains("Box2: failed:"))
         #expect(session.document.parts[0].features.count == 2)
-        #expect(result.message.contains("Unchanged bodies: Body1 (P)"))
+        #expect(result.message.contains("Body1 (P): valid closed solid, 6 faces, 12 edges, volume 1000 mm³"))
     }
 }
