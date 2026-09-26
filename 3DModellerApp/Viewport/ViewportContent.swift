@@ -19,10 +19,11 @@ enum ViewportContent: String, CaseIterable, Identifiable {
         document.instances.isEmpty ? .parts : .assembly
     }
 
-    /// The content that shows the selection: a feature's part or an instance's assembly.
+    /// The content that shows the selection: a feature's part, or the assembly for an instance or a joint.
     static func following(selection: UUID?, in document: CADDocument) -> ViewportContent? {
         guard let selection else { return nil }
         if document.instances.contains(where: { $0.id == selection }) { return .assembly }
+        if document.joints.contains(where: { $0.id == selection }) { return .assembly }
         if document.feature(id: selection) != nil { return .parts }
         return nil
     }

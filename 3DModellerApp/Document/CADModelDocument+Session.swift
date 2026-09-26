@@ -5,9 +5,12 @@ import CADModelSolvers
 import Foundation
 
 extension CADSession {
-    /// The session a window uses: the Open CASCADE kernel and the PlaneGCS sketch solver.
+    /// The session a window uses: the Open CASCADE kernel, the PlaneGCS sketch solver and the OndselSolver
+    /// assembly solver.
     static func forApp(document: CADDocument) -> CADSession {
-        CADSession(document: document, kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
+        CADSession(
+            document: document, kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver(),
+            assemblySolver: OndselAssemblySolver())
     }
 }
 

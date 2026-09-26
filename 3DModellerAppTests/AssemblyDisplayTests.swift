@@ -1,5 +1,6 @@
 @testable import _D_Modeller
 import CADModel
+import CADAssistantTools
 import CADModelKernel
 import Foundation
 import Testing
@@ -57,5 +58,36 @@ struct AssemblyDisplayTests {
         scene.show(result, content: .assembly)
         #expect(scene.bodyEntities.map(\.name) == ["Base", "Lid"])
         #expect(scene.sketchSegmentCount == 0)
+    }
+
+    private var mated: CADDocument {
+        var document = assembled
+        let (base, lid) = (document.instances[0].id, document.instances[1].id)
+        document.assembly?.instances[1].placement = Placement(translation: Vector3(100, 0, 80))
+        document.assembly?.joints = [
+            Joint(
+                name: "Seat", kind: .fixed, a: JointFrameRef(instance: base, face: .name("Box.top")),
+                b: JointFrameRef(instance: lid, face: .name("Box.bottom")))
+        ]
+        return document
+    }
+
+    @Test("Selecting a joint shows the assembly")
+    func followingJoint() {
+        let document = mated
+        #expect(ViewportContent.following(selection: document.joints[0].id, in: document) == .assembly)
+    }
+
+    @Test("The app's session solves joints, so the viewport shows the lid where the joint puts it")
+    func solvedPlacementShown() async throws {
+        let session = CADSession.forApp(document: mated)
+        let result = try await session.rebuild()
+        let lid = try #require(result.displayBodies(.assembly).last)
+        let lowest = try #require(lid.mesh.positions.map(\.z).min())
+        let leftmost = try #require(lid.mesh.positions.map(\.x).min())
+
+        #expect(result.assembly?.joints.first?.status == .ok)
+        #expect(abs(lowest - 5) < 1e-4)
+        #expect(abs(leftmost) < 1e-4)
     }
 }
