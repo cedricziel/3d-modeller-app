@@ -17,16 +17,19 @@ public final class CADSession {
     /// Called with every document an edit produces and the edit's action name, before the rebuild.
     @ObservationIgnored public var onCommit: (@MainActor (CADDocument, String) -> Void)?
 
-    @ObservationIgnored private let build: @Sendable (CADDocument) async throws -> RebuildResult
+    /// Measurements on the bodies of `result`.
+    @ObservationIgnored public private(set) var geometry: ModelGeometry?
+
+    @ObservationIgnored private let build: @Sendable (CADDocument) async throws -> RebuiltModel
     @ObservationIgnored private var builtDocument: CADDocument?
     /// The running rebuild. Callers share it, and their own cancellation does not stop it; only a rebuild of a
     /// newer document cancels it, so a view that disappears mid-rebuild cannot leave the document unbuilt.
-    @ObservationIgnored private var building: (document: CADDocument, task: Task<RebuildResult, any Error>)?
+    @ObservationIgnored private var building: (document: CADDocument, task: Task<RebuiltModel, any Error>)?
     private nonisolated let snapshot: Mutex<String>
 
     public init<Kernel: GeometryKernel>(document: CADDocument = CADDocument(), kernel: Kernel) {
         let engine = RebuildEngine(kernel: kernel)
-        build = { try await engine.rebuild($0) }
+        build = { try await engine.build($0) }
         self.document = document
         snapshot = Mutex(DocumentListing.render(document, result: nil))
     }
@@ -48,7 +51,7 @@ public final class CADSession {
     @discardableResult
     public func rebuild() async throws -> RebuildResult {
         let target = document
-        let task: Task<RebuildResult, any Error>
+        let task: Task<RebuiltModel, any Error>
         if let building, building.document == target {
             task = building.task
         } else {
@@ -60,11 +63,12 @@ public final class CADSession {
         defer { if building?.task == task { building = nil } }
         let rebuilt = try await task.value
         if document == target {
-            result = rebuilt
+            result = rebuilt.result
+            geometry = rebuilt.geometry
             builtDocument = target
             publishListing()
         }
-        return rebuilt
+        return rebuilt.result
     }
 
     /// Takes over a document the host changed, at once and without rebuilding, so an edit computed right after

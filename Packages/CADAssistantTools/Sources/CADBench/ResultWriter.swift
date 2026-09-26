@@ -20,7 +20,8 @@ public enum BenchClock {
     }
 }
 
-/// Writes each run's document, listing, transcript and grade, and the summary, with secrets redacted.
+/// Writes each run's document, listing, transcript, grade and renders, and the summary, with secrets redacted from
+/// the text files.
 public struct ResultWriter {
     public let directory: URL
     public let redactor: Redactor
@@ -37,6 +38,9 @@ public struct ResultWriter {
         try write(Data(record.listing.utf8), to: folder.appending(path: "listing.txt"))
         try write(Self.json(record.transcript), to: folder.appending(path: "transcript.json"))
         try write(Self.json(RunSummary(record)), to: folder.appending(path: "run.json"))
+        for render in record.renders {
+            try render.png.write(to: folder.appending(path: "view-\(render.view.rawValue).png"), options: .atomic)
+        }
     }
 
     public func write(_ summary: BenchSummary) throws {

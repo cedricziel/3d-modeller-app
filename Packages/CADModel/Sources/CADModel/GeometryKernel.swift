@@ -21,6 +21,40 @@ public protocol GeometryKernel: Sendable {
     func topology(of body: Body) throws -> BodyTopology
     func metrics(of body: Body) throws -> BodyMetrics
     func mesh(of body: Body) throws -> BodyMesh
+    /// The minimum distance between the operands; 0 when they touch or overlap.
+    func distance(_ a: GeometryOperand<Body>, _ b: GeometryOperand<Body>) throws -> DistanceMeasurement
+    func bounds(of operand: GeometryOperand<Body>) throws -> Bounds
+}
+
+/// What a measurement is taken on; face and edge indices follow `topology(of:)`.
+public enum GeometryOperand<Body: Sendable>: Sendable {
+    case point(SIMD3<Double>)
+    case body(Body)
+    case face(Body, Int)
+    case edge(Body, Int)
+}
+
+public struct DistanceMeasurement: Sendable, Equatable {
+    public var distance: Double
+    /// The closest points on the first and the second operand.
+    public var pointA: SIMD3<Double>
+    public var pointB: SIMD3<Double>
+
+    public init(distance: Double, pointA: SIMD3<Double>, pointB: SIMD3<Double>) {
+        self.distance = distance
+        self.pointA = pointA
+        self.pointB = pointB
+    }
+}
+
+public struct Bounds: Sendable, Equatable {
+    public var min: SIMD3<Double>
+    public var max: SIMD3<Double>
+
+    public init(min: SIMD3<Double>, max: SIMD3<Double>) {
+        self.min = min
+        self.max = max
+    }
 }
 
 public struct BodyMetrics: Sendable, Equatable {

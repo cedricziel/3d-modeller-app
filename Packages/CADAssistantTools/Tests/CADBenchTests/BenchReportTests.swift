@@ -1,3 +1,4 @@
+import CADAssistantTools
 import CADModel
 import Foundation
 import SwiftUIAssistant
@@ -24,8 +25,11 @@ struct BenchReportTests {
             toolCalls: 4, failedToolCalls: 1, usage: Usage(requests: 2, inputTokens: 1000, outputTokens: 100),
             costUSD: 0.01, seconds: 2, listing: "part P\n  (no features) \(secret)",
             document: CADDocument(parts: [Part(name: "P \(secret)")]),
-            transcript: [TranscriptEntry(.user("hello \(secret)"))])
+            transcript: [TranscriptEntry(.user("hello \(secret)"))],
+            renders: [RenderedView(view: .top, png: png, millimetresPerPixel: 0.1)])
     }
+
+    private let png = Data([0x89, 0x50, 0x4E, 0x47, 0xFF, 0x00])
 
     private let tasks = [
         BenchTask(id: "a", kind: .build, prompt: "p", checks: [.gate]),
@@ -63,14 +67,14 @@ struct BenchReportTests {
         let files = try FileManager.default.subpathsOfDirectory(atPath: directory.path).sorted()
         for expected in [
             "a/run-1/document.cadmodel", "a/run-1/transcript.json", "a/run-1/listing.txt", "a/run-1/run.json",
-            "summary.json", "summary.md",
+            "a/run-1/view-top.png", "summary.json", "summary.md",
         ] {
             #expect(files.contains(expected), "\(expected)")
         }
         for file in files {
             var isDirectory: ObjCBool = false
             FileManager.default.fileExists(atPath: directory.appending(path: file).path, isDirectory: &isDirectory)
-            if isDirectory.boolValue { continue }
+            if isDirectory.boolValue || file.hasSuffix(".png") { continue }
             let text = try String(contentsOf: directory.appending(path: file), encoding: .utf8)
             #expect(!text.contains(secret), "\(file)")
         }
@@ -78,6 +82,7 @@ struct BenchReportTests {
         #expect(transcript.contains("[redacted]"))
         let document = try CADDocument(json: Data(contentsOf: directory.appending(path: "a/run-1/document.cadmodel")))
         #expect(document.parts[0].name == "P [redacted]")
+        #expect(try Data(contentsOf: directory.appending(path: "a/run-1/view-top.png")) == png)
     }
 
     @Test("Timestamps contain no colons")

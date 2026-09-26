@@ -111,7 +111,9 @@ public final class Assistant: ObservableObject {
             if response.hasToolCalls, let toolCalls = response.toolCalls {
                 for toolCall in toolCalls {
                     let result = await executeToolCall(toolCall)
-                    messages.append(Message.toolResult(toolCallId: toolCall.id, content: result.toPromptString()))
+                    messages.append(
+                        Message.toolResult(
+                            toolCallId: toolCall.id, content: result.toPromptString(), images: result.images))
                 }
 
                 // Continue to get LLM's response after tool execution

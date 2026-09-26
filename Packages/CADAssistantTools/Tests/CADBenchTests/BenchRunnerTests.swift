@@ -1,3 +1,4 @@
+import CADAssistantTools
 import CADModel
 import CADModelKernel
 import SwiftUIAssistant
@@ -47,6 +48,21 @@ struct BenchRunnerTests {
         #expect(record.listing.contains("Block  box 10×20×30 at origin → Body1  ok"))
         #expect(record.document.parts[0].features.map(\.name) == ["Block"])
         #expect(record.seconds >= 0)
+        #expect(record.renders.map(\.view) == ViewDirection.allCases)
+        #expect(record.renders.allSatisfy { $0.png.starts(with: [0x89, 0x50, 0x4E, 0x47]) })
+    }
+
+    @Test("The transcript keeps the captions of rendered views, not the images")
+    func transcriptImages() async {
+        let render = ToolCall(id: "2", name: "render_views", arguments: ["views": ["top"]])
+        let record = await runner([
+            reply(nil, calls: [addBlock]), reply(nil, calls: [render]), reply("Done."),
+        ]).run(blockTask, attempt: 1)
+
+        let entry = record.transcript.last { $0.role == "tool_result" }
+        #expect(entry?.images?.count == 1)
+        #expect(entry?.images?.first?.hasPrefix("top: looking down −Z") == true)
+        #expect(record.transcript.first { $0.role == "tool_result" }?.images == nil)
     }
 
     @Test("A modify run starts from the rebuilt seed")

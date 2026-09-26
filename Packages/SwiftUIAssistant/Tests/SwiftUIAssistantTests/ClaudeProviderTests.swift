@@ -1,6 +1,7 @@
 import Foundation
-@testable import SwiftUIAssistant
 import Testing
+
+@testable import SwiftUIAssistant
 
 @Suite("ClaudeProvider Tests")
 struct ClaudeProviderTests {
@@ -117,5 +118,64 @@ struct ClaudeProviderTests {
         #expect(width["type"] as? [String] == ["number", "string"])
         #expect(width["description"] as? String == "mm")
         #expect(schema["required"] as? [String] == ["width"])
+    }
+
+    @Test("A tool result with images sends its text, then each caption and image as base64 blocks")
+    func imageToolResult() async throws {
+        let png = Data([0x89, 0x50, 0x4E, 0x47])
+        let result = Message.toolResult(
+            toolCallId: "call_1", content: "Success: 1 view",
+            images: [ToolImage(data: png, caption: "top: looking down -Z")])
+        let request = try await ClaudeProvider(apiKey: "test").buildRequest(
+            systemPrompt: "s", messages: [.user("look"), result], tools: [])
+        let messages = try #require(try body(of: request)["messages"] as? [[String: Any]])
+        let blocks = try #require(messages[1]["content"] as? [[String: Any]])
+        let toolResult = try #require(blocks.first)
+        let content = try #require(toolResult["content"] as? [[String: Any]])
+
+        #expect(toolResult["type"] as? String == "tool_result")
+        #expect(toolResult["tool_use_id"] as? String == "call_1")
+        #expect(content.count == 3)
+        #expect(content[0]["type"] as? String == "text" && content[0]["text"] as? String == "Success: 1 view")
+        #expect(content[1]["text"] as? String == "top: looking down -Z")
+        #expect(content[2]["type"] as? String == "image")
+        let source = try #require(content[2]["source"] as? [String: Any])
+        #expect(source["type"] as? String == "base64")
+        #expect(source["media_type"] as? String == "image/png")
+        #expect(source["data"] as? String == png.base64EncodedString())
+    }
+
+    @Test("A text-only tool result next to an image result keeps plain string content")
+    func mixedToolResults() async throws {
+        let request = try await ClaudeProvider(apiKey: "test").buildRequest(
+            systemPrompt: "s",
+            messages: [
+                .user("look"),
+                .toolResult(toolCallId: "a", content: "pictures", images: [ToolImage(data: Data([1]))]),
+                .toolResult(toolCallId: "b", content: "Success: ok"),
+            ],
+            tools: [])
+        let messages = try #require(try body(of: request)["messages"] as? [[String: Any]])
+        let first = try #require((messages[1]["content"] as? [[String: Any]])?.first)
+        let second = try #require((messages[2]["content"] as? [[String: Any]])?.first)
+
+        #expect((first["content"] as? [[String: Any]])?.count == 2)
+        #expect(second["content"] as? String == "Success: ok")
+    }
+
+    @Test("Empty text and captions are left out of an image tool result")
+    func emptyTextBlocks() async throws {
+        let request = try await ClaudeProvider(apiKey: "test").buildRequest(
+            systemPrompt: "s",
+            messages: [
+                .user("look"),
+                .toolResult(toolCallId: "a", content: "", images: [ToolImage(data: Data([1]), caption: "")]),
+            ],
+            tools: [])
+        let messages = try #require(try body(of: request)["messages"] as? [[String: Any]])
+        let result = try #require((messages[1]["content"] as? [[String: Any]])?.first)
+        let content = try #require(result["content"] as? [[String: Any]])
+
+        #expect(content.map { $0["type"] as? String } == ["image"])
     }
 }

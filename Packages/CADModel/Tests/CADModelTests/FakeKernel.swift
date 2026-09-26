@@ -202,4 +202,21 @@ final class FakeKernel: GeometryKernel {
             indices: [0, 1, 2]
         )
     }
+
+    /// Bodies are one unit apart per unit of volume difference, so tests can tell operands apart.
+    func distance(_ a: GeometryOperand<FakeBody>, _ b: GeometryOperand<FakeBody>) throws -> DistanceMeasurement {
+        record("distance")
+        return DistanceMeasurement(distance: abs(Self.volume(a) - Self.volume(b)), pointA: .zero, pointB: .zero)
+    }
+
+    func bounds(of operand: GeometryOperand<FakeBody>) throws -> Bounds {
+        Bounds(min: .zero, max: SIMD3(repeating: Self.volume(operand)))
+    }
+
+    private static func volume(_ operand: GeometryOperand<FakeBody>) -> Double {
+        switch operand {
+        case .point: 0
+        case .body(let body), .face(let body, _), .edge(let body, _): body.volume
+        }
+    }
 }

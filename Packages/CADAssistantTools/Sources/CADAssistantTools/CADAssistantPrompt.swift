@@ -40,8 +40,13 @@ public enum CADAssistantPrompt {
         feature with what it does, the body it creates or changes, and its status. Call get_listing when you need \
         it again mid-turn.
         - Every write tool returns the edited feature's status, status changes elsewhere, each body's validity, \
-        volume and bounding box, and the changed listing lines. Read them after every write. If a feature failed, \
-        was skipped or a body is not a valid closed solid, fix it before moving on.
+        face and edge counts, volume and bounding box (bodies it did not change are only named), and the changed \
+        listing lines. Read them after every write. If a feature failed, was skipped or a body is not a valid closed \
+        solid, fix it before moving on.
+        - After a bigger change (a new body, a boolean, a fillet or shell, or several edits in a row), verify \
+        before you report: call render_views and look at the pictures, and use measure to check the dimensions, \
+        distances and clearances the user asked for rather than working them out yourself. Skip this after small \
+        edits; each view costs tokens on every later turn, so ask only for the views you need.
         - A refused write changes nothing; its message says why. Correct the call and try again.
         - Prefer editing existing features over deleting and re-adding them. Name features after what they are \
         (Plate, MountingHole) so later requests can refer to them.

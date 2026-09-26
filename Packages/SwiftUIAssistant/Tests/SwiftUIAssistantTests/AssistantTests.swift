@@ -1,6 +1,7 @@
 import Foundation
-@testable import SwiftUIAssistant
 import Testing
+
+@testable import SwiftUIAssistant
 
 @Suite("Assistant Tests")
 struct AssistantTests {
@@ -383,5 +384,25 @@ actor ExecutionTracker {
 extension MockLLMProvider {
     func setResponseDelay(_ nanoseconds: UInt64) {
         responseDelay = nanoseconds
+    }
+
+    @Test("Images a tool returns travel with its result message")
+    @MainActor
+    func toolImagesReachHistory() async throws {
+        let provider = MockLLMProvider()
+        await provider.queueToolCallResponse(
+            content: nil, toolCalls: [ToolCall(id: "c1", name: "snap", arguments: [:])])
+        await provider.queueTextResponse("Looks right.")
+        let image = ToolImage(data: Data([1, 2, 3]), caption: "iso")
+        let tool = MockTool(id: "snap", name: "snap", description: "d") { _ in
+            .success("1 view", images: [image])
+        }
+        let assistant = Assistant(provider: provider, tools: [tool], contextProvider: { MockContext() })
+
+        try await assistant.send("check it")
+
+        let result = try #require(assistant.messages.first { $0.role == .toolResult })
+        #expect(result.images == [image])
+        #expect(result.content == "Success: 1 view")
     }
 }

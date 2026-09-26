@@ -156,11 +156,32 @@ public actor ClaudeProvider: LLMProvider {
                     [
                         "type": "tool_result",
                         "tool_use_id": toolCallId,
-                        "content": message.content,
+                        "content": toolResultContent(message),
                     ]
                 ],
             ]
         }
+    }
+
+    /// The text alone as a string, or with images as text and image blocks
+    private func toolResultContent(_ message: Message) -> Any {
+        guard !message.images.isEmpty else { return message.content }
+        // The API refuses empty text blocks.
+        var blocks: [[String: Any]] = message.content.isEmpty ? [] : [["type": "text", "text": message.content]]
+        for image in message.images {
+            if let caption = image.caption, !caption.isEmpty {
+                blocks.append(["type": "text", "text": caption])
+            }
+            blocks.append([
+                "type": "image",
+                "source": [
+                    "type": "base64",
+                    "media_type": image.mediaType,
+                    "data": image.data.base64EncodedString(),
+                ],
+            ])
+        }
+        return blocks
     }
 
     private func formatTool(_ tool: any AssistantTool) -> [String: Any] {

@@ -6,6 +6,8 @@ public enum CADTools {
         [
             GetListingTool(session: session),
             FindGeometryTool(session: session),
+            MeasureTool(session: session),
+            RenderViewsTool(session: session),
             SetParameterTool(session: session),
             AddFeatureTool(session: session),
             EditFeatureTool(session: session),
