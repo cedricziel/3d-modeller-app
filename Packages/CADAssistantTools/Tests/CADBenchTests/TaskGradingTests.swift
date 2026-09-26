@@ -10,6 +10,7 @@ enum WrongSolution: String, CaseIterable, Sendable {
     case thicknessEditedDirectly, holeMovedAlongY, extraFeatureInMove, plateUnparametrised, secondHoleMisplaced
     case filletTooSmall, cornersCutAway, chamferOnBottom, boxOpenAtBottom, boxCutInsteadOfShelled
     case lProfileTooThick, cupBottomTooThin, slotTooWide, heightEditedInSketch
+    case topPlateSunk, platesAsBodies, legTooLong, movedByEditingPart, movedSpacer
 
     var task: String {
         switch self {
@@ -29,6 +30,9 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .cupBottomTooThin: "revolved-cup"
         case .slotTooWide: "slotted-plate"
         case .heightEditedInSketch: "profile-height"
+        case .topPlateSunk, .platesAsBodies: "stacked-plates"
+        case .legTooLong: "table-legs"
+        case .movedByEditingPart, .movedSpacer: "move-instance"
         }
     }
 
@@ -46,6 +50,9 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .plateUnparametrised: "unchanged"
         case .lProfileTooThick, .cupBottomTooThin, .slotTooWide: "volume"
         case .heightEditedInSketch: "parameter height"
+        case .topPlateSunk, .legTooLong: "no interference"
+        case .platesAsBodies: "instance count"
+        case .movedByEditingPart, .movedSpacer: "unchanged"
         }
     }
 
@@ -113,6 +120,32 @@ enum WrongSolution: String, CaseIterable, Sendable {
                 }
                 kind = .sketch(sketch)
             }
+        case .topPlateSunk:
+            return reference.moving("Top", to: Vector3(0, 0, 10))
+        case .platesAsBodies:
+            var document = reference
+            document.assembly = nil
+            document.parts = [
+                Part(
+                    name: "Stack",
+                    features: [
+                        box("Bottom", 60, 40, 5), box("Spacer", 20, 20, 10, at: Vector3(20, 10, 5)),
+                        box("Top", 60, 40, 5, at: Vector3(0, 0, 15)),
+                    ])
+            ]
+            return document
+        case .legTooLong:
+            return reference.editing("Post") { $0.setShape(.box(width: 5, depth: 5, height: 74)) }
+        case .movedByEditingPart:
+            var document = try #require(task.seed)
+            document.parts[0].features.append(
+                Feature(
+                    name: "Lift",
+                    kind: .transform(
+                        TransformFeature(body: "Body1", placement: Placement(translation: Vector3(0, 0, 10))))))
+            return document
+        case .movedSpacer:
+            return reference.moving("Spacer", to: Vector3(20, 10, 15))
         }
     }
 }
@@ -132,6 +165,14 @@ extension CADDocument {
         var copy = self
         for index in copy.parameters.indices where copy.parameters[index].name == parameter {
             copy.parameters[index].expression = value
+        }
+        return copy
+    }
+
+    func moving(_ instance: String, to translation: Vector3) -> CADDocument {
+        var copy = self
+        for index in copy.instances.indices where copy.instances[index].name == instance {
+            copy.assembly?.instances[index].placement.translation = translation
         }
         return copy
     }
@@ -190,9 +231,9 @@ extension FeatureKind {
 @Suite("Seed tasks")
 struct TaskGradingTests {
     static let ids = [
-        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "open-box",
-        "plate-hole", "plate-move-hole", "plate-second-hole", "plate-thickness", "profile-height", "revolved-cup",
-        "rounded-plate", "slotted-plate", "washer",
+        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "move-instance",
+        "open-box", "plate-hole", "plate-move-hole", "plate-second-hole", "plate-thickness", "profile-height",
+        "revolved-cup", "rounded-plate", "slotted-plate", "stacked-plates", "table-legs", "washer",
     ]
     let grader = Grader(kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
 

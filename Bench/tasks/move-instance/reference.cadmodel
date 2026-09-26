@@ -1,0 +1,78 @@
+{
+  "assembly": {
+    "instances": [
+      {
+        "grounded": true,
+        "id": "B0000000-0000-4000-8000-000000000001",
+        "name": "Bottom",
+        "part": "A0000000-0000-4000-8000-000000000001",
+        "placement": {
+          "translation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "id": "B0000000-0000-4000-8000-000000000002",
+        "name": "Spacer",
+        "part": "A0000000-0000-4000-8000-000000000002",
+        "placement": {
+          "translation": {
+            "x": 20,
+            "y": 10,
+            "z": 5
+          }
+        }
+      },
+      {
+        "id": "B0000000-0000-4000-8000-000000000003",
+        "name": "Top",
+        "part": "A0000000-0000-4000-8000-000000000001",
+        "placement": {
+          "translation": {
+            "x": 0,
+            "y": 0,
+            "z": 25
+          }
+        }
+      }
+    ]
+  },
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 5,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Plate"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000001",
+      "name": "Plate"
+    },
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 20,
+            "height": 10,
+            "type": "box",
+            "width": 20
+          },
+          "name": "Block"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000002",
+      "name": "Spacer"
+    }
+  ],
+  "units": "mm"
+}
