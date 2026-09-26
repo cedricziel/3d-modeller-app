@@ -77,7 +77,7 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 
 **CADAssistantTools** (`Packages/CADAssistantTools/`) - Headless agent surface over CADModel (no UI, no OCCT import):
 
-- `CADSession` - `@MainActor @Observable`; owns a `CADDocument`, a rebuild engine for any `GeometryKernel` and the latest `RebuildResult`. `apply(_:actionName:)` commits an edit (calls `onCommit`, then rebuilds); `load(_:)` adopts a document changed elsewhere; a rebuild of an older document never replaces a newer result
+- `CADSession` - `@MainActor @Observable`; owns a `CADDocument`, a rebuild engine for any `GeometryKernel` and the latest `RebuildResult`. `apply(_:actionName:)` commits an edit (calls `onCommit`, then rebuilds); `adopt(_:)` takes over a host change at once, `load(_:)` adopts and rebuilds. Callers share one running rebuild, which only a newer document cancels; a rebuild of an older document never replaces a newer result
 - `DocumentListing` - the compact text listing (parameters with values; per part, one line per feature: name, summary with expressions, → body, status). `CADSession.assistantContext()` returns it as `ListingContext`, readable from any isolation
 - Tools (`CADTools.all(session:)`): `get_listing`, `set_parameter`, `add_feature`, `edit_feature`, `delete_feature`, `rename_feature`, `suppress_feature`. Every write is one commit: it is validated first (unknown names, duplicates, bad arguments, and any expression that would newly fail are refused with nothing changed), body references are renumbered when body-creating features move, and the result reports the feature's status, status changes elsewhere, every body's validity/volume/bounds and the changed listing lines
 - `CADAssistantPrompt.system` / `.configuration` - the modelling system prompt (mm, degrees, check statuses after each write) with per-message context
@@ -86,7 +86,7 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 **3DModellerApp** - The main application:
 
 - `CADModelDocument` - `ReferenceFileDocument` for `.cadmodel` files holding a `CADDocument` value; `edit(_:undoManager:_:)` registers the previous value on the window's `UndoManager` (Edit ▸ Undo, ⌘Z)
-- `ContentView` - owns a `CADSession`; `.task(id: document.model)` calls `session.load`, so each edit cancels the previous rebuild. `CADModelDocument.connect(_:undoManager:)` routes session commits through `edit`, one named undo step per tool call
+- `ContentView` - owns a `CADSession`; `.task(id: document.model)` calls `session.load`, so each edit cancels the previous rebuild. `CADModelDocument.connect(_:undoManager:)` routes session commits through `edit`, one named undo step per tool call, and hands every other change (UI edit, undo, redo) to `session.adopt` synchronously through `CADModelDocument.onChange`
 - `FeatureOutlineView` (parameters, parts → features with status icons; context menu Suppress/Delete), `FeatureInspectorView` (read-only), `ModelStatisticsView`
 - `Viewport3DView` + `ViewportScene` - draws the result's meshes; `ViewportFrame` converts model millimetres, Z-up, to RealityKit metres, Y-up
 - Assistant: `CADTools.all(session:)` with the listing as per-message context (`CADAssistantPrompt.configuration`); the generic SwiftUIAssistantTools are no longer registered
