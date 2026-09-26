@@ -3,7 +3,9 @@ public enum SketchState: Sendable, Hashable {
     case underConstrained(dof: Int)
     /// Indices into `Sketch.constraints` of every constraint in a contradicting group.
     case overConstrained(conflicting: [Int])
-    /// Indices into `Sketch.constraints` that are implied by the others.
+    /// Indices into `Sketch.constraints` that PlaneGCS set aside as implied by the others. It is
+    /// the set it chose to drop, not every constraint involved: of three identical distances it
+    /// names one.
     case redundant([Int])
     /// The solver did not converge, without conflicting constraints to blame.
     case failed
