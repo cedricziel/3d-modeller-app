@@ -99,6 +99,8 @@ Lengths are millimetres. A task file with an unknown key, or a check with an unk
 | `noInterference`  | none                                                                                                      | No two instances share volume. Touching is allowed.                                                                                                                         |
 | `jointsSatisfied` | `minimum` (1), `kinds` ([]: `fixed`, `revolute`, `slider`, `cylindrical`, `ball`, `planar`)               | The assembly has at least `minimum` joints, every joint holds after the solve, and each listed kind is used at least once.                                                 |
 | `instancePosition` | `instance`, `relativeTo`, `translation` (`[x, y, z]`), `tolerance` (0.01 mm)                            | The instance's part origin, where the joints put it, minus that of `relativeTo` (or of the assembly origin), is within the tolerance, per component.                        |
+| `jointValue`       | `joint`, `value`, `tolerance` (0.01)                                                                    | The joint reports this value: its driven value, or where the solver left a free joint (degrees or mm).                                                                      |
+| `instanceFreedoms` | `instance`, `equals`                                                                                    | The instance has exactly this many freedoms left after the joints.                                                                                                          |
 
 Without `part` and `body`, `boundingBox` and `volume` use every body. A `body` name that exists in several parts
 fails the check; add `part`.
@@ -148,3 +150,5 @@ Each later layer of the CAD stack adds tasks for what it enables.
 | `pin-in-hole`       | build  | A revolute joint on circular edges: a pin upright and flush in a hole.   |
 | `lid-on-box`        | build  | A fixed joint mating a lid's bottom face flush on a box's top face.      |
 | `slider-on-rail`    | build  | A slider joint keeping a carriage on top of a rail, 50 mm along it.      |
+| `hinged-lid`        | modify | Driving a hinge to 90° with `move_joint` so a lid stands upright.        |
+| `slider-end-stop`   | modify | Driving a slider to the end of its limits.                               |

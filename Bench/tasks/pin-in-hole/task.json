@@ -14,6 +14,11 @@
       "type": "jointsSatisfied"
     },
     {
+      "equals": 1,
+      "instance": "Pin",
+      "type": "instanceFreedoms"
+    },
+    {
       "instance": "Pin",
       "relativeTo": "Base",
       "translation": [

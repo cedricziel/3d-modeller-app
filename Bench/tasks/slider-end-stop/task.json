@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "kinds": [
+        "slider"
+      ],
+      "type": "jointsSatisfied"
+    },
+    {
+      "joint": "Guide",
+      "type": "jointValue",
+      "value": 170
+    },
+    {
+      "instance": "Slide",
+      "max": [
+        200,
+        20,
+        25
+      ],
+      "min": [
+        170,
+        0,
+        10
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "joints": [
+        "Guide"
+      ],
+      "type": "unchangedExcept"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "modify",
+  "prompt": "A carriage rides on a rail on a slider joint with end stops. Push the carriage along the rail to its far end stop, as far from x = 0 as the joint allows. Leave everything else as it is."
+}

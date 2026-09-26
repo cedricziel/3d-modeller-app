@@ -14,6 +14,11 @@
       "type": "jointsSatisfied"
     },
     {
+      "equals": 1,
+      "instance": "Slide",
+      "type": "instanceFreedoms"
+    },
+    {
       "instance": "Slide",
       "max": [
         80,
