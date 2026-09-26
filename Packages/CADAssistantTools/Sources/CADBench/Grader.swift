@@ -101,6 +101,10 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
             return Self.joints(document, result, minimum: minimum, kinds: kinds)
         case .instancePosition(let name, let relativeTo, let expected, let tolerance):
             return Self.position(result, name, relativeTo: relativeTo, expected: expected, tolerance: tolerance)
+        case .jointValue(let name, let expected, let tolerance):
+            return Self.jointValue(result, name, expected: expected, tolerance: tolerance)
+        case .instanceFreedoms(let name, let expected):
+            return Self.freedoms(result, name, expected: expected)
         case .volume(let selector, let expected, let tolerance):
             let bodies: [BodyResult]
             switch select(selector, in: result) {
@@ -184,6 +188,33 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         let counted =
             "\(joints.count) joint\(joints.count == 1 ? "" : "s") (\(present.map(\.rawValue).joined(separator: ", ")))"
         return (problems.isEmpty, ([counted] + problems).joined(separator: "; "))
+    }
+
+    private static func jointValue(_ result: RebuildResult, _ name: String, expected: Double, tolerance: Double)
+        -> (Bool, String)
+    {
+        let joints = result.assembly?.joints ?? []
+        guard let joint = joints.first(where: { $0.name == name }) else {
+            let names = joints.map(\.name).joined(separator: ", ")
+            return (false, "no joint named \(name) (joints: \(names.isEmpty ? "none" : names))")
+        }
+        guard let value = joint.value, let motion = joint.motion else {
+            return (false, "\(name) has no value: \(joint.status)")
+        }
+        return (abs(value - expected) <= tolerance, "\(name) is at \(motion.format(value))")
+    }
+
+    private static func freedoms(_ result: RebuildResult, _ name: String, expected: Int) -> (Bool, String) {
+        let instances = result.assembly?.instances ?? []
+        guard let instance = instances.first(where: { $0.name == name }) else {
+            let names = instances.map(\.name).joined(separator: ", ")
+            return (false, "no instance named \(name) (instances: \(names.isEmpty ? "none" : names))")
+        }
+        guard let freedoms = instance.freedoms else {
+            let reason = instance.status == .ok ? "the assembly has no joints" : "\(instance.status)"
+            return (false, "\(name) reports no freedoms: \(reason)")
+        }
+        return (freedoms == expected, "\(name) has \(freedoms) dof")
     }
 
     private static func position(

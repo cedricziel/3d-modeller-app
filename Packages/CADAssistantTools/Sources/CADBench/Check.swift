@@ -66,6 +66,10 @@ public enum Check: Sendable, Equatable {
     /// Where the instance's part origin sits, in assembly coordinates, relative to another instance's origin or to
     /// the assembly origin.
     case instancePosition(instance: String, relativeTo: String?, translation: SIMD3<Double>, tolerance: Double)
+    /// The value a joint reports: its driven value, or where the solver left a free joint (degrees or mm).
+    case jointValue(joint: String, value: Double, tolerance: Double)
+    /// How many freedoms an instance has left after the joints.
+    case instanceFreedoms(instance: String, equals: Int)
 }
 
 extension Check: Decodable {
@@ -166,6 +170,14 @@ extension Check: Decodable {
             self = .instancePosition(
                 instance: try required("instance"), relativeTo: try optional("relativeTo"), translation: translation,
                 tolerance: try optional("tolerance") ?? 0.01)
+        case "jointValue":
+            try allow(["joint", "value", "tolerance"])
+            self = .jointValue(
+                joint: try required("joint"), value: try required("value"),
+                tolerance: try optional("tolerance") ?? 0.01)
+        case "instanceFreedoms":
+            try allow(["instance", "equals"])
+            self = .instanceFreedoms(instance: try required("instance"), equals: try required("equals"))
         default:
             throw fail("Unknown check type '\(type)'")
         }
@@ -195,6 +207,10 @@ extension Check: CustomStringConvertible {
             let origin = relativeTo.map { "from \($0)" } ?? "from the origin"
             return
                 "position of \(instance) \(origin) = \(BenchFormat.vector(translation)) ±\(BenchFormat.number(tolerance)) mm"
+        case .jointValue(let joint, let value, let tolerance):
+            return "value of joint \(joint) = \(BenchFormat.number(value)) ±\(BenchFormat.number(tolerance))"
+        case .instanceFreedoms(let instance, let equals):
+            return "freedoms of instance \(instance) = \(equals) dof"
         case .volume(let selector, let expected, let tolerance):
             return "volume of \(selector) = \(BenchFormat.number(expected)) mm³ ±\(BenchFormat.percent(tolerance))"
         case .parameter(let name, let value, _):
