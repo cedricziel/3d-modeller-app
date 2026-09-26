@@ -93,10 +93,17 @@ public struct SketchFeature: Sendable, Hashable {
     public var plane: SketchPlane
     public var entities: [SketchEntity]
     public var constraints: [SketchConstraint]
+    /// Names of removed entities and constraints, never handed out again, so a reference to an old name cannot
+    /// silently land on new geometry.
+    public var retiredNames: [String]
 
-    public init(plane: SketchPlane, entities: [SketchEntity] = [], constraints: [SketchConstraint] = []) {
+    public init(
+        plane: SketchPlane, entities: [SketchEntity] = [], constraints: [SketchConstraint] = [],
+        retiredNames: [String] = []
+    ) {
         self.plane = plane
         self.entities = entities
         self.constraints = constraints
+        self.retiredNames = retiredNames
     }
 }

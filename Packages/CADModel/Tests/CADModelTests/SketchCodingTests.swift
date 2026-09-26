@@ -47,6 +47,7 @@ struct SketchCodingTests {
             SketchEntity(name: "point1", .point(SketchPoint2(1, 2))),
         ]
         sketch.constraints.append(SketchConstraint(name: "c12", .angle, entities: ["line1", "line2"], value: 90))
+        sketch.retiredNames = ["line9", "c40"]
         let kind = FeatureKind.sketch(sketch)
         #expect(try roundTrip(kind) == kind)
     }
