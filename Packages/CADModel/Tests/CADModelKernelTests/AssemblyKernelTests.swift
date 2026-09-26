@@ -67,4 +67,24 @@ struct AssemblyKernelTests {
         #expect(volumes.allSatisfy { abs($0 - 24000) < 1e-6 * 24000 })
         #expect(abs(bounds.boundsMin.z - 10) < 1e-3)
     }
+
+    @Test("A rotated cylinder's side gives a frame along its moved axis")
+    func frameOnRotatedCylinder() async throws {
+        let part = Part(
+            name: "Pin",
+            features: [Feature(name: "Pin", kind: .primitive(PrimitiveFeature(.cylinder(radius: 3, height: 20))))])
+        let placement = Placement(
+            translation: Vector3(0, 0, 50), rotationAxis: Vector3(1, 0, 0), rotationDegrees: 90)
+        let document = CADDocument(
+            parts: [part], assembly: Assembly(instances: [Instance(name: "P1", part: part.id, placement: placement)]))
+        let instance = try #require(try await engine.rebuild(document).assembly?.instances.first)
+        let frame = try instance.frame(
+            face: .name("Pin.side"), edge: nil, body: nil, parameters: ParameterTable([]))
+        let alongY: Double = abs(simd_dot(frame.zAxis, SIMD3(0, 1, 0)))
+        let offAxis: Double = simd_distance(SIMD3(frame.origin.x, 0, frame.origin.z), SIMD3(0, 0, 50))
+
+        #expect(abs(alongY - 1) < 1e-9)
+        #expect(offAxis < 1e-6)
+        #expect(abs(abs(frame.origin.y) - 10) < 1e-3)
+    }
 }
