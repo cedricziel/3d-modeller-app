@@ -2,8 +2,8 @@ import CADModel
 import SwiftUIAssistant
 
 /// One side of a measurement: a point, a body, or one face or edge of a body.
-struct MeasureOperand {
-    enum Element {
+struct MeasureOperand: Sendable {
+    enum Element: Sendable {
         case point(SIMD3<Double>)
         case body(BodyKey, BodyResult)
         case face(BodyKey, Int, FaceDescriptor)

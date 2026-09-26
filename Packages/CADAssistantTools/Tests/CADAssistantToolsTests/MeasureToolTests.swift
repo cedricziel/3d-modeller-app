@@ -2,6 +2,7 @@ import CADModel
 import CADModelKernel
 import Foundation
 import SwiftUIAssistant
+import Synchronization
 import Testing
 
 @testable import CADAssistantTools
@@ -78,6 +79,22 @@ struct MeasureToolTests {
 
         #expect(result.success)
         #expect(result.message.hasPrefix("Distance 40 mm between Body1 (Plate) and Body2 (Plate); closest points "))
+    }
+
+    @Test("The kernel measures off the main thread")
+    func offMain() async throws {
+        let onMain = Mutex<[Bool]>([])
+        var kernel = FakeKernel()
+        kernel.onMeasure = { onMain.withLock { $0.append(Thread.isMainThread) } }
+        let session = CADSession(
+            document: CADDocument(parts: [Part(name: "P", features: [Fixtures.box("A", 1, 1, 1)])]), kernel: kernel)
+
+        let result = try await MeasureTool(session: session).execute(arguments: [
+            "kind": "distance", "a": ["body": "Body1"], "b": ["point": [5, 0, 0]],
+        ])
+
+        #expect(result.success)
+        #expect(onMain.withLock { $0 } == [false])
     }
 
     @Test("Operands must be a body, one face or edge of a body, or a point")

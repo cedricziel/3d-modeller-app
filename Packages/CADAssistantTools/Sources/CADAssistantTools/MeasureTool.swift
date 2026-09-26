@@ -72,14 +72,7 @@ extension CADSession {
             }
             let first = try measureOperand(a, "a", in: result)
             let second = try b.map { (value) throws(ToolError) in try measureOperand(value, "b", in: result) }
-            let message: String
-            switch kind {
-            case .distance: message = try Measurement.distance(first, second!, geometry)
-            case .angle: message = try Measurement.angle(first, second!)
-            case .size: message = try Measurement.size(first, geometry)
-            case .interference: message = try Measurement.interference(first, second!, geometry)
-            }
-            return .success(message)
+            return .success(try await Measurement.run(kind, first, second, geometry))
         } catch {
             return .failure(error.description)
         }
@@ -87,6 +80,20 @@ extension CADSession {
 }
 
 enum Measurement {
+    /// Kernel measurements can take a while (interference runs a boolean), so they run off the main actor.
+    @concurrent
+    static func run(_ kind: MeasureKind, _ a: MeasureOperand, _ b: MeasureOperand?, _ geometry: ModelGeometry)
+        async throws(ToolError) -> String
+    {
+        switch (kind, b) {
+        case (.size, _): try size(a, geometry)
+        case (.distance, let b?): try distance(a, b, geometry)
+        case (.angle, let b?): try angle(a, b)
+        case (.interference, let b?): try interference(a, b, geometry)
+        case (_, nil): throw ToolError("\(kind.rawValue) needs 'b'.")
+        }
+    }
+
     static func distance(_ a: MeasureOperand, _ b: MeasureOperand, _ geometry: ModelGeometry) throws(ToolError)
         -> String
     {

@@ -17,6 +17,7 @@ struct FakeKernelError: Error, CustomStringConvertible {
 struct FakeKernel: GeometryKernel {
     var onBox: @Sendable () -> Void = {}
     var meshFails: @Sendable (FakeBody) -> Bool = { _ in false }
+    var onMeasure: @Sendable () -> Void = {}
 
     private func positive(_ values: Double...) throws {
         guard values.allSatisfy({ $0 > 0 }) else { throw FakeKernelError(description: "dimensions must be positive") }
@@ -140,6 +141,7 @@ struct FakeKernel: GeometryKernel {
 
     /// The gap between the bounds of the operands; a face or edge counts as its body's bounds.
     func distance(_ a: GeometryOperand<FakeBody>, _ b: GeometryOperand<FakeBody>) throws -> DistanceMeasurement {
+        onMeasure()
         let (first, second) = (try bounds(of: a), try bounds(of: b))
         let gap = pointwiseMax(pointwiseMax(first.min - second.max, second.min - first.max), .zero)
         let pointA = pointwiseMin(pointwiseMax(second.min, first.min), first.max)

@@ -66,6 +66,11 @@ public struct ViewRendering: Sendable {
         ("yellow", SIMD3(0.90, 0.78, 0.20)), ("pink", SIMD3(0.90, 0.47, 0.70)),
     ]
 
+    @concurrent
+    static func renderOffMain(_ result: RebuildResult, views: [ViewDirection]) async -> ViewRendering {
+        render(result, views: views)
+    }
+
     /// Renders every body of `result` that has a mesh, coloured from the palette in body order.
     static func render(_ result: RebuildResult, views: [ViewDirection]) -> ViewRendering {
         var shown: [String] = []
@@ -104,6 +109,6 @@ extension CADSession {
             return ViewRendering(
                 text: "The model could not be rebuilt; call get_listing to see the statuses.", views: [])
         }
-        return ViewRendering.render(result, views: views)
+        return await ViewRendering.renderOffMain(result, views: views)
     }
 }
