@@ -525,4 +525,16 @@ struct SceneStatistics {
 /// Snapshot for undo/redo
 struct SceneSnapshot {
     let entities: [UUID: CADEntity]
+
+    init(entities: [UUID: CADEntity]) {
+        self.entities = entities.mapValues { live in
+            CADEntity(
+                id: live.id,
+                name: live.name,
+                type: live.type,
+                entity: live.entity.clone(recursive: true),
+                material: live.material
+            )
+        }
+    }
 }

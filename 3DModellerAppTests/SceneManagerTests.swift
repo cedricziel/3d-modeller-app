@@ -416,6 +416,18 @@ struct SceneManagerTests {
         #expect(restored.entity.parent === sceneManager.rootEntity)
     }
 
+    @Test("Undoing a transform puts the entity back where it was")
+    func testUndoTransform() throws {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box, position: [1, 0, 0])
+        _ = sceneManager.transformEntity(id: entity.id, position: [5, 5, 5])
+
+        sceneManager.undo()
+
+        let restored = try #require(sceneManager.entities[entity.id])
+        #expect(restored.entity.position == [1, 0, 0])
+    }
+
     // MARK: - Entity Lookup Tests
 
     @Test("Find entity by name")
