@@ -9,7 +9,7 @@ struct ExtrudeTests {
         let metrics = try Kernel.metrics(of: solid)
 
         #expect(metrics.isValid)
-        #expect(abs(metrics.volume - 1.0) < 1e-9)
+        #expect(approx(metrics.volume, 1.0, tolerance: 1e-9))
         #expect(metrics.edgeCount == 12)
     }
 
