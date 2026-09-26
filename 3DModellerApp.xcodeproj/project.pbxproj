@@ -9,9 +9,9 @@
 /* Begin PBXBuildFile section */
 		0D66709B9DC06503A2C37525 /* CADModelDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9999FB5840E8BD6958F13B0C /* CADModelDocument.swift */; };
 		17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6058937E5DD57AD2F2ED9A /* AppModel.swift */; };
-		2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */; };
+		2D4CBE2018902C7A84A39DDA /* CADModel in Frameworks */ = {isa = PBXBuildFile; productRef = EEAED2A3A075FB9AEC5B04B3 /* CADModel */; };
 		3B2AAB9C5A3ED7E6564760A5 /* FeatureDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F869442913BB8FF10B2B1D /* FeatureDisplayTests.swift */; };
-		4021EF09AE9EC9DC2514850B /* CADModel in Frameworks */ = {isa = PBXBuildFile; productRef = EEAED2A3A075FB9AEC5B04B3 /* CADModel */; };
+		4021EF09AE9EC9DC2514850B /* CADModelKernel in Frameworks */ = {isa = PBXBuildFile; productRef = E88F9D535CBF750500F2B1D4 /* CADModelKernel */; };
 		40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFBB66155410ABDA8497C94 /* AppModelTests.swift */; };
 		43CDAC7D090816997579D77A /* SwiftUIAssistant in Frameworks */ = {isa = PBXBuildFile; productRef = E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */; };
 		446BE25C8DA24E3904E8713C /* Viewport3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA075440578BA6785256D06A /* Viewport3DView.swift */; };
@@ -23,13 +23,15 @@
 		826056080647BCD726193BE1 /* ModellerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17993460361E0DC0931AD47F /* ModellerApp.swift */; };
 		8EB736741A4470C3544D7B4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 076C9052B33D923C5ACB0C09 /* Assets.xcassets */; };
 		92CBCF72AD0E55F6C3ABA6F1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */; };
-		9E466BFBD95A57718CC77CE1 /* CADModelKernel in Frameworks */ = {isa = PBXBuildFile; productRef = E88F9D535CBF750500F2B1D4 /* CADModelKernel */; };
+		9E466BFBD95A57718CC77CE1 /* CADAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 0EF84F36DC10B512B62FFFB3 /* CADAssistantTools */; };
 		A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */; };
 		B568219EDFD2F6B91E18F63E /* FeatureDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DBA6D56A9AEEA0376524690 /* FeatureDisplay.swift */; };
 		B69F74F575717171F9080AE3 /* ViewportFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DFDE87E68FC93F8E89BFB7 /* ViewportFrame.swift */; };
+		BB2A346C051A3267FA37A8BF /* AssistantEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */; };
 		DCA230D5524643F73D85E084 /* CADModelDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22BBC70F86C8A8821D8F016 /* CADModelDocumentTests.swift */; };
 		EA371F2D8FD108B39C20FADC /* ViewportFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3F2E04AA00D8C342CEE1CF /* ViewportFrameTests.swift */; };
 		EB2E77A9DA5298103727F0CC /* FeatureOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6618266206397FAD09464B0 /* FeatureOutlineView.swift */; };
+		F7C8C4BD167F2672D2154D64 /* CADModelDocument+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9FF27B6031E2366EE4AF9B /* CADModelDocument+Session.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,7 +55,6 @@
 		50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = 3DModellerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5DC3E078A1804AE63ED08F94 /* ViewportScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportScene.swift; sourceTree = "<group>"; };
-		5F19B4E515275E6B718ADBB7 /* SwiftUIAssistantTools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistantTools; path = Packages/SwiftUIAssistantTools; sourceTree = SOURCE_ROOT; };
 		6A5F6A4548E9DD7364A36CBB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		6C7AC13B8AFB6810059AB22A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		874F5D00B1A921F766635031 /* CADModel */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CADModel; path = Packages/CADModel; sourceTree = SOURCE_ROOT; };
@@ -61,6 +62,7 @@
 		97F31C0DE83507BAECFFFEAC /* OrbitCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitCamera.swift; sourceTree = "<group>"; };
 		9999FB5840E8BD6958F13B0C /* CADModelDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADModelDocument.swift; sourceTree = "<group>"; };
 		A22BBC70F86C8A8821D8F016 /* CADModelDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADModelDocumentTests.swift; sourceTree = "<group>"; };
+		A68C9B44C5C463ECF2E37B02 /* CADAssistantTools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CADAssistantTools; path = Packages/CADAssistantTools; sourceTree = SOURCE_ROOT; };
 		AA075440578BA6785256D06A /* Viewport3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Viewport3DView.swift; sourceTree = "<group>"; };
 		C348D3B3408BC57F176142F2 /* 3DModellerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 3DModellerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5DFDE87E68FC93F8E89BFB7 /* ViewportFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportFrame.swift; sourceTree = "<group>"; };
@@ -69,6 +71,8 @@
 		E9F869442913BB8FF10B2B1D /* FeatureDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureDisplayTests.swift; sourceTree = "<group>"; };
 		ED6058937E5DD57AD2F2ED9A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		EFFBB66155410ABDA8497C94 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantEditingTests.swift; sourceTree = "<group>"; };
+		FD9FF27B6031E2366EE4AF9B /* CADModelDocument+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CADModelDocument+Session.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,9 +81,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				43CDAC7D090816997579D77A /* SwiftUIAssistant in Frameworks */,
-				2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */,
-				4021EF09AE9EC9DC2514850B /* CADModel in Frameworks */,
-				9E466BFBD95A57718CC77CE1 /* CADModelKernel in Frameworks */,
+				2D4CBE2018902C7A84A39DDA /* CADModel in Frameworks */,
+				4021EF09AE9EC9DC2514850B /* CADModelKernel in Frameworks */,
+				9E466BFBD95A57718CC77CE1 /* CADAssistantTools in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -114,6 +118,7 @@
 			isa = PBXGroup;
 			children = (
 				EFFBB66155410ABDA8497C94 /* AppModelTests.swift */,
+				FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */,
 				A22BBC70F86C8A8821D8F016 /* CADModelDocumentTests.swift */,
 				E9F869442913BB8FF10B2B1D /* FeatureDisplayTests.swift */,
 				1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */,
@@ -134,9 +139,9 @@
 		D17AF539F25A3FE406E97C5C /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				A68C9B44C5C463ECF2E37B02 /* CADAssistantTools */,
 				874F5D00B1A921F766635031 /* CADModel */,
 				24E6BB346016D6BB0545D19E /* SwiftUIAssistant */,
-				5F19B4E515275E6B718ADBB7 /* SwiftUIAssistantTools */,
 			);
 			path = Packages;
 			sourceTree = "<group>";
@@ -169,6 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				9999FB5840E8BD6958F13B0C /* CADModelDocument.swift */,
+				FD9FF27B6031E2366EE4AF9B /* CADModelDocument+Session.swift */,
 			);
 			path = Document;
 			sourceTree = "<group>";
@@ -200,9 +206,9 @@
 			name = 3DModellerApp;
 			packageProductDependencies = (
 				E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */,
-				3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */,
 				EEAED2A3A075FB9AEC5B04B3 /* CADModel */,
 				E88F9D535CBF750500F2B1D4 /* CADModelKernel */,
+				0EF84F36DC10B512B62FFFB3 /* CADAssistantTools */,
 			);
 			productName = 3DModellerApp;
 			productReference = C348D3B3408BC57F176142F2 /* 3DModellerApp.app */;
@@ -255,9 +261,9 @@
 			mainGroup = 2415D3243FAD981F4F91B45E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				A7510986B9006B667D8A1E9B /* XCLocalSwiftPackageReference "Packages/CADAssistantTools" */,
 				36CA3F0F28B40D28E9F54B95 /* XCLocalSwiftPackageReference "Packages/CADModel" */,
 				96026FAF5681850A36FA4BC8 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistant" */,
-				8897795F95BEDB1CBE40C051 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistantTools" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FFB81E609740A59AAE3FC45A /* Products */;
@@ -287,6 +293,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */,
+				F7C8C4BD167F2672D2154D64 /* CADModelDocument+Session.swift in Sources */,
 				0D66709B9DC06503A2C37525 /* CADModelDocument.swift in Sources */,
 				521165A128D2584BE448AA8F /* ContentView.swift in Sources */,
 				B568219EDFD2F6B91E18F63E /* FeatureDisplay.swift in Sources */,
@@ -307,6 +314,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */,
+				BB2A346C051A3267FA37A8BF /* AssistantEditingTests.swift in Sources */,
 				DCA230D5524643F73D85E084 /* CADModelDocumentTests.swift in Sources */,
 				3B2AAB9C5A3ED7E6564760A5 /* FeatureDisplayTests.swift in Sources */,
 				A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */,
@@ -581,20 +589,20 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/CADModel;
 		};
-		8897795F95BEDB1CBE40C051 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistantTools" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/SwiftUIAssistantTools;
-		};
 		96026FAF5681850A36FA4BC8 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistant" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SwiftUIAssistant;
 		};
+		A7510986B9006B667D8A1E9B /* XCLocalSwiftPackageReference "Packages/CADAssistantTools" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CADAssistantTools;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */ = {
+		0EF84F36DC10B512B62FFFB3 /* CADAssistantTools */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = SwiftUIAssistantTools;
+			productName = CADAssistantTools;
 		};
 		E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */ = {
 			isa = XCSwiftPackageProductDependency;

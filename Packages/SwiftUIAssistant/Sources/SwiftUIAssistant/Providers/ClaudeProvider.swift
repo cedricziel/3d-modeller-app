@@ -101,9 +101,15 @@ public actor ClaudeProvider: LLMProvider {
             return nil
 
         case .user:
+            guard let context = message.context else {
+                return ["role": "user", "content": message.content]
+            }
             return [
                 "role": "user",
-                "content": message.content,
+                "content": [
+                    ["type": "text", "text": "<context>\n\(context)\n</context>"],
+                    ["type": "text", "text": message.content],
+                ],
             ]
 
         case .assistant:

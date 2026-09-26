@@ -13,17 +13,22 @@ public struct AssistantConfiguration: Sendable {
     /// Whether to include timestamps in messages
     public var includeTimestamps: Bool
 
+    /// Whether each user message carries the context of its turn, for context that changes during a conversation
+    public var attachesContextToMessages: Bool
+
     /// Default configuration
     public static let `default` = AssistantConfiguration()
 
     public init(
         systemPromptTemplate: String = Self.defaultSystemPrompt,
         maxToolExecutionRounds: Int = 10,
-        includeTimestamps: Bool = true
+        includeTimestamps: Bool = true,
+        attachesContextToMessages: Bool = false
     ) {
         self.systemPromptTemplate = systemPromptTemplate
         self.maxToolExecutionRounds = maxToolExecutionRounds
         self.includeTimestamps = includeTimestamps
+        self.attachesContextToMessages = attachesContextToMessages
     }
 
     /// Default system prompt template

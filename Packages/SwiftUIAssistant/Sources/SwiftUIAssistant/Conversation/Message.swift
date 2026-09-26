@@ -9,6 +9,8 @@ public struct Message: Identifiable, Sendable, Equatable {
     public let toolCallId: String?
     /// Provider-native content blocks, replayed verbatim on the next request
     public let rawContent: [JSONValue]?
+    /// Host state captured when a user message was sent; sent to the model but not shown
+    public let context: String?
     public let timestamp: Date
 
     /// The role of the message sender
@@ -26,6 +28,7 @@ public struct Message: Identifiable, Sendable, Equatable {
         toolCalls: [ToolCall]? = nil,
         toolCallId: String? = nil,
         rawContent: [JSONValue]? = nil,
+        context: String? = nil,
         timestamp: Date = Date()
     ) {
         self.id = id
@@ -34,14 +37,15 @@ public struct Message: Identifiable, Sendable, Equatable {
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
         self.rawContent = rawContent
+        self.context = context
         self.timestamp = timestamp
     }
 
     // MARK: - Convenience Initializers
 
     /// Create a user message
-    public static func user(_ content: String) -> Message {
-        Message(role: .user, content: content)
+    public static func user(_ content: String, context: String? = nil) -> Message {
+        Message(role: .user, content: content, context: context)
     }
 
     /// Create an assistant message

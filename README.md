@@ -1,6 +1,6 @@
 # 3D Modeller
 
-An AI-first parametric CAD application for macOS. A model is a list of parameters and features that the app rebuilds with the Open CASCADE kernel; a chat assistant will build and change models through typed tools.
+An AI-first parametric CAD application for macOS. A model is a list of parameters and features that the app rebuilds with the Open CASCADE kernel; a chat assistant builds and changes models through typed tools.
 
 ## Features
 
@@ -10,7 +10,7 @@ An AI-first parametric CAD application for macOS. A model is a list of parameter
 - **Robust rebuild** - Each feature reports ok, failed (with the reason), skipped (with the feature it depends on) or suppressed; one failure never stops the rest
 - **Exact CAD geometry** - Solids built by the Open CASCADE kernel and drawn in a RealityKit viewport
 - **Undo/Redo** - Document edits go through the window's undo history (Edit ▸ Undo, ⌘Z)
-- **AI assistant** - Chat panel backed by Claude; modelling tools arrive in the next release
+- **AI assistant** - Chat panel backed by Claude that reads a text listing of the model and edits it through typed tools (parameters, add/edit/delete/rename/suppress features); each tool call is one undo step
 
 ## Requirements
 
@@ -53,6 +53,7 @@ xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
 (cd Packages/SwiftUIAssistantTools && xcrun swift test)
 (cd Packages/CADKernel && xcrun swift test)
 (cd Packages/CADModel && xcrun swift test)
+(cd Packages/CADAssistantTools && xcrun swift test)
 ```
 
 ### Configure API Key
@@ -90,7 +91,7 @@ Open or create a `.cadmodel` document. A small example, a plate with a hole:
 }
 ```
 
-The outline lists parameters and features with their rebuild status; select a feature to see its values in the inspector. Right-click a feature to suppress or delete it. Until the CAD tools land, the assistant can only use the general-purpose `fetch`, `calculator` and `time` tools.
+The outline lists parameters and features with their rebuild status; select a feature to see its values in the inspector. Right-click a feature to suppress or delete it. With an API key in Settings, ask the assistant to build or change the model ("a 60 × 40 × 10 plate with a 5.5 mm hole in the middle"); every change it makes appears in the outline and can be undone with ⌘Z.
 
 ## Architecture
 
@@ -99,8 +100,9 @@ The outline lists parameters and features with their rebuild status; select a fe
 │   ├── SwiftUIAssistant/      # Reusable AI assistant library
 │   ├── SwiftUIAssistantTools/ # Common tools (fetch, calculator, time)
 │   ├── CADKernel/             # Open CASCADE geometry (the only OCCT importer)
-│   └── CADModel/              # Document, parameters, features, rebuild engine
-│                              # (+ CADModelKernel: the CADKernel adapter)
+│   ├── CADModel/              # Document, parameters, features, rebuild engine
+│   │                          # (+ CADModelKernel: the CADKernel adapter)
+│   └── CADAssistantTools/     # Headless session, listing and CAD tools for the assistant
 │
 └── 3DModellerApp/             # Main application
     ├── App/                   # Entry point, global state
@@ -121,7 +123,11 @@ A standalone Swift package that can be reused to add AI assistant capabilities t
 
 ### SwiftUIAssistantTools
 
-Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorTool`, `TimeTool`.
+Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorTool`, `TimeTool`. The CAD app no longer registers them.
+
+### CADAssistantTools
+
+The agent-facing surface, usable without the app: a `CADSession` that owns a document and its rebuild, the text listing the assistant sees each turn, and the tools `get_listing`, `set_parameter`, `add_feature`, `edit_feature`, `delete_feature`, `rename_feature` and `suppress_feature`.
 
 ### Technology Stack
 
