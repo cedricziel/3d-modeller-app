@@ -146,6 +146,23 @@ struct SketchSolidTests {
         #expect(try approx(volume(solid), 200))
     }
 
+    @Test("Overlapping regions fuse into one solid instead of overlapping solids")
+    func overlappingRegions() throws {
+        let circle = [ProfileCurve(name: "S.circle1", geometry: .circle(center: SIMD2(10, 5), radius: 3))]
+        let profile = Profile(
+            plane: xy,
+            regions: [
+                ProfileRegion(outer: rectangle(0, 0, 10, 10), holes: []), ProfileRegion(outer: circle, holes: []),
+            ])
+        let solid = try Kernel.extrude(profile, from: 0, to: 2, feature: "F")
+
+        #expect(try Kernel.metrics(of: solid).solidCount == 1)
+        let expected: Double = (100 + 4.5 * Double.pi) * 2
+        #expect(approx(try volume(solid), expected))
+        #expect(names(solid).contains("F.side[S.circle1]"))
+        #expect(names(solid).contains("F.side[S.line1]"))
+    }
+
     @Test("Degenerate inputs are refused")
     func invalidInputs() throws {
         let square = Profile(plane: xy, regions: [ProfileRegion(outer: rectangle(0, 0, 1, 1), holes: [])])
