@@ -29,7 +29,7 @@ public enum DocumentError: Error, Equatable, CustomStringConvertible, LocalizedE
         case .unsupportedFormat(let format):
             "Unsupported document format \(format); this app reads format \(CADDocument.format)"
         case .unsupportedUnits(let units): "Unsupported units '\(units)'; documents use \(CADDocument.units)"
-        case .duplicateID(let id): "More than one part, feature or instance has the id \(id)"
+        case .duplicateID(let id): "More than one part, feature, instance or joint has the id \(id)"
         }
     }
 
@@ -62,8 +62,8 @@ public struct CADDocument: Codable, Sendable, Hashable {
         parts = try container.decodeIfPresent([Part].self, forKey: .parts) ?? []
         assembly = try container.decodeIfPresent(Assembly.self, forKey: .assembly)
         var ids: Set<UUID> = []
-        let instanceIDs = assembly?.instances.map(\.id) ?? []
-        for id in parts.map(\.id) + parts.flatMap(\.features).map(\.id) + instanceIDs where !ids.insert(id).inserted {
+        let assemblyIDs = (assembly?.instances.map(\.id) ?? []) + (assembly?.joints.map(\.id) ?? [])
+        for id in parts.map(\.id) + parts.flatMap(\.features).map(\.id) + assemblyIDs where !ids.insert(id).inserted {
             throw DocumentError.duplicateID(id)
         }
     }

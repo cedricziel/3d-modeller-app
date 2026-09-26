@@ -36,14 +36,17 @@ public struct Instance: Codable, Sendable, Hashable, Identifiable {
 
 public struct Assembly: Codable, Sendable, Hashable {
     public var instances: [Instance]
+    public var joints: [Joint]
 
-    public init(instances: [Instance] = []) {
+    public init(instances: [Instance] = [], joints: [Joint] = []) {
         self.instances = instances
+        self.joints = joints
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         instances = try container.decodeIfPresent([Instance].self, forKey: .instances) ?? []
+        joints = try container.decodeIfPresent([Joint].self, forKey: .joints) ?? []
     }
 }
 
@@ -58,5 +61,13 @@ public extension CADDocument {
 
     func instance(named name: String) -> Instance? {
         instances.first { $0.name == name }
+    }
+
+    var joints: [Joint] {
+        assembly?.joints ?? []
+    }
+
+    func joint(named name: String) -> Joint? {
+        joints.first { $0.name == name }
     }
 }
