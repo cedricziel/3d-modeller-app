@@ -1,16 +1,15 @@
-import Testing
+@testable import _D_Modeller
 import Foundation
 import SwiftUI
+import Testing
 import UniformTypeIdentifiers
-@testable import _D_Modeller
 
 @Suite("SceneDocument Tests")
 struct SceneDocumentTests {
-
     // MARK: - Initialization Tests
 
     @Test("Empty document initialization")
-    func testEmptyDocumentInit() {
+    func emptyDocumentInit() {
         let doc = SceneDocument()
 
         #expect(doc.sceneData.entities.isEmpty)
@@ -20,7 +19,7 @@ struct SceneDocumentTests {
     // MARK: - SceneData Tests
 
     @Test("SceneData default values")
-    func testSceneDataDefaults() {
+    func sceneDataDefaults() {
         let data = SceneData()
 
         #expect(data.entities.isEmpty)
@@ -30,7 +29,7 @@ struct SceneDocumentTests {
     // MARK: - EntityData Tests
 
     @Test("EntityData initialization")
-    func testEntityDataInit() {
+    func entityDataInit() {
         let entity = EntityData(
             name: "TestEntity",
             type: .box
@@ -43,7 +42,7 @@ struct SceneDocumentTests {
     }
 
     @Test("EntityData with custom transform")
-    func testEntityDataWithTransform() {
+    func entityDataWithTransform() {
         let transform = TransformData(
             position: [1, 2, 3],
             rotation: [0.1, 0.2, 0.3],
@@ -63,7 +62,7 @@ struct SceneDocumentTests {
     // MARK: - TransformData Tests
 
     @Test("TransformData default values")
-    func testTransformDataDefaults() {
+    func transformDataDefaults() {
         let transform = TransformData()
 
         #expect(transform.position == .zero)
@@ -74,7 +73,7 @@ struct SceneDocumentTests {
     // MARK: - MaterialData Tests
 
     @Test("MaterialData default values")
-    func testMaterialDataDefaults() {
+    func materialDataDefaults() {
         let material = MaterialData()
 
         #expect(material.color.r == 0.8)
@@ -85,7 +84,7 @@ struct SceneDocumentTests {
     }
 
     @Test("MaterialData custom color")
-    func testMaterialDataCustomColor() {
+    func materialDataCustomColor() {
         let material = MaterialData(
             color: ColorData(r: 1.0, g: 0.0, b: 0.0),
             metallic: 0.9,
@@ -100,7 +99,7 @@ struct SceneDocumentTests {
     // MARK: - ColorData Tests
 
     @Test("ColorData RGB initialization")
-    func testColorDataRGB() {
+    func colorDataRGB() {
         let color = ColorData(r: 0.5, g: 0.6, b: 0.7)
 
         #expect(color.r == 0.5)
@@ -110,14 +109,14 @@ struct SceneDocumentTests {
     }
 
     @Test("ColorData RGBA initialization")
-    func testColorDataRGBA() {
+    func colorDataRGBA() {
         let color = ColorData(r: 0.5, g: 0.6, b: 0.7, a: 0.8)
 
         #expect(color.a == 0.8)
     }
 
     @Test("ColorData named color - red")
-    func testNamedColorRed() {
+    func namedColorRed() {
         let color = ColorData(named: "red")
 
         #expect(color.r == 1.0)
@@ -126,7 +125,7 @@ struct SceneDocumentTests {
     }
 
     @Test("ColorData named color - green")
-    func testNamedColorGreen() {
+    func namedColorGreen() {
         let color = ColorData(named: "green")
 
         #expect(color.r == 0.0)
@@ -135,7 +134,7 @@ struct SceneDocumentTests {
     }
 
     @Test("ColorData named color - blue")
-    func testNamedColorBlue() {
+    func namedColorBlue() {
         let color = ColorData(named: "blue")
 
         #expect(color.r == 0.0)
@@ -144,7 +143,7 @@ struct SceneDocumentTests {
     }
 
     @Test("ColorData named color case insensitive")
-    func testNamedColorCaseInsensitive() {
+    func namedColorCaseInsensitive() {
         let color1 = ColorData(named: "RED")
         let color2 = ColorData(named: "Red")
         let color3 = ColorData(named: "red")
@@ -154,7 +153,7 @@ struct SceneDocumentTests {
     }
 
     @Test("ColorData unknown named color returns default")
-    func testUnknownNamedColor() {
+    func unknownNamedColor() {
         let color = ColorData(named: "unknowncolor")
 
         #expect(color.r == 0.8)
@@ -165,11 +164,11 @@ struct SceneDocumentTests {
     // MARK: - JSON Encoding/Decoding Tests
 
     @Test("SceneData JSON round-trip")
-    func testSceneDataJSONRoundTrip() throws {
+    func sceneDataJSONRoundTrip() throws {
         var original = SceneData()
         original.entities = [
             EntityData(name: "Box1", type: .box),
-            EntityData(name: "Sphere1", type: .sphere)
+            EntityData(name: "Sphere1", type: .sphere),
         ]
         original.metadata.name = "Test Scene"
 
@@ -184,7 +183,7 @@ struct SceneDocumentTests {
     }
 
     @Test("EntityData JSON round-trip preserves all properties")
-    func testEntityDataJSONRoundTrip() throws {
+    func entityDataJSONRoundTrip() throws {
         let original = EntityData(
             id: UUID(),
             name: "CompleteEntity",
@@ -219,9 +218,9 @@ struct SceneDocumentTests {
     // MARK: - EntityType Tests
 
     @Test("All entity types are codable")
-    func testEntityTypeCodable() throws {
+    func entityTypeCodable() throws {
         let types: [EntityData.EntityType] = [
-            .box, .sphere, .cylinder, .cone, .plane, .torus, .capsule, .imported, .group
+            .box, .sphere, .cylinder, .cone, .plane, .torus, .capsule, .imported, .group,
         ]
 
         let encoder = JSONEncoder()
@@ -238,7 +237,7 @@ struct SceneDocumentTests {
     // MARK: - FileDocument Tests
 
     @Test("SceneData JSON encoding creates valid data")
-    func testSceneDataJSONEncoding() throws {
+    func sceneDataJSONEncoding() throws {
         var sceneData = SceneData()
         sceneData.entities = [
             EntityData(name: "SavedBox", type: .box)
@@ -258,7 +257,7 @@ struct SceneDocumentTests {
     }
 
     @Test("SceneData save and load round-trip")
-    func testSaveLoadRoundTrip() throws {
+    func saveLoadRoundTrip() throws {
         // Create original scene data
         var originalData = SceneData()
         originalData.entities = [
@@ -268,7 +267,7 @@ struct SceneDocumentTests {
                 transform: TransformData(position: [1, 2, 3]),
                 material: MaterialData(color: ColorData(named: "red"))
             ),
-            EntityData(name: "TestSphere", type: .sphere)
+            EntityData(name: "TestSphere", type: .sphere),
         ]
         originalData.metadata.name = "RoundTrip Test"
 
@@ -290,7 +289,7 @@ struct SceneDocumentTests {
     }
 
     @Test("SceneData decoding handles empty data")
-    func testEmptyDataThrows() {
+    func emptyDataThrows() {
         let emptyData = Data()
         let decoder = JSONDecoder()
 
@@ -300,7 +299,7 @@ struct SceneDocumentTests {
     }
 
     @Test("SceneData decoding handles invalid JSON")
-    func testInvalidJSONThrows() {
+    func invalidJSONThrows() {
         let invalidJSON = "{ invalid json }".data(using: .utf8)!
         let decoder = JSONDecoder()
 
@@ -310,7 +309,7 @@ struct SceneDocumentTests {
     }
 
     @Test("SceneData preserves entity IDs on round-trip")
-    func testEntityIDsPreserved() throws {
+    func entityIDsPreserved() throws {
         let entityId = UUID()
 
         var originalData = SceneData()
@@ -328,7 +327,7 @@ struct SceneDocumentTests {
     }
 
     @Test("SceneDocument content type")
-    func testContentTypes() {
+    func contentTypes() {
         #expect(SceneDocument.readableContentTypes.contains(.sceneDocument))
         #expect(SceneDocument.writableContentTypes.contains(.sceneDocument))
     }

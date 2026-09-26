@@ -514,7 +514,7 @@ struct SceneManagerTests {
     }
 
     @Test("Loading a document is not an edit")
-    func testLoadDoesNotBumpRevision() {
+    func loadDoesNotBumpRevision() {
         let sceneManager = SceneManager()
         var sceneData = SceneData()
         sceneData.entities = [EntityData(name: "LoadedBox", type: .box)]
@@ -527,7 +527,7 @@ struct SceneManagerTests {
     }
 
     @Test("Undo right after loading keeps the loaded objects")
-    func testLoadStartsWithEmptyUndoHistory() {
+    func loadStartsWithEmptyUndoHistory() {
         let sceneManager = SceneManager()
         var sceneData = SceneData()
         sceneData.entities = [EntityData(name: "LoadedBox", type: .box)]
@@ -541,7 +541,7 @@ struct SceneManagerTests {
     // MARK: - Undo/Redo Tests
 
     @Test("Undoing a delete restores exactly one entity with the original id")
-    func testUndoDeleteRestoresOriginalEntity() {
+    func undoDeleteRestoresOriginalEntity() {
         let sceneManager = SceneManager()
         let entity = sceneManager.createPrimitive(type: .box, name: "Keeper")
         _ = sceneManager.deleteEntity(id: entity.id)
@@ -571,11 +571,12 @@ struct SceneManagerTests {
     }
 
     @Test("Material, rotation and scale survive undo")
-    func testUndoKeepsMaterialAndTransform() throws {
+    func undoKeepsMaterialAndTransform() throws {
         let sceneManager = SceneManager()
         let entity = sceneManager.createPrimitive(type: .box)
         _ = sceneManager.setMaterial(
-            id: entity.id, color: ColorData(r: 0, g: 0, b: 1), metallic: 0.8, roughness: 0.2)
+            id: entity.id, color: ColorData(r: 0, g: 0, b: 1), metallic: 0.8, roughness: 0.2
+        )
         _ = sceneManager.transformEntity(id: entity.id, rotation: [0, 90, 0], scale: [2, 2, 2])
         let orientation = entity.entity.orientation
         _ = sceneManager.deleteEntity(id: entity.id)
@@ -592,7 +593,7 @@ struct SceneManagerTests {
     }
 
     @Test("Undoing a transform puts the entity back where it was")
-    func testUndoTransform() throws {
+    func undoTransform() throws {
         let sceneManager = SceneManager()
         let entity = sceneManager.createPrimitive(type: .box, position: [1, 0, 0])
         _ = sceneManager.transformEntity(id: entity.id, position: [5, 5, 5])
@@ -604,7 +605,7 @@ struct SceneManagerTests {
     }
 
     @Test("Undo keeps the mesh size of a custom-sized primitive")
-    func testUndoKeepsMeshSize() {
+    func undoKeepsMeshSize() {
         let sceneManager = SceneManager()
         let entity = sceneManager.createPrimitive(type: .box, size: 2)
 
