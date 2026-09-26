@@ -7,6 +7,6 @@
     {"type": "boundingBox", "min": [0, 0, 0], "max": [80, 50, 6], "tolerance": 0.01},
     {"type": "volume", "expected": 23528.761, "tolerance": 0.002},
     {"type": "referenceIoU", "threshold": 0.995},
-    {"type": "unchangedExcept", "features": ["Hole"]}
+    {"type": "unchangedExcept", "features": ["Hole"], "allowNewFeatures": true}
   ]
 }

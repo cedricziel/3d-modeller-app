@@ -6,7 +6,7 @@ import Testing
 
 enum WrongSolution: String, CaseIterable, Sendable {
     case plateHoleTooSmall, washerBoreTooSmall, flangeNotJoined, pocketTooDeep, uprightOnFarEdge, fullSphere
-    case thicknessEditedDirectly, holeMovedAlongY, extraFeatureInMove, secondHoleMisplaced
+    case thicknessEditedDirectly, holeMovedAlongY, extraFeatureInMove, plateUnparametrised, secondHoleMisplaced
 
     var task: String {
         switch self {
@@ -17,7 +17,7 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .uprightOnFarEdge: "l-bracket"
         case .fullSphere: "hemisphere"
         case .thicknessEditedDirectly: "plate-thickness"
-        case .holeMovedAlongY, .extraFeatureInMove: "plate-move-hole"
+        case .holeMovedAlongY, .extraFeatureInMove, .plateUnparametrised: "plate-move-hole"
         case .secondHoleMisplaced: "plate-second-hole"
         }
     }
@@ -25,12 +25,12 @@ enum WrongSolution: String, CaseIterable, Sendable {
     /// The check that must catch the mistake.
     var failingCheck: String {
         switch self {
-        case .plateHoleTooSmall, .washerBoreTooSmall, .pocketTooDeep: "volume"
+        case .plateHoleTooSmall, .washerBoreTooSmall, .pocketTooDeep, .extraFeatureInMove: "volume"
         case .flangeNotJoined: "body count"
         case .uprightOnFarEdge, .holeMovedAlongY, .secondHoleMisplaced: "overlap"
         case .fullSphere: "bounding box"
         case .thicknessEditedDirectly: "parameter t"
-        case .extraFeatureInMove: "unchanged"
+        case .plateUnparametrised: "unchanged"
         }
     }
 
@@ -61,6 +61,8 @@ enum WrongSolution: String, CaseIterable, Sendable {
             var document = reference
             document.parts[0].features.append(box("Boss", 5, 5, 5, at: Vector3(0, 0, 6), operation: .join("Body1")))
             return document
+        case .plateUnparametrised:
+            return reference.editing("Plate") { $0.setShape(.box(width: 80, depth: 50, height: 6)) }
         case .secondHoleMisplaced:
             return reference.editing("Hole2") { $0.setTranslation(Vector3(60, "depth / 2", -1)) }
         }
@@ -125,6 +127,15 @@ struct TaskGradingTests {
         guard let seed = task.seed else { return }
         let grade = await grader.grade(task, document: seed)
         #expect(!grade.passed)
+    }
+
+    @Test("Moving the hole by deleting it and adding a new one passes")
+    func holeReplacedPasses() async throws {
+        let task = try Bench.task("plate-move-hole")
+        var document = try #require(task.reference)
+        document.parts[0].features[1].name = "MovedHole"
+        let grade = await grader.grade(task, document: document)
+        #expect(grade.passed, "\(grade.failures)")
     }
 
     @Test("A deliberately wrong solution fails the check meant to catch it", arguments: WrongSolution.allCases)
