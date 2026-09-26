@@ -11,6 +11,7 @@
 		17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6058937E5DD57AD2F2ED9A /* AppModel.swift */; };
 		253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */; };
 		2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */; };
+		2FC67C2982851515DBD1FCBC /* SolidEntityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 454EB10E12A4666CC498DE28 /* SolidEntityTests.swift */; };
 		3421FFE62CDDE5FE33F8E869 /* DeleteEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963AE036BDBB748EFA641D79 /* DeleteEntityTool.swift */; };
 		4021EF09AE9EC9DC2514850B /* CADKernel in Frameworks */ = {isa = PBXBuildFile; productRef = 1C432C8A334A8F767D36CA1D /* CADKernel */; };
 		40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFBB66155410ABDA8497C94 /* AppModelTests.swift */; };
@@ -52,6 +53,7 @@
 		24E6BB346016D6BB0545D19E /* SwiftUIAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistant; path = Packages/SwiftUIAssistant; sourceTree = SOURCE_ROOT; };
 		27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertiesInspectorView.swift; sourceTree = "<group>"; };
 		37DED0741689842B141AD2E6 /* CreatePrimitiveTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePrimitiveTool.swift; sourceTree = "<group>"; };
+		454EB10E12A4666CC498DE28 /* SolidEntityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolidEntityTests.swift; sourceTree = "<group>"; };
 		48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantIntegrationTests.swift; sourceTree = "<group>"; };
 		50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDocumentTests.swift; sourceTree = "<group>"; };
 		50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 				1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */,
 				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
 				C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */,
+				454EB10E12A4666CC498DE28 /* SolidEntityTests.swift */,
 			);
 			path = 3DModellerAppTests;
 			sourceTree = "<group>";
@@ -325,6 +328,7 @@
 				A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */,
 				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,
 				B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */,
+				2FC67C2982851515DBD1FCBC /* SolidEntityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

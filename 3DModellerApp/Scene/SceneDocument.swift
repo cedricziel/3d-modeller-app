@@ -65,6 +65,7 @@ struct EntityData: Codable, Identifiable {
     var material: MaterialData
     var parentId: UUID?
     var isVisible: Bool
+    var solid: SolidRecipe?
 
     enum EntityType: String, Codable {
         case box
@@ -76,6 +77,7 @@ struct EntityData: Codable, Identifiable {
         case capsule
         case imported
         case group
+        case solid
     }
 
     init(
@@ -85,7 +87,8 @@ struct EntityData: Codable, Identifiable {
         transform: TransformData = TransformData(),
         material: MaterialData = MaterialData(),
         parentId: UUID? = nil,
-        isVisible: Bool = true
+        isVisible: Bool = true,
+        solid: SolidRecipe? = nil
     ) {
         self.id = id
         self.name = name
@@ -94,7 +97,15 @@ struct EntityData: Codable, Identifiable {
         self.material = material
         self.parentId = parentId
         self.isVisible = isVisible
+        self.solid = solid
     }
+}
+
+struct SolidRecipe: Codable, Equatable {
+    var width: Double
+    var height: Double
+    var depth: Double
+    var filletRadius: Double?
 }
 
 /// Serializable transform data
@@ -160,7 +171,7 @@ struct ColorData: Codable, Hashable {
         "white": ColorData(r: 1, g: 1, b: 1),
         "black": ColorData(r: 0, g: 0, b: 0),
         "gray": ColorData(r: 0.5, g: 0.5, b: 0.5),
-        "grey": ColorData(r: 0.5, g: 0.5, b: 0.5)
+        "grey": ColorData(r: 0.5, g: 0.5, b: 0.5),
     ]
 
     /// Named color initializer
@@ -168,4 +179,3 @@ struct ColorData: Codable, Hashable {
         self = Self.namedColors[named.lowercased()] ?? ColorData(r: 0.8, g: 0.8, b: 0.8)
     }
 }
-

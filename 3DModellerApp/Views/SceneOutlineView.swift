@@ -91,6 +91,7 @@ struct EntityRow: View {
         case .capsule: return "capsule"
         case .imported: return "doc.badge.plus"
         case .group: return "folder"
+        case .solid: return "cube.fill"
         }
     }
 }
