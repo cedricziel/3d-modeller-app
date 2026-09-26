@@ -15,7 +15,7 @@ struct FilletTests {
         let removedPerEdge = radius * radius * (1 - Double.pi / 4) * depth
         let expected = width * height * depth - 4 * removedPerEdge
         #expect(metrics.isValid)
-        #expect(abs(metrics.volume - expected) < 1e-6)
+        #expect(approx(metrics.volume, expected))
         #expect(metrics.edgeCount > 12)
     }
 
@@ -24,7 +24,7 @@ struct FilletTests {
         let block = try Kernel.extrudeRectangle(width: 2, height: 1, depth: 0.5)
         _ = try Kernel.fillet(block, edges: .parallel(to: SIMD3(0, 0, 1)), radius: 0.1)
 
-        #expect(abs(try Kernel.metrics(of: block).volume - 1.0) < 1e-9)
+        #expect(approx(try Kernel.metrics(of: block).volume, 1.0, tolerance: 1e-9))
     }
 
     @Test("A radius larger than half the block's width fails with a kernel error")

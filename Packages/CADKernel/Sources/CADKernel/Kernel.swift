@@ -18,15 +18,21 @@ public enum Kernel {
 
     public static func metrics(of solid: Solid) throws -> SolidMetrics {
         try OCCTSerial.withLock {
-            guard let volume = solid.shape.volume, let bounds = solid.shape.boundingBox else {
+            let shape = solid.shape
+            guard let bounds = shape.boundingBoxOptimal() else {
                 throw KernelError.operationFailed("measure the solid")
             }
+            let solids = shape.solids
             return SolidMetrics(
-                volume: volume,
+                volume: shape.volume,
                 boundsMin: bounds.min,
                 boundsMax: bounds.max,
-                edgeCount: solid.shape.edgeCount,
-                isValid: solid.shape.isValid
+                faceCount: shape.faceCount,
+                edgeCount: shape.edgeCount,
+                solidCount: solids.count,
+                isValid: shape.isValid,
+                isClosed: !solids.isEmpty && solids.allSatisfy(\.isValidSolid)
+                    && shape.freeBounds(sewingTolerance: 0) == nil
             )
         }
     }

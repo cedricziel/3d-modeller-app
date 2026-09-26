@@ -5,23 +5,28 @@ public struct Solid: @unchecked Sendable {
 }
 
 public struct SolidMetrics: Sendable, Equatable {
-    public let volume: Double
+    public let volume: Double?
     public let boundsMin: SIMD3<Double>
     public let boundsMax: SIMD3<Double>
+    public let faceCount: Int
     public let edgeCount: Int
+    public let solidCount: Int
     public let isValid: Bool
+    public let isClosed: Bool
 }
 
 public enum KernelError: Error, Equatable, CustomStringConvertible {
     case invalidDimensions(String)
     case operationFailed(String)
     case noEdgesMatched
+    case emptyResult
 
     public var description: String {
         switch self {
         case .invalidDimensions(let detail): "Invalid dimensions: \(detail)"
         case .operationFailed(let operation): "The geometry kernel could not \(operation)"
         case .noEdgesMatched: "No edges matched the selection"
+        case .emptyResult: "The operation left no solid"
         }
     }
 }
