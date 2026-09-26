@@ -27,8 +27,11 @@ public final class CADSession {
     @ObservationIgnored private var building: (document: CADDocument, task: Task<RebuiltModel, any Error>)?
     private nonisolated let snapshot: Mutex<String>
 
-    public init<Kernel: GeometryKernel>(document: CADDocument = CADDocument(), kernel: Kernel) {
-        let engine = RebuildEngine(kernel: kernel)
+    /// Without a sketch solver, sketches fail to build and the features that use them are skipped.
+    public init<Kernel: GeometryKernel>(
+        document: CADDocument = CADDocument(), kernel: Kernel, sketchSolver: (any SketchSolving)? = nil
+    ) {
+        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
         build = { try await engine.build($0) }
         self.document = document
         snapshot = Mutex(DocumentListing.render(document, result: nil))

@@ -10,8 +10,11 @@ final class Harness {
     let session: CADSession
     private(set) var commits: [String] = []
 
-    init(_ document: CADDocument = CADDocument(parts: [Part(name: "Plate")])) {
-        session = CADSession(document: document, kernel: FakeKernel())
+    init(
+        _ document: CADDocument = CADDocument(parts: [Part(name: "Plate")]),
+        sketchSolver: any SketchSolving = FakeSketchSolver()
+    ) {
+        session = CADSession(document: document, kernel: FakeKernel(), sketchSolver: sketchSolver)
         session.onCommit = { [unowned self] _, action in commits.append(action) }
     }
 

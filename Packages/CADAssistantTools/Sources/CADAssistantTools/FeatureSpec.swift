@@ -13,15 +13,19 @@ struct FeatureSpec: Equatable {
         "fillet": ["radius"],
         "chamfer": ["distance"],
         "shell": ["thickness"],
+        "extrude": ["distance"],
+        "revolve": ["angle"],
     ]
     static let types = [
-        "box", "cylinder", "sphere", "cone", "torus", "boolean", "transform", "fillet", "chamfer", "shell",
+        "box", "cylinder", "sphere", "cone", "torus", "boolean", "transform", "fillet", "chamfer", "shell", "extrude",
+        "revolve",
     ]
     static let dimensionKeys = [
         "width", "depth", "height", "radius", "bottomRadius", "topRadius", "majorRadius", "minorRadius", "distance",
-        "thickness",
+        "thickness", "angle",
     ]
-    static let keys = ["type"] + dimensionKeys + ["placement", "operation", "body", "tools", "edges", "faces"]
+    static let keys =
+        ["type"] + dimensionKeys + ["placement", "operation", "body", "tools", "edges", "faces"] + sketchKeys
     static let solidOperations = ["newBody", "join", "cut", "intersect"]
     static let booleanOperations = ["union", "subtract", "intersect"]
 
@@ -35,6 +39,13 @@ struct FeatureSpec: Equatable {
     var tools: [String]?
     var edges: [GeometryReference]?
     var faces: [GeometryReference]?
+    var sketch: String?
+    var regions: [String]?
+    var extent: String?
+    var reversed: Bool?
+    var face: GeometryReference?
+    var axis: String?
+    var referenceBody: String?
 
     init() {}
 
@@ -71,13 +82,14 @@ struct FeatureSpec: Equatable {
             (type, body, faces) = ("shell", shell.body, shell.faces)
             dimensions = ["thickness": shell.thickness]
         case .sketch: type = "sketch"
-        case .extrude: type = "extrude"
-        case .revolve: type = "revolve"
+        case .extrude(let extrude): setExtrude(extrude)
+        case .revolve(let revolve): setRevolve(revolve)
         }
     }
 
     init(_ arguments: Arguments) throws(ToolError) {
         if let type = try arguments.string("type") {
+            if type == "sketch" { throw ToolError("Use add_sketch to add a sketch and edit_sketch to change one.") }
             guard Self.types.contains(type) else {
                 throw ToolError("Unknown type '\(type)'. Types: \(Self.types.joined(separator: ", ")).")
             }
@@ -98,6 +110,7 @@ struct FeatureSpec: Equatable {
         tools = try arguments.strings("tools", "body names")
         edges = try arguments.strings("edges", "edge names or filters")?.map(GeometryReference.init(parsing:))
         faces = try arguments.strings("faces", "face names or filters")?.map(GeometryReference.init(parsing:))
+        try readSketchFields(arguments)
     }
 
     private static func vector(_ value: JSONValue?, _ key: String) throws(ToolError) -> [String: Scalar] {
@@ -144,6 +157,13 @@ struct FeatureSpec: Equatable {
         if let tools { merged.tools = tools }
         if let edges { merged.edges = edges }
         if let faces { merged.faces = faces }
+        if let sketch { merged.sketch = sketch }
+        if let regions { merged.regions = regions }
+        if let extent { merged.extent = extent }
+        if let reversed { merged.reversed = reversed }
+        if let face { merged.face = face }
+        if let axis { merged.axis = axis }
+        if let referenceBody { merged.referenceBody = referenceBody }
         return merged
     }
 
@@ -151,6 +171,10 @@ struct FeatureSpec: Equatable {
     /// fields that do not apply to the type are checked against.
     func kind(given: FeatureSpec) throws(ToolError) -> FeatureKind {
         guard let type else { throw ToolError("Missing 'type'. Types: \(Self.types.joined(separator: ", ")).") }
+        if type == "sketch" { throw ToolError("Use edit_sketch to change a sketch.") }
+        if type != "extrude" && type != "revolve", let key = given.sketchKeysGiven.first {
+            throw ToolError("A \(type) does not take '\(key)'.")
+        }
         let placement = Placement(
             translation: Vector3(translation["x"] ?? 0, translation["y"] ?? 0, translation["z"] ?? 0),
             rotationAxis: Vector3(rotationAxis["x"] ?? 0, rotationAxis["y"] ?? 0, rotationAxis["z"] ?? 1),
@@ -172,6 +196,10 @@ struct FeatureSpec: Equatable {
             return .transform(TransformFeature(body: body, placement: placement))
         case "fillet", "chamfer", "shell":
             return try dressUp(type, given: given)
+        case "extrude":
+            return try extrudeKind(given: given)
+        case "revolve":
+            return try revolveKind(given: given)
         default:
             try given.reject(tools: true, references: true, type: type)
             let names = Self.shapeDimensions[type] ?? []
@@ -225,7 +253,7 @@ struct FeatureSpec: Equatable {
         }
     }
 
-    private func solidOperation(given: FeatureSpec) throws(ToolError) -> SolidOperation {
+    func solidOperation(given: FeatureSpec) throws(ToolError) -> SolidOperation {
         switch operation ?? "newBody" {
         case "newBody":
             if given.body != nil {
@@ -241,7 +269,7 @@ struct FeatureSpec: Equatable {
         }
     }
 
-    private func reject(
+    func reject(
         dimensions rejectDimensions: Bool = false, placement: Bool = false, operation rejectOperation: Bool = false,
         tools rejectTools: Bool = false, references: Bool = false, type: String
     ) throws(ToolError) {
@@ -269,7 +297,9 @@ extension ToolSchemas {
                     cone: bottomRadius, topRadius, height along +Z. torus: majorRadius, minorRadius, centred, axis Z. \
                     boolean: combine bodies. transform: move or rotate a body. fillet: round 'edges' of 'body' by \
                     radius. chamfer: bevel 'edges' of 'body' by distance. shell: hollow 'body' with walls thickness \
-                    thick inside it, open at 'faces'.
+                    thick inside it, open at 'faces'. extrude: sweep closed regions of 'sketch' along its plane's \
+                    normal. revolve: turn closed regions of 'sketch' about 'axis'. Sketches themselves are added with \
+                    add_sketch.
                     """,
                 values: FeatureSpec.types, required: typeRequired),
             scalar("width", "Box size along X in mm."),
@@ -280,8 +310,12 @@ extension ToolSchemas {
             scalar("topRadius", "Cone radius at its top in mm; 0 for a pointed cone."),
             scalar("majorRadius", "Torus radius from its centre to the tube centre in mm."),
             scalar("minorRadius", "Torus tube radius in mm."),
-            scalar("distance", "Chamfer distance on both faces in mm."),
+            scalar(
+                "distance",
+                "Chamfer distance on both faces in mm; extrude: how far along the sketch normal (distance and "
+                    + "symmetric extents)."),
             scalar("thickness", "Shell wall thickness in mm, measured inward."),
+            scalar("angle", "revolve: degrees, more than 0 and at most 360 (the default)."),
             .custom(
                 "placement",
                 description: """
@@ -320,6 +354,37 @@ extension ToolSchemas {
                     shell: the faces to open, each a name such as Plate.top or a filter such as "normal +Z".
                     """,
                 schema: ["type": "array", "items": ["type": "string"]]),
+            .optionalString("sketch", description: "extrude, revolve: the sketch feature whose closed regions to use."),
+            .custom(
+                "regions",
+                description: """
+                    extrude, revolve: which closed loops to use, each named by one entity of the loop (circle1); the \
+                    loops directly inside a chosen loop become holes. Leave out for every region.
+                    """,
+                schema: ["type": "array", "items": ["type": "string"]]),
+            .enumParameter(
+                "extent",
+                description: """
+                    extrude: distance (default; 'distance' along the normal), symmetric ('distance' split to both \
+                    sides), throughAll (through the whole target 'body', both sides; needs cut, join or intersect) or \
+                    upToFace (to the planar 'face', parallel to the sketch).
+                    """,
+                values: FeatureSpec.extents, required: false),
+            ToolParameter(
+                name: "reversed", type: .boolean,
+                description: "extrude: go against the sketch normal, e.g. to cut into the face the sketch lies on.",
+                required: false),
+            .optionalString(
+                "face", description: "extrude upToFace: a face name or filter matching one planar face."),
+            .optionalString(
+                "axis",
+                description: """
+                    revolve: a line of the sketch (line5, often a construction line), X, Y or Z through the origin, \
+                    or a straight edge name such as edge(Base.front, Base.left) with 'referenceBody'.
+                    """),
+            .optionalString(
+                "referenceBody",
+                description: "The body an upToFace 'face' or an edge 'axis' belongs to; defaults to 'body'."),
         ]
     }
 }

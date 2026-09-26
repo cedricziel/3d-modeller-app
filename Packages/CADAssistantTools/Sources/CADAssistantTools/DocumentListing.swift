@@ -18,7 +18,9 @@ public enum DocumentListing {
                 let status =
                     result?.feature(id: feature.id)?.status.description
                     ?? (feature.suppressed ? FeatureStatus.suppressed.description : "not built")
-                lines.append("  \(feature.name)  \(summary(feature.kind, body: bodies[feature.id]))  \(status)")
+                let summary = summary(
+                    feature.kind, body: bodies[feature.id], sketch: result?.sketch(id: feature.id))
+                lines.append("  \(feature.name)  \(summary)  \(status)")
             }
         }
         return lines
@@ -39,7 +41,7 @@ public enum DocumentListing {
         return "parameters: " + entries.joined(separator: ", ")
     }
 
-    static func summary(_ kind: FeatureKind, body: String?) -> String {
+    static func summary(_ kind: FeatureKind, body: String?, sketch sketchResult: SketchResult? = nil) -> String {
         let arrow = body.map { " → \($0)" } ?? ""
         switch kind {
         case .primitive(let primitive):
@@ -69,12 +71,12 @@ public enum DocumentListing {
                 + arrow
         case .shell(let shell):
             return "shell \(shell.body) open at \(references(shell.faces)) t=\(Format.operand(shell.thickness))" + arrow
-        case .sketch:
-            return "sketch"
+        case .sketch(let sketch):
+            return sketchSummary(sketch, result: sketchResult)
         case .extrude(let extrude):
-            return "extrude \(extrude.sketch)" + arrow
+            return extrudeSummary(extrude) + arrow
         case .revolve(let revolve):
-            return "revolve \(revolve.sketch)" + arrow
+            return revolveSummary(revolve) + arrow
         }
     }
 
