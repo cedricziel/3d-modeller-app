@@ -427,22 +427,24 @@ final class SceneManager: ObservableObject {
     }
 
     private func restoreSnapshot(_ snapshot: SceneSnapshot) {
-        // Clear current entities
         for entity in entities.values {
             entity.entity.removeFromParent()
         }
-        entities.removeAll()
 
-        // Restore from snapshot
-        for (id, data) in snapshot.entities {
-            // Recreate entity from data
-            let cadEntity = createPrimitive(
-                type: data.type,
-                name: data.name,
-                position: data.entity.position,
-                color: data.material.color
+        entities = snapshot.entities.mapValues { saved in
+            let entity = saved.entity.clone(recursive: true)
+            rootEntity.addChild(entity)
+            return CADEntity(
+                id: saved.id,
+                name: saved.name,
+                type: saved.type,
+                entity: entity,
+                material: saved.material
             )
-            entities[id] = cadEntity
+        }
+
+        if let selected = selectedEntityId, entities[selected] == nil {
+            selectedEntityId = nil
         }
 
         sceneDidChange()
@@ -523,4 +525,16 @@ struct SceneStatistics {
 /// Snapshot for undo/redo
 struct SceneSnapshot {
     let entities: [UUID: CADEntity]
+
+    init(entities: [UUID: CADEntity]) {
+        self.entities = entities.mapValues { live in
+            CADEntity(
+                id: live.id,
+                name: live.name,
+                type: live.type,
+                entity: live.entity.clone(recursive: true),
+                material: live.material
+            )
+        }
+    }
 }
