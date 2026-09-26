@@ -23,6 +23,22 @@ public enum GeometryReference: Sendable, Hashable {
         }
     }
 
+    /// The parameter expressions a filter uses (`circular r=<expression>`), for checking them before a rebuild.
+    public var expressions: [String] {
+        guard case .filter(let text) = self else { return [] }
+        var clauses: [[Substring]] = [[]]
+        for word in text.split(whereSeparator: \.isWhitespace) {
+            if word.lowercased() == "and" { clauses.append([]) } else { clauses[clauses.count - 1].append(word) }
+        }
+        return clauses.compactMap { clause in
+            guard clause.first?.lowercased() == "circular" else { return nil }
+            let operand = clause.dropFirst().joined(separator: " ")
+            guard operand.replacingOccurrences(of: " ", with: "").hasPrefix("r=") else { return nil }
+            let expression = operand.drop { $0 != "=" }.dropFirst().trimmingCharacters(in: .whitespaces)
+            return expression.isEmpty ? nil : expression
+        }
+    }
+
     /// The reference with every `old.` prefix that names the feature `old` changed to `new.`.
     public func renamingFeature(_ old: String, to new: String) -> GeometryReference {
         let renamed = Self.rename(text, old, new)

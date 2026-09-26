@@ -52,9 +52,15 @@ extension FeatureKind {
         case .primitive(let primitive): primitive.shape.scalarFields + primitive.placement.scalarFields
         case .boolean: []
         case .transform(let transform): transform.placement.scalarFields
-        case .fillet(let fillet): [("radius", fillet.radius)]
-        case .chamfer(let chamfer): [("distance", chamfer.distance)]
-        case .shell(let shell): [("thickness", shell.thickness)]
+        case .fillet(let fillet): [("radius", fillet.radius)] + Self.filterFields("edges", fillet.edges)
+        case .chamfer(let chamfer): [("distance", chamfer.distance)] + Self.filterFields("edges", chamfer.edges)
+        case .shell(let shell): [("thickness", shell.thickness)] + Self.filterFields("faces", shell.faces)
+        }
+    }
+
+    private static func filterFields(_ key: String, _ references: [GeometryReference]) -> [(String, Scalar)] {
+        references.enumerated().flatMap { index, reference in
+            reference.expressions.map { ("\(key)[\(index)] r", Scalar.expression($0)) }
         }
     }
 }
