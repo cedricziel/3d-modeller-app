@@ -31,7 +31,7 @@ jobs:
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: swiftpm-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles('**/Package.resolved') }}
-          restore-keys: swiftpm-${{ runner.os }}-
+          restore-keys: swiftpm-${{ runner.os }}-${{ matrix.package }}-
       - run: xcodebuild -version
       - name: Test ${{ matrix.package }}
         working-directory: Packages/${{ matrix.package }}
@@ -48,7 +48,7 @@ jobs:
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: swiftpm-${{ runner.os }}-app-${{ hashFiles('**/Package.resolved') }}
-          restore-keys: swiftpm-${{ runner.os }}-
+          restore-keys: swiftpm-${{ runner.os }}-app-
       - run: xcodebuild -version
       - name: Test app
         run: >
