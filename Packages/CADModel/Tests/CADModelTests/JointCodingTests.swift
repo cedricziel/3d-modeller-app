@@ -16,7 +16,7 @@ struct JointCodingTests {
         return (document, base, top)
     }
 
-    @Test("A joint with an edge, an offset, limits and flip round-trips through JSON")
+    @Test("A joint with an edge, an offset, limits, a value and flip round-trips through JSON")
     func roundTrip() throws {
         let (plain, base, top) = document(joints: [])
         var document = plain
@@ -27,7 +27,7 @@ struct JointCodingTests {
                     instance: base.id, face: .name("Box1.top"), edge: .name("edge(Box1.top, Box1.front)"),
                     offset: JointOffset(z: "gap", angle: 90)),
                 b: JointFrameRef(instance: top.id, body: "Body1", face: .filter("faces normal -Z")),
-                flip: true, limits: JointLimits(min: 0, max: "gap * 10"))
+                flip: true, limits: JointLimits(min: 0, max: "gap * 10"), value: "gap * 5")
         ]
         let data = try document.jsonData()
         #expect(try CADDocument(json: data) == document)
@@ -55,6 +55,7 @@ struct JointCodingTests {
         let joint = try JSONDecoder().decode(Joint.self, from: Data(json.utf8))
         #expect(joint.flip == false)
         #expect(joint.limits == nil)
+        #expect(joint.value == nil)
         #expect(joint.a.edge == nil)
         #expect(joint.a.offset == nil)
         #expect(joint.b.face == .name("Lid1.bottom"))

@@ -62,7 +62,8 @@ public struct JointFrameRef: Codable, Sendable, Hashable {
     }
 }
 
-/// The range of a joint's free motion. Stored for motion, which does not exist yet; the solver ignores it.
+/// The range a joint may be driven through, in its motion's unit (degrees or mm). Free joints are not held inside
+/// it.
 public struct JointLimits: Codable, Sendable, Hashable {
     public var min: Scalar?
     public var max: Scalar?
@@ -83,10 +84,12 @@ public struct Joint: Codable, Sendable, Hashable, Identifiable {
     public var b: JointFrameRef
     public var flip: Bool
     public var limits: JointLimits?
+    /// Where the joint is driven to, in its motion's unit; nil leaves the motion free.
+    public var value: Scalar?
 
     public init(
         id: UUID = UUID(), name: String, kind: JointKind, a: JointFrameRef, b: JointFrameRef, flip: Bool = false,
-        limits: JointLimits? = nil
+        limits: JointLimits? = nil, value: Scalar? = nil
     ) {
         self.id = id
         self.name = name
@@ -95,6 +98,7 @@ public struct Joint: Codable, Sendable, Hashable, Identifiable {
         self.b = b
         self.flip = flip
         self.limits = limits
+        self.value = value
     }
 
     public init(from decoder: any Decoder) throws {
@@ -106,5 +110,46 @@ public struct Joint: Codable, Sendable, Hashable, Identifiable {
         b = try container.decode(JointFrameRef.self, forKey: .b)
         flip = try container.decodeIfPresent(Bool.self, forKey: .flip) ?? false
         limits = try container.decodeIfPresent(JointLimits.self, forKey: .limits)
+        value = try container.decodeIfPresent(Scalar.self, forKey: .value)
+    }
+}
+
+/// The one motion a joint can be driven along.
+public enum JointMotion: Sendable, Hashable {
+    /// Degrees from a's x axis to b's x axis, about a's z axis.
+    case angle
+    /// Millimetres from a's origin to b's origin, along a's z axis.
+    case travel
+
+    public var unit: String {
+        switch self {
+        case .angle: "°"
+        case .travel: " mm"
+        }
+    }
+
+    public func format(_ value: Double) -> String {
+        Scalar.format((value * 10_000).rounded() / 10_000) + unit
+    }
+}
+
+extension JointKind {
+    /// How many ways the joint lets b move against a.
+    public var freedoms: Int {
+        switch self {
+        case .fixed: 0
+        case .revolute, .slider: 1
+        case .cylindrical: 2
+        case .ball, .planar: 3
+        }
+    }
+
+    /// The motion a value drives; a cylindrical joint is driven along its axis and keeps turning freely.
+    public var motion: JointMotion? {
+        switch self {
+        case .revolute: .angle
+        case .slider, .cylindrical: .travel
+        case .fixed, .ball, .planar: nil
+        }
     }
 }
