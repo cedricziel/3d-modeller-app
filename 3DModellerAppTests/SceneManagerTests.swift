@@ -363,6 +363,31 @@ struct SceneManagerTests {
         #expect(sceneManager.entity(named: "New") != nil)
     }
 
+    @Test("Loading a document is not an edit")
+    func testLoadDoesNotBumpRevision() {
+        let sceneManager = SceneManager()
+        var sceneData = SceneData()
+        sceneData.entities = [EntityData(name: "LoadedBox", type: .box)]
+        let start = sceneManager.revision
+
+        sceneManager.loadSceneData(sceneData)
+
+        #expect(sceneManager.revision == start)
+        #expect(sceneManager.statistics.entityCount == 1)
+    }
+
+    @Test("Undo right after loading keeps the loaded objects")
+    func testLoadStartsWithEmptyUndoHistory() {
+        let sceneManager = SceneManager()
+        var sceneData = SceneData()
+        sceneData.entities = [EntityData(name: "LoadedBox", type: .box)]
+        sceneManager.loadSceneData(sceneData)
+
+        sceneManager.undo()
+
+        #expect(sceneManager.entity(named: "LoadedBox") != nil)
+    }
+
     // MARK: - Undo/Redo Tests
 
     @Test("Undoing a delete restores exactly one entity with the original id")

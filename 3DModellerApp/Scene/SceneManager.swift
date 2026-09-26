@@ -27,6 +27,8 @@ final class SceneManager: ObservableObject {
     /// Ground grid entity
     private var gridEntity: Entity?
 
+    private var isLoading = false
+
     /// Entity name counter for auto-naming
     private var entityCounters: [EntityData.EntityType: Int] = [:]
 
@@ -358,7 +360,9 @@ final class SceneManager: ObservableObject {
     // MARK: - Statistics
 
     private func sceneDidChange() {
-        revision += 1
+        if !isLoading {
+            revision += 1
+        }
         statistics = SceneStatistics(
             entityCount: entities.count,
             triangleCount: calculateTriangleCount(),
@@ -471,6 +475,13 @@ final class SceneManager: ObservableObject {
     }
 
     func loadSceneData(_ data: SceneData) {
+        isLoading = true
+        defer {
+            isLoading = false
+            undoStack.removeAll()
+            redoStack.removeAll()
+        }
+
         // Clear current scene
         for entity in entities.values {
             entity.entity.removeFromParent()
