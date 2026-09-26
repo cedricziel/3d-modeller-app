@@ -72,6 +72,31 @@ public enum CADAssistantPrompt {
         interference between two instances; touching is fine. render_views shows the assembly when it has \
         instances.
 
+        ## Joints (mating)
+        - Prefer joints to hand-computed placements whenever parts touch or move against each other: a joint states \
+        the intent, and every rebuild solves it, so the parts stay mated when dimensions change.
+        - A joint joins a frame on one instance (a) to a frame on another (b). A frame sits on a face: a planar \
+        face gives its centre with z along the outward normal; a cylindrical, conical or toroidal face gives its axis \
+        as z. An edge of the same face refines it: a circular edge moves the origin to the circle's centre, a \
+        straight edge to its midpoint and turns x along it. offset {x, y, z, angle} then moves the frame along its \
+        own axes (mm) and turns it about z (degrees).
+        - Side b's frame is turned half a turn about its x axis, so two faces meet flush with their outward \
+        normals facing each other: a lid's bottom face on a box's top face. flip: true keeps b unturned; use it to \
+        line up two axes pointing the same way, such as a pin's axis with a hole's.
+        - Kinds: fixed (the frames coincide), revolute (origins meet, b turns about z), slider (b slides along \
+        a's z without turning; x axes stay aligned), cylindrical (slides along and turns about z), ball (origins \
+        meet, b turns freely), planar (b stays in a's face plane, slides and turns in it).
+        - Ground one instance first (add_instance or edit_instance grounded: true); joints move only instances \
+        that are not grounded and are joined, directly or through others, to a grounded one. The instance \
+        placement is only the starting guess: the listing shows where the solver put an instance after \
+        "→ solved", and each joint's status. A failed joint names what is wrong: a reference that matches \
+        nothing, joints that conflict, or origins and axes that could not be brought together.
+        - Recipes. Lid on a box: fixed from Box.top to Lid.bottom (planar to let it slide). Pin or bolt in a \
+        hole, concentric and flush: revolute or cylindrical from the hole's cylindrical face with its circular edge \
+        on the top face, to the bolt's shank face with the circular edge under its head (use flip if the axes point \
+        opposite ways); or cylindrical on the axes plus planar on the two faces. Slider on a rail: slider between \
+        faces whose normals run along the rail, with an offset that puts the carriage on top.
+
         ## Working
         - The message you receive starts with the current listing in <context>: parameters with values, then each \
         feature with what it does, the body it creates or changes, and its status. Call get_listing when you need \
