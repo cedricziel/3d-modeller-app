@@ -88,6 +88,9 @@ public struct ZipArchive: Sendable {
             let extraLength = Int(bytes.littleEndianUInt16(at: cursor + 30))
             let commentLength = Int(bytes.littleEndianUInt16(at: cursor + 32))
             let local = Int(bytes.littleEndianUInt32(at: cursor + 42))
+            guard cursor + 46 + nameLength + extraLength + commentLength <= bytes.count else {
+                throw ExportError("The zip directory is damaged")
+            }
             let name = String(decoding: bytes[(cursor + 46)..<(cursor + 46 + nameLength)], as: UTF8.self)
             guard method == 0 else { throw ExportError("\(name) is compressed; only stored entries are read") }
             guard local + 30 <= bytes.count else { throw ExportError("The zip entry \(name) is damaged") }
