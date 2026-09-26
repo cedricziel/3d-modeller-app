@@ -10,6 +10,7 @@ struct ContentView: View {
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.undoManager) private var undoManager
     @State private var session: CADSession
+    @State private var driver: JointDriver
     @State private var selection: UUID?
     @State private var assistant: Assistant?
     @State private var refusal: String?
@@ -18,7 +19,9 @@ struct ContentView: View {
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
-        _session = State(wrappedValue: CADSession.forApp(document: document.model))
+        let session = CADSession.forApp(document: document.model)
+        _session = State(wrappedValue: session)
+        _driver = State(wrappedValue: JointDriver { [session] document in try await session.preview(document) })
     }
 
     var body: some View {
@@ -32,7 +35,7 @@ struct ContentView: View {
             )
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
         } detail: {
-            Viewport3DView(result: session.result, content: viewportContent)
+            Viewport3DView(result: driver.preview ?? session.result, content: viewportContent)
                 .overlay(alignment: .top) {
                     if !document.model.instances.isEmpty {
                         Picker("Show", selection: viewportContentBinding) {
@@ -59,7 +62,9 @@ struct ContentView: View {
                 feature: selection.flatMap(document.model.feature(id:)),
                 featureResult: selection.flatMap { session.result?.feature(id: $0) },
                 sketchResult: selection.flatMap { session.result?.sketch(id: $0) },
-                assistant: assistant
+                assistant: assistant,
+                driver: driver,
+                moveJoint: moveJoint
             )
             .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
         }
@@ -82,8 +87,10 @@ struct ContentView: View {
         }
         .task(id: document.model) {
             await session.load(document.model)
+            if !driver.isAnimating { driver.clear() }
         }
         .onChange(of: selection) { _, selection in
+            driver.clear()
             if let content = ViewportContent.following(selection: selection, in: document.model) {
                 chosenContent = content
             }
@@ -116,6 +123,13 @@ struct ContentView: View {
         let action = suppressed ? "Suppress \(feature.name)" : "Unsuppress \(feature.name)"
         document.edit(action, undoManager: undoManager) { model in
             model.updateFeature(id: feature.id) { $0.suppressed = suppressed }
+        }
+    }
+
+    private func moveJoint(_ joint: Joint, to value: Double) {
+        document.edit("Move \(joint.name)", undoManager: undoManager) { model in
+            guard let index = model.joints.firstIndex(where: { $0.id == joint.id }) else { return }
+            model.assembly?.joints[index].value = .number(value)
         }
     }
 
@@ -172,6 +186,8 @@ struct InspectorView: View {
     let featureResult: FeatureResult?
     let sketchResult: SketchResult?
     let assistant: Assistant?
+    let driver: JointDriver
+    let moveJoint: (Joint, Double) -> Void
     @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
@@ -200,7 +216,9 @@ struct InspectorView: View {
                     InstanceInspectorView(
                         instance: instance, partName: model.part(id: instance.part)?.name, result: instanceResult)
                 } else if let joint {
-                    JointInspectorView(joint: joint, model: model, result: jointResult)
+                    JointInspectorView(
+                        joint: joint, model: model, result: jointResult, driver: driver,
+                        move: { moveJoint(joint, $0) })
                 } else {
                     FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
                 }
