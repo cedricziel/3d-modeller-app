@@ -92,10 +92,11 @@ public final class Assistant: ObservableObject {
 
             // Add assistant message if there's content
             if let content = response.content {
-                messages.append(Message.assistant(content, toolCalls: response.toolCalls))
+                messages.append(
+                    Message.assistant(content, toolCalls: response.toolCalls, rawContent: response.rawContent))
             } else if let toolCalls = response.toolCalls, !toolCalls.isEmpty {
                 // Tool calls without text content
-                messages.append(Message.assistant("", toolCalls: toolCalls))
+                messages.append(Message.assistant("", toolCalls: toolCalls, rawContent: response.rawContent))
             }
 
             // Execute tool calls if present

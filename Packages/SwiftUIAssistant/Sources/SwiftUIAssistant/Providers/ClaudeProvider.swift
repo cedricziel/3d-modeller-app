@@ -5,22 +5,26 @@ public actor ClaudeProvider: LLMProvider {
     private let apiKey: String
     private let model: String
     private let maxTokens: Int
+    private let effort: String
     private let baseURL: URL
 
     /// Initialize the Claude provider
     /// - Parameters:
     ///   - apiKey: Your Anthropic API key
-    ///   - model: The Claude model to use (default: claude-sonnet-4-20250514)
-    ///   - maxTokens: Maximum tokens in the response (default: 4096)
+    ///   - model: The Claude model to use (default: claude-opus-5-5)
+    ///   - maxTokens: Maximum tokens in the response, thinking included (default: 16000)
+    ///   - effort: How much the model thinks: low, medium, high, xhigh or max (default: medium)
     public init(
         apiKey: String,
-        model: String = "claude-sonnet-4-20250514",
-        maxTokens: Int = 4096,
+        model: String = "claude-opus-5-5",
+        maxTokens: Int = 16000,
+        effort: String = "medium",
         baseURL: URL = URL(string: "https://api.anthropic.com")!
     ) {
         self.apiKey = apiKey
         self.model = model
         self.maxTokens = maxTokens
+        self.effort = effort
         self.baseURL = baseURL
     }
 
@@ -61,7 +65,7 @@ public actor ClaudeProvider: LLMProvider {
 
     // MARK: - Request Building
 
-    private func buildRequest(
+    func buildRequest(
         systemPrompt: String,
         messages: [Message],
         tools: [any AssistantTool]
@@ -78,7 +82,8 @@ public actor ClaudeProvider: LLMProvider {
             "model": model,
             "max_tokens": maxTokens,
             "system": systemPrompt,
-            "messages": messages.compactMap { formatMessage($0) }
+            "output_config": ["effort": effort],
+            "messages": messages.compactMap { formatMessage($0) },
         ]
 
         if !tools.isEmpty {
@@ -98,16 +103,23 @@ public actor ClaudeProvider: LLMProvider {
         case .user:
             return [
                 "role": "user",
-                "content": message.content
+                "content": message.content,
             ]
 
         case .assistant:
+            if let rawContent = message.rawContent {
+                return [
+                    "role": "assistant",
+                    "content": rawContent.map(\.anyValue),
+                ]
+            }
+
             var content: [[String: Any]] = []
 
             if !message.content.isEmpty {
                 content.append([
                     "type": "text",
-                    "text": message.content
+                    "text": message.content,
                 ])
             }
 
@@ -117,14 +129,14 @@ public actor ClaudeProvider: LLMProvider {
                         "type": "tool_use",
                         "id": call.id,
                         "name": call.name,
-                        "input": call.arguments.toAnyDict
+                        "input": call.arguments.toAnyDict,
                     ])
                 }
             }
 
             return [
                 "role": "assistant",
-                "content": content.isEmpty ? message.content : content
+                "content": content.isEmpty ? message.content : content,
             ]
 
         case .toolResult:
@@ -136,9 +148,9 @@ public actor ClaudeProvider: LLMProvider {
                     [
                         "type": "tool_result",
                         "tool_use_id": toolCallId,
-                        "content": message.content
+                        "content": message.content,
                     ]
-                ]
+                ],
             ]
         }
     }
@@ -160,14 +172,14 @@ public actor ClaudeProvider: LLMProvider {
             "input_schema": [
                 "type": "object",
                 "properties": properties,
-                "required": required
-            ]
+                "required": required,
+            ],
         ]
     }
 
     // MARK: - Response Parsing
 
-    private func parseResponse(_ data: Data) throws -> LLMResponse {
+    func parseResponse(_ data: Data) throws -> LLMResponse {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw AssistantError.parsingError("Invalid JSON response")
         }
@@ -185,6 +197,8 @@ public actor ClaudeProvider: LLMProvider {
             stopReason = .maxTokens
         case "stop_sequence":
             stopReason = .stopSequence
+        case "refusal":
+            stopReason = .refusal
         default:
             stopReason = .endTurn
         }
@@ -206,9 +220,10 @@ public actor ClaudeProvider: LLMProvider {
 
             case "tool_use":
                 guard let id = block["id"] as? String,
-                      let name = block["name"] as? String,
-                      let input = block["input"] as? [String: Any],
-                      let arguments = [String: JSONValue](fromAny: input) else {
+                    let name = block["name"] as? String,
+                    let input = block["input"] as? [String: Any],
+                    let arguments = [String: JSONValue](fromAny: input)
+                else {
                     continue
                 }
 
@@ -227,9 +242,10 @@ public actor ClaudeProvider: LLMProvider {
 
         // Parse usage
         var usage: LLMResponse.Usage?
-        if let usageDict = json["usage"] as? [String: Int],
-           let inputTokens = usageDict["input_tokens"],
-           let outputTokens = usageDict["output_tokens"] {
+        if let usageDict = json["usage"] as? [String: Any],
+            let inputTokens = usageDict["input_tokens"] as? Int,
+            let outputTokens = usageDict["output_tokens"] as? Int
+        {
             usage = LLMResponse.Usage(inputTokens: inputTokens, outputTokens: outputTokens)
         }
 
@@ -237,7 +253,8 @@ public actor ClaudeProvider: LLMProvider {
             content: textContent,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
             stopReason: stopReason,
-            usage: usage
+            usage: usage,
+            rawContent: contentArray.compactMap { JSONValue($0) }
         )
     }
 }

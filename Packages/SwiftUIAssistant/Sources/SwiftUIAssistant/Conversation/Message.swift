@@ -7,6 +7,8 @@ public struct Message: Identifiable, Sendable, Equatable {
     public let content: String
     public let toolCalls: [ToolCall]?
     public let toolCallId: String?
+    /// Provider-native content blocks, replayed verbatim on the next request
+    public let rawContent: [JSONValue]?
     public let timestamp: Date
 
     /// The role of the message sender
@@ -23,6 +25,7 @@ public struct Message: Identifiable, Sendable, Equatable {
         content: String,
         toolCalls: [ToolCall]? = nil,
         toolCallId: String? = nil,
+        rawContent: [JSONValue]? = nil,
         timestamp: Date = Date()
     ) {
         self.id = id
@@ -30,6 +33,7 @@ public struct Message: Identifiable, Sendable, Equatable {
         self.content = content
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
+        self.rawContent = rawContent
         self.timestamp = timestamp
     }
 
@@ -41,8 +45,12 @@ public struct Message: Identifiable, Sendable, Equatable {
     }
 
     /// Create an assistant message
-    public static func assistant(_ content: String, toolCalls: [ToolCall]? = nil) -> Message {
-        Message(role: .assistant, content: content, toolCalls: toolCalls)
+    public static func assistant(
+        _ content: String,
+        toolCalls: [ToolCall]? = nil,
+        rawContent: [JSONValue]? = nil
+    ) -> Message {
+        Message(role: .assistant, content: content, toolCalls: toolCalls, rawContent: rawContent)
     }
 
     /// Create a system message

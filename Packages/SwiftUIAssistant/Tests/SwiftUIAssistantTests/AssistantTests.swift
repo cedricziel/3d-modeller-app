@@ -33,11 +33,38 @@ struct AssistantTests {
 
         try await assistant.send("Hello!")
 
-        #expect(assistant.messages.count == 2) // User + Assistant
+        #expect(assistant.messages.count == 2)  // User + Assistant
         #expect(assistant.messages[0].role == .user)
         #expect(assistant.messages[0].content == "Hello!")
         #expect(assistant.messages[1].role == .assistant)
         #expect(assistant.messages[1].content == "Hello back!")
+    }
+
+    @Test("Assistant keeps the provider's raw content on the assistant message")
+    @MainActor
+    func keepsRawContent() async throws {
+        let provider = MockLLMProvider()
+        let raw: [JSONValue] = [
+            ["type": "thinking", "thinking": "", "signature": "sig-1"],
+            ["type": "text", "text": "Hi"],
+        ]
+        await provider.queueResponse(
+            LLMResponse(
+                content: "Hi",
+                toolCalls: nil,
+                stopReason: .endTurn,
+                rawContent: raw
+            ))
+
+        let assistant = Assistant(
+            provider: provider,
+            tools: [],
+            contextProvider: { MockContext() }
+        )
+
+        try await assistant.send("Hello!")
+
+        #expect(assistant.messages[1].rawContent == raw)
     }
 
     @Test("Assistant executes tool calls")
@@ -132,7 +159,7 @@ struct AssistantTests {
         await provider.queueTextResponse("Response")
 
         // Add small delay to observe processing state
-        let delayNs: UInt64 = 50_000_000 // 50ms
+        let delayNs: UInt64 = 50_000_000  // 50ms
         await (provider as MockLLMProvider).setResponseDelay(delayNs)
 
         let assistant = Assistant(
@@ -148,7 +175,7 @@ struct AssistantTests {
         }
 
         // Give time for processing to start
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        try await Task.sleep(nanoseconds: 10_000_000)  // 10ms
 
         // Note: Due to Swift concurrency, this may or may not catch the processing state
         // The important thing is it should be false after completion
