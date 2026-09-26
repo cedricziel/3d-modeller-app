@@ -1,0 +1,12 @@
+{
+  "kind": "modify",
+  "prompt": "The plate is 6 mm thick. Make it 10 mm thick by changing the thickness parameter. The hole must still go through the whole plate. Change nothing else.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "parameter", "name": "t", "value": 10},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [80, 50, 10], "tolerance": 0.01},
+    {"type": "volume", "expected": 39214.602, "tolerance": 0.002},
+    {"type": "unchangedExcept", "parameters": ["t"]}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "build",
+  "prompt": "Model an L-shaped bracket as one solid body. The base leg is a plate 60 mm along X, 40 mm along Y and 5 mm thick, occupying x 0–60, y 0–40, z 0–5. The upright leg is a plate 60 mm along X, 5 mm thick along Y and 40 mm tall, standing along the y = 0 edge of the base so that it occupies x 0–60, y 0–5, z 0–40. Join both legs into a single body.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [60, 40, 40], "tolerance": 0.01},
+    {"type": "volume", "expected": 22500, "tolerance": 0.002},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}

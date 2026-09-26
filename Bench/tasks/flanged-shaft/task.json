@@ -1,0 +1,11 @@
+{
+  "kind": "build",
+  "prompt": "Model a flanged shaft as one solid body. The flange is a disc 60 mm in diameter and 8 mm thick, centred on the Z axis and occupying z 0–8. A coaxial shaft 30 mm in diameter rises 40 mm from the top of the flange, occupying z 8–48. Combine flange and shaft into a single body.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [-30, -30, 0], "max": [30, 30, 48], "tolerance": 0.01},
+    {"type": "volume", "expected": 50893.801, "tolerance": 0.002},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}
