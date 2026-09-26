@@ -122,10 +122,12 @@ struct AddFeatureToolTests {
 
         #expect(
             try await refused(["radius": 1])
-                == "Missing 'type'. Types: box, cylinder, sphere, cone, torus, boolean, transform.")
+                == "Missing 'type'. Types: box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell."
+        )
         #expect(
             try await refused(["type": "wedge"])
-                == "Unknown type 'wedge'. Types: box, cylinder, sphere, cone, torus, boolean, transform.")
+                == "Unknown type 'wedge'. Types: box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell."
+        )
         #expect(try await refused(["type": "box", "width": 1, "depth": 1]) == "A box needs 'height'.")
         #expect(
             try await refused(["type": "box", "width": 1, "depth": 1, "height": 1, "radius": 2])

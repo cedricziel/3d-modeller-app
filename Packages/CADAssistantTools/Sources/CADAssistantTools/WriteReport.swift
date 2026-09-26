@@ -8,6 +8,7 @@ struct WriteReport {
     var summary: String
     var focus: UUID?
     var notes: [String] = []
+    var referenceNotes: [String] = []
     var before: CADDocument
     var beforeResult: RebuildResult?
     var after: CADDocument
@@ -30,6 +31,10 @@ struct WriteReport {
         if !notes.isEmpty {
             lines.append("Body references renumbered:")
             lines += notes.map { "  \($0)" }
+        }
+        if !referenceNotes.isEmpty {
+            lines.append("Geometry references updated:")
+            lines += referenceNotes.map { "  \($0)" }
         }
         let bodies = afterResult.parts.flatMap { part in part.bodies.map { Self.describe($0, in: part.name) } }
         lines.append(bodies.isEmpty ? "Bodies: none" : "Bodies:")
@@ -85,6 +90,7 @@ struct WriteFocus {
     var actionName: String
     var summary: String
     var feature: UUID?
+    var referenceNotes: [String] = []
 }
 
 extension CADSession {
@@ -108,7 +114,8 @@ extension CADSession {
         guard after != before else { return .success("\(focus.summary). Nothing changed.") }
         let afterResult = await apply(after, actionName: focus.actionName)
         let report = WriteReport(
-            summary: focus.summary, focus: focus.feature, notes: notes, before: before,
+            summary: focus.summary, focus: focus.feature, notes: notes, referenceNotes: focus.referenceNotes,
+            before: before,
             beforeResult: beforeResult, after: after, afterResult: afterResult)
         return .success(report.render())
     }

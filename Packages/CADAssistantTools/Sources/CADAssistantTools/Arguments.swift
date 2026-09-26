@@ -42,13 +42,13 @@ struct Arguments {
         try values[key].map { (value) throws(ToolError) in try Self.scalar(value, key) }
     }
 
-    func strings(_ key: String) throws(ToolError) -> [String]? {
+    func strings(_ key: String, _ what: String) throws(ToolError) -> [String]? {
         guard let value = values[key] else { return nil }
-        guard let items = value.arrayValue else { throw ToolError("'\(key)' must be an array of body names.") }
+        guard let items = value.arrayValue else { throw ToolError("'\(key)' must be an array of \(what).") }
         var names: [String] = []
         for item in items {
             guard let name = item.stringValue?.trimmingCharacters(in: .whitespaces), !name.isEmpty else {
-                throw ToolError("'\(key)' must be an array of body names.")
+                throw ToolError("'\(key)' must be an array of \(what).")
             }
             names.append(name)
         }

@@ -1,0 +1,12 @@
+{
+  "kind": "build",
+  "prompt": "Model an open-topped box with outer dimensions 60 mm along X, 40 mm along Y and 30 mm along Z, with one corner at the origin so that it occupies x 0–60, y 0–40, z 0–30. Hollow it with a shell so that the walls and the floor are 2 mm thick and the top at z = 30 is open.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [60, 40, 30], "tolerance": 0.01},
+    {"type": "volume", "expected": 15552, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "shell", "min": 1},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}

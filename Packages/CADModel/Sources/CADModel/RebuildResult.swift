@@ -22,6 +22,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
     case unknownBody(String)
     case bodyConsumed(String, by: String)
     case invalidTools(String)
+    case reference(String)
     case kernel(String)
 
     public var description: String {
@@ -31,6 +32,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
         case .unknownBody(let name): "no body named '\(name)' exists at this point"
         case .bodyConsumed(let name, let feature): "\(name) was used up as a tool by \(feature)"
         case .invalidTools(let detail): detail
+        case .reference(let detail): detail
         case .kernel(let detail): detail
         }
     }
@@ -47,6 +49,7 @@ public struct BodyResult: Sendable, Equatable {
     public let name: String
     public let metrics: BodyMetrics?
     public let mesh: BodyMesh?
+    public let topology: BodyTopology?
     public let error: String?
 }
 

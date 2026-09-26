@@ -62,7 +62,19 @@ public enum DocumentListing {
             return text + arrow
         case .transform(let transform):
             return "transform \(transform.body) \(motion(transform.placement))" + arrow
+        case .fillet(let fillet):
+            return "fillet \(fillet.body) edges \(references(fillet.edges)) r=\(Format.operand(fillet.radius))" + arrow
+        case .chamfer(let chamfer):
+            return "chamfer \(chamfer.body) edges \(references(chamfer.edges)) d=\(Format.operand(chamfer.distance))"
+                + arrow
+        case .shell(let shell):
+            return "shell \(shell.body) open at \(references(shell.faces)) t=\(Format.operand(shell.thickness))" + arrow
         }
+    }
+
+    /// Names as written, filters in quotes, separated by semicolons because edge names contain commas.
+    static func references(_ references: [GeometryReference]) -> String {
+        references.isEmpty ? "none" : references.map(\.description).joined(separator: "; ")
     }
 
     private static func shape(_ shape: PrimitiveShape) -> String {

@@ -26,6 +26,9 @@ public enum FeatureKind: Sendable, Hashable {
     case primitive(PrimitiveFeature)
     case boolean(BooleanFeature)
     case transform(TransformFeature)
+    case fillet(FilletFeature)
+    case chamfer(ChamferFeature)
+    case shell(ShellFeature)
 }
 
 public struct PrimitiveFeature: Sendable, Hashable {
@@ -70,6 +73,45 @@ public struct TransformFeature: Sendable, Hashable {
     }
 }
 
+/// Rounds the referenced edges of a body.
+public struct FilletFeature: Sendable, Hashable {
+    public var body: String
+    public var edges: [GeometryReference]
+    public var radius: Scalar
+
+    public init(body: String, edges: [GeometryReference], radius: Scalar) {
+        self.body = body
+        self.edges = edges
+        self.radius = radius
+    }
+}
+
+/// Bevels the referenced edges of a body by the same distance on both faces.
+public struct ChamferFeature: Sendable, Hashable {
+    public var body: String
+    public var edges: [GeometryReference]
+    public var distance: Scalar
+
+    public init(body: String, edges: [GeometryReference], distance: Scalar) {
+        self.body = body
+        self.edges = edges
+        self.distance = distance
+    }
+}
+
+/// Hollows a body, leaving walls `thickness` thick inside its outline and opening the referenced faces.
+public struct ShellFeature: Sendable, Hashable {
+    public var body: String
+    public var faces: [GeometryReference]
+    public var thickness: Scalar
+
+    public init(body: String, faces: [GeometryReference], thickness: Scalar) {
+        self.body = body
+        self.faces = faces
+        self.thickness = thickness
+    }
+}
+
 public enum BooleanOperation: String, Codable, Sendable, Hashable, CaseIterable {
     case union, subtract, intersect
 }
@@ -107,6 +149,39 @@ extension FeatureKind {
         case .primitive(let primitive): primitive.operation.targetBody ?? newBody
         case .boolean(let boolean): boolean.target
         case .transform(let transform): transform.body
+        case .fillet(let fillet): fillet.body
+        case .chamfer(let chamfer): chamfer.body
+        case .shell(let shell): shell.body
+        }
+    }
+
+    /// The geometry references of a fillet, chamfer or shell.
+    public var geometryReferences: [GeometryReference] {
+        switch self {
+        case .fillet(let fillet): fillet.edges
+        case .chamfer(let chamfer): chamfer.edges
+        case .shell(let shell): shell.faces
+        case .primitive, .boolean, .transform: []
+        }
+    }
+
+    /// Rewrites geometry references after the feature `old` was renamed to `new`.
+    public mutating func renameFeatureReferences(_ old: String, to new: String) {
+        func rename(_ references: [GeometryReference]) -> [GeometryReference] {
+            references.map { $0.renamingFeature(old, to: new) }
+        }
+        switch self {
+        case .fillet(var fillet):
+            fillet.edges = rename(fillet.edges)
+            self = .fillet(fillet)
+        case .chamfer(var chamfer):
+            chamfer.edges = rename(chamfer.edges)
+            self = .chamfer(chamfer)
+        case .shell(var shell):
+            shell.faces = rename(shell.faces)
+            self = .shell(shell)
+        case .primitive, .boolean, .transform:
+            break
         }
     }
 }

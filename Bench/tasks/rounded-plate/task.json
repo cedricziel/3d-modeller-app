@@ -1,0 +1,12 @@
+{
+  "kind": "build",
+  "prompt": "Model a flat rectangular plate 80 mm long along X, 50 mm wide along Y and 6 mm thick along Z, with one corner at the origin so that it occupies x 0–80, y 0–50, z 0–6. Round its four vertical corner edges with a 5 mm radius fillet.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [80, 50, 6], "tolerance": 0.01},
+    {"type": "volume", "expected": 23871.239, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "fillet", "min": 1},
+    {"type": "referenceIoU", "threshold": 0.999}
+  ]
+}

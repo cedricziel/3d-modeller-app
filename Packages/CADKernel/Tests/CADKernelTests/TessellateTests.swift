@@ -6,7 +6,8 @@ import Testing
 struct TessellateTests {
     private func roundedBlock() throws -> Solid {
         let block = try Kernel.extrudeRectangle(width: 2, height: 1, depth: 0.5)
-        return try Kernel.fillet(block, edges: .parallel(to: SIMD3(0, 0, 1)), radius: 0.1)
+        let vertical = try edges(block) { abs($0.direction?.z ?? 0) > 0.999 }
+        return try Kernel.fillet(block, edges: vertical, radius: 0.1, feature: "Round")
     }
 
     @Test("The mesh is a well-formed triangle list")

@@ -90,7 +90,7 @@ Lengths are millimetres. A task file with an unknown key, or a check with an unk
 | `boundingBox`     | `part`, `body`, `min`, `max`, `size` (each `[x, y, z]`, at least one), `tolerance` (0.01 mm)              | The bounds of the selected bodies are within the tolerance, per component.                                                                                                  |
 | `volume`          | `part`, `body`, `expected`, `tolerance` (0.005, relative)                                                 | The total volume of the selected bodies is within the tolerance.                                                                                                            |
 | `parameter`       | `name`, `value`, `tolerance` (1e-6)                                                                       | The parameter exists and evaluates to the value.                                                                                                                            |
-| `featureCount`    | `feature` (`box`, `cylinder`, `sphere`, `cone`, `torus`, `boolean`, `transform`), `equals` or `min`/`max` | The number of unsuppressed features of that type is within the bounds.                                                                                                      |
+| `featureCount`    | `feature` (`box`, `cylinder`, `sphere`, `cone`, `torus`, `boolean`, `transform`, `fillet`, `chamfer`, `shell`), `equals` or `min`/`max` | The number of unsuppressed features of that type is within the bounds.                                                                                                      |
 | `referenceIoU`    | `threshold`                                                                                               | The volume shared with the reference, divided by the combined volume, is at least the threshold.                                                                            |
 | `unchangedExcept` | `features` ([]), `parameters` ([]), `allowNewFeatures` (false)                                            | Compared with the seed, only the named features and parameters changed. New parameters are always allowed; new features only when named or when `allowNewFeatures` is true. |
 
@@ -114,3 +114,20 @@ fails the check; add `part`.
    mistake. Run `cd Packages/CADAssistantTools && xcrun swift test --filter TaskGradingTests`.
 
 Each later layer of the CAD stack adds tasks for what it enables.
+
+### Current tasks
+
+| Task                | Kind   | What it exercises                                                        |
+| ------------------- | ------ | ------------------------------------------------------------------------ |
+| `plate-hole`        | build  | A box with a through hole cut by a cylinder.                             |
+| `washer`            | build  | A ring from two cylinders.                                               |
+| `flanged-shaft`     | build  | Two cylinders joined into one body.                                      |
+| `block-pocket`      | build  | A blind rectangular pocket.                                              |
+| `l-bracket`         | build  | Two plates joined at an edge.                                            |
+| `hemisphere`        | build  | A sphere intersected with a box.                                         |
+| `rounded-plate`     | build  | A plate with its vertical corner edges filleted, by an edge filter.      |
+| `open-box`          | build  | A box shelled open at the top face, by a face name.                      |
+| `plate-thickness`   | modify | Changing a parameter.                                                    |
+| `plate-move-hole`   | modify | Moving an existing feature.                                              |
+| `plate-second-hole` | modify | Adding a feature that reuses a parameter.                                |
+| `chamfered-hole`    | modify | Chamfering one named circular edge, the hole's top rim, not the bottom. |

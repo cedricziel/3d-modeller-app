@@ -161,7 +161,8 @@ struct FeatureLifecycleToolTests {
         let tools = CADTools.all(session: Harness().session)
         #expect(
             tools.map(\.name) == [
-                "get_listing", "set_parameter", "add_feature", "edit_feature", "delete_feature", "rename_feature",
+                "get_listing", "find_geometry", "set_parameter", "add_feature", "edit_feature", "delete_feature",
+                "rename_feature",
                 "suppress_feature",
             ])
         for name in ["get_listing", "set_parameter", "add_feature", "edit_feature"] {

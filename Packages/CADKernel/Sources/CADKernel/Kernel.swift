@@ -12,7 +12,7 @@ public enum Kernel {
             else {
                 throw KernelError.operationFailed("extrude the rectangle")
             }
-            return Solid(shape: shape)
+            return Solid(shape: shape, feature: "Solid")
         }
     }
 
@@ -34,20 +34,6 @@ public enum Kernel {
                 isClosed: !solids.isEmpty && solids.allSatisfy(\.isValidSolid)
                     && shape.freeBounds(sewingTolerance: 0) == nil
             )
-        }
-    }
-
-    public static func fillet(_ solid: Solid, edges query: EdgeQuery, radius: Double) throws -> Solid {
-        guard radius > 0 else {
-            throw KernelError.invalidDimensions("radius must be greater than 0")
-        }
-        return try OCCTSerial.withLock {
-            let edges = query.edges(of: solid.shape)
-            guard !edges.isEmpty else { throw KernelError.noEdgesMatched }
-            guard let shape = solid.shape.filleted(edges: edges, radius: radius), shape.isValid else {
-                throw KernelError.operationFailed("fillet the selected edges")
-            }
-            return Solid(shape: shape)
         }
     }
 

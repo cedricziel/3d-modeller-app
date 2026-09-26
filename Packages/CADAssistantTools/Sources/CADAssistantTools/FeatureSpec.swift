@@ -10,12 +10,18 @@ struct FeatureSpec: Equatable {
         "sphere": ["radius"],
         "cone": ["bottomRadius", "topRadius", "height"],
         "torus": ["majorRadius", "minorRadius"],
+        "fillet": ["radius"],
+        "chamfer": ["distance"],
+        "shell": ["thickness"],
     ]
-    static let types = ["box", "cylinder", "sphere", "cone", "torus", "boolean", "transform"]
+    static let types = [
+        "box", "cylinder", "sphere", "cone", "torus", "boolean", "transform", "fillet", "chamfer", "shell",
+    ]
     static let dimensionKeys = [
-        "width", "depth", "height", "radius", "bottomRadius", "topRadius", "majorRadius", "minorRadius",
+        "width", "depth", "height", "radius", "bottomRadius", "topRadius", "majorRadius", "minorRadius", "distance",
+        "thickness",
     ]
-    static let keys = ["type"] + dimensionKeys + ["placement", "operation", "body", "tools"]
+    static let keys = ["type"] + dimensionKeys + ["placement", "operation", "body", "tools", "edges", "faces"]
     static let solidOperations = ["newBody", "join", "cut", "intersect"]
     static let booleanOperations = ["union", "subtract", "intersect"]
 
@@ -27,6 +33,8 @@ struct FeatureSpec: Equatable {
     var operation: String?
     var body: String?
     var tools: [String]?
+    var edges: [GeometryReference]?
+    var faces: [GeometryReference]?
 
     init() {}
 
@@ -53,6 +61,15 @@ struct FeatureSpec: Equatable {
         case .transform(let transform):
             (type, body) = ("transform", transform.body)
             setPlacement(transform.placement)
+        case .fillet(let fillet):
+            (type, body, edges) = ("fillet", fillet.body, fillet.edges)
+            dimensions = ["radius": fillet.radius]
+        case .chamfer(let chamfer):
+            (type, body, edges) = ("chamfer", chamfer.body, chamfer.edges)
+            dimensions = ["distance": chamfer.distance]
+        case .shell(let shell):
+            (type, body, faces) = ("shell", shell.body, shell.faces)
+            dimensions = ["thickness": shell.thickness]
         }
     }
 
@@ -75,7 +92,9 @@ struct FeatureSpec: Equatable {
         }
         operation = try arguments.string("operation")
         body = try arguments.string("body")
-        tools = try arguments.strings("tools")
+        tools = try arguments.strings("tools", "body names")
+        edges = try arguments.strings("edges", "edge names or filters")?.map(GeometryReference.init(parsing:))
+        faces = try arguments.strings("faces", "face names or filters")?.map(GeometryReference.init(parsing:))
     }
 
     private static func vector(_ value: JSONValue?, _ key: String) throws(ToolError) -> [String: Scalar] {
@@ -120,6 +139,8 @@ struct FeatureSpec: Equatable {
         }
         if let body { merged.body = body }
         if let tools { merged.tools = tools }
+        if let edges { merged.edges = edges }
+        if let faces { merged.faces = faces }
         return merged
     }
 
@@ -133,7 +154,7 @@ struct FeatureSpec: Equatable {
             rotationDegrees: rotationDegrees ?? 0)
         switch type {
         case "boolean":
-            try given.reject(dimensions: true, placement: true, type: type)
+            try given.reject(dimensions: true, placement: true, references: true, type: type)
             guard let operation, let booleanOperation = BooleanOperation(rawValue: operation) else {
                 throw ToolError("A boolean needs 'operation': \(Self.booleanOperations.joined(separator: ", ")).")
             }
@@ -143,11 +164,13 @@ struct FeatureSpec: Equatable {
             }
             return .boolean(BooleanFeature(operation: booleanOperation, target: body, tools: tools))
         case "transform":
-            try given.reject(dimensions: true, operation: true, tools: true, type: type)
+            try given.reject(dimensions: true, operation: true, tools: true, references: true, type: type)
             guard let body else { throw ToolError("A transform needs 'body', the body to move.") }
             return .transform(TransformFeature(body: body, placement: placement))
+        case "fillet", "chamfer", "shell":
+            return try dressUp(type, given: given)
         default:
-            try given.reject(tools: true, type: type)
+            try given.reject(tools: true, references: true, type: type)
             let names = Self.shapeDimensions[type] ?? []
             if let extra = given.dimensions.keys.sorted().first(where: { !names.contains($0) }) {
                 throw ToolError("A \(type) does not take '\(extra)'; it takes \(names.joined(separator: ", ")).")
@@ -170,6 +193,35 @@ struct FeatureSpec: Equatable {
         }
     }
 
+    private func dressUp(_ type: String, given: FeatureSpec) throws(ToolError) -> FeatureKind {
+        let size = Self.shapeDimensions[type]![0]
+        let referenceKey = type == "shell" ? "faces" : "edges"
+        try given.reject(placement: true, operation: true, tools: true, type: type)
+        if let extra = given.dimensions.keys.sorted().first(where: { $0 != size }) {
+            throw ToolError("A \(type) does not take '\(extra)'; it takes \(size).")
+        }
+        if type == "shell" ? given.edges != nil : given.faces != nil {
+            throw ToolError(
+                "A \(type) does not take '\(type == "shell" ? "edges" : "faces")'; it takes '\(referenceKey)'.")
+        }
+        guard let body else { throw ToolError("A \(type) needs 'body', the body to change.") }
+        guard let references = type == "shell" ? faces : edges, !references.isEmpty else {
+            throw ToolError(
+                "A \(type) needs '\(referenceKey)', a non-empty list of \(referenceKey == "faces" ? "face" : "edge") "
+                    + "names or filters; call find_geometry to see them.")
+        }
+        // Naming the type (on add, or when an edit changes it) needs the size too, so a cylinder turned into a
+        // fillet does not quietly keep the cylinder's radius.
+        guard let value = given.type != nil ? given.dimensions[size] : dimensions[size] else {
+            throw ToolError("A \(type) needs '\(size)'.")
+        }
+        return switch type {
+        case "fillet": .fillet(FilletFeature(body: body, edges: references, radius: value))
+        case "chamfer": .chamfer(ChamferFeature(body: body, edges: references, distance: value))
+        default: .shell(ShellFeature(body: body, faces: references, thickness: value))
+        }
+    }
+
     private func solidOperation(given: FeatureSpec) throws(ToolError) -> SolidOperation {
         switch operation ?? "newBody" {
         case "newBody":
@@ -188,13 +240,15 @@ struct FeatureSpec: Equatable {
 
     private func reject(
         dimensions rejectDimensions: Bool = false, placement: Bool = false, operation rejectOperation: Bool = false,
-        tools rejectTools: Bool = false, type: String
+        tools rejectTools: Bool = false, references: Bool = false, type: String
     ) throws(ToolError) {
         var extra: [String] = []
         if rejectDimensions { extra += dimensions.keys.sorted() }
         if placement, hasPlacement { extra.append("placement") }
         if rejectOperation, operation != nil { extra.append("operation") }
         if rejectTools, tools != nil { extra.append("tools") }
+        if references, edges != nil { extra.append("edges") }
+        if references, faces != nil { extra.append("faces") }
         guard extra.isEmpty else {
             throw ToolError("A \(type) does not take \(extra.map { "'\($0)'" }.joined(separator: ", ")).")
         }
@@ -210,17 +264,21 @@ extension ToolSchemas {
                     Feature type. box: width along X, depth along Y, height along Z, one corner at the placement \
                     origin. cylinder: radius, height along +Z, base centred on the origin. sphere: radius, centred. \
                     cone: bottomRadius, topRadius, height along +Z. torus: majorRadius, minorRadius, centred, axis Z. \
-                    boolean: combine bodies. transform: move or rotate a body.
+                    boolean: combine bodies. transform: move or rotate a body. fillet: round 'edges' of 'body' by \
+                    radius. chamfer: bevel 'edges' of 'body' by distance. shell: hollow 'body' with walls thickness \
+                    thick inside it, open at 'faces'.
                     """,
                 values: FeatureSpec.types, required: typeRequired),
             scalar("width", "Box size along X in mm."),
             scalar("depth", "Box size along Y in mm."),
             scalar("height", "Box, cylinder or cone height along Z in mm."),
-            scalar("radius", "Cylinder or sphere radius in mm."),
+            scalar("radius", "Cylinder or sphere radius, or fillet radius, in mm."),
             scalar("bottomRadius", "Cone radius at its base in mm."),
             scalar("topRadius", "Cone radius at its top in mm; 0 for a pointed cone."),
             scalar("majorRadius", "Torus radius from its centre to the tube centre in mm."),
             scalar("minorRadius", "Torus tube radius in mm."),
+            scalar("distance", "Chamfer distance on both faces in mm."),
+            scalar("thickness", "Shell wall thickness in mm, measured inward."),
             .custom(
                 "placement",
                 description: """
@@ -240,10 +298,24 @@ extension ToolSchemas {
                 "body",
                 description: """
                     A body name such as Body1. Solids: the body to join, cut or intersect. boolean: the target body. \
-                    transform: the body to move.
+                    transform: the body to move. fillet, chamfer, shell: the body to change.
                     """),
             .custom(
                 "tools", description: "boolean only: the bodies combined into 'body'. They are used up.",
+                schema: ["type": "array", "items": ["type": "string"]]),
+            .custom(
+                "edges",
+                description: """
+                    fillet and chamfer: the edges, each a name such as edge(Plate.front, Plate.top) or a filter such \
+                    as "parallel Z and farthest +X" or "circular r=2.75". A name must match one edge; a filter may \
+                    match several. Call find_geometry to see names.
+                    """,
+                schema: ["type": "array", "items": ["type": "string"]]),
+            .custom(
+                "faces",
+                description: """
+                    shell: the faces to open, each a name such as Plate.top or a filter such as "normal +Z".
+                    """,
                 schema: ["type": "array", "items": ["type": "string"]]),
         ]
     }

@@ -37,7 +37,7 @@ struct CheckDecodingTests {
             #"{"type": "boundingBox", "min": [1, 2]}"#,
             #"{"type": "boundingBox", "tolerance": 1}"#,
             #"{"type": "featureCount", "feature": "cylinder"}"#,
-            #"{"type": "featureCount", "feature": "fillet", "min": 1}"#,
+            #"{"type": "featureCount", "feature": "loft", "min": 1}"#,
             #"{"type": "volume"}"#,
             #"{"type": "overlap"}"#,
         ])

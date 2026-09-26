@@ -5,6 +5,7 @@ public enum CADTools {
     public static func all(session: CADSession) -> [any AssistantTool] {
         [
             GetListingTool(session: session),
+            FindGeometryTool(session: session),
             SetParameterTool(session: session),
             AddFeatureTool(session: session),
             EditFeatureTool(session: session),

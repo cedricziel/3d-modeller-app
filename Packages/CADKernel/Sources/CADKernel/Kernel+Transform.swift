@@ -4,7 +4,7 @@ import simd
 extension Kernel {
     public static func transform(_ solid: Solid, by placement: Placement) throws -> Solid {
         try validate(placement)
-        return try OCCTSerial.withLock { Solid(shape: try placed(solid.shape, placement)) }
+        return try OCCTSerial.withLock { Solid(shape: try placed(solid.shape, placement), faceNames: solid.faceNames) }
     }
 
     static func validate(_ placement: Placement) throws {

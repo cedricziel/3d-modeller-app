@@ -7,6 +7,7 @@ import Testing
 enum WrongSolution: String, CaseIterable, Sendable {
     case plateHoleTooSmall, washerBoreTooSmall, flangeNotJoined, pocketTooDeep, uprightOnFarEdge, fullSphere
     case thicknessEditedDirectly, holeMovedAlongY, extraFeatureInMove, plateUnparametrised, secondHoleMisplaced
+    case filletTooSmall, cornersCutAway, chamferOnBottom, boxOpenAtBottom, boxCutInsteadOfShelled
 
     var task: String {
         switch self {
@@ -19,6 +20,9 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .thicknessEditedDirectly: "plate-thickness"
         case .holeMovedAlongY, .extraFeatureInMove, .plateUnparametrised: "plate-move-hole"
         case .secondHoleMisplaced: "plate-second-hole"
+        case .filletTooSmall, .cornersCutAway: "rounded-plate"
+        case .chamferOnBottom: "chamfered-hole"
+        case .boxOpenAtBottom, .boxCutInsteadOfShelled: "open-box"
         }
     }
 
@@ -27,7 +31,10 @@ enum WrongSolution: String, CaseIterable, Sendable {
         switch self {
         case .plateHoleTooSmall, .washerBoreTooSmall, .pocketTooDeep, .extraFeatureInMove: "volume"
         case .flangeNotJoined: "body count"
-        case .uprightOnFarEdge, .holeMovedAlongY, .secondHoleMisplaced: "overlap"
+        case .uprightOnFarEdge, .holeMovedAlongY, .secondHoleMisplaced, .chamferOnBottom, .boxOpenAtBottom: "overlap"
+        case .filletTooSmall: "volume"
+        case .cornersCutAway: "fillet features"
+        case .boxCutInsteadOfShelled: "shell features"
         case .fullSphere: "bounding box"
         case .thicknessEditedDirectly: "parameter t"
         case .plateUnparametrised: "unchanged"
@@ -65,6 +72,25 @@ enum WrongSolution: String, CaseIterable, Sendable {
             return reference.editing("Plate") { $0.setShape(.box(width: 80, depth: 50, height: 6)) }
         case .secondHoleMisplaced:
             return reference.editing("Hole2") { $0.setTranslation(Vector3(60, "depth / 2", -1)) }
+        case .filletTooSmall:
+            return reference.editing("Round") { $0.setSize(2) }
+        case .cornersCutAway:
+            var document = reference.removing("Round")
+            for (x, y) in [(0.0, 0.0), (75.0, 0.0), (0.0, 45.0), (75.0, 45.0)] {
+                document.parts[0].features.append(
+                    box(
+                        "Corner\(document.parts[0].features.count)", 5, 5, 6, at: Vector3(.number(x), .number(y), 0),
+                        operation: .cut("Body1")))
+            }
+            return document
+        case .chamferOnBottom:
+            return reference.editing("Bevel") { $0.setReferences([.name("edge(Hole.side, Plate.bottom)")]) }
+        case .boxOpenAtBottom:
+            return reference.editing("Hollow") { $0.setReferences([.name("Box.bottom")]) }
+        case .boxCutInsteadOfShelled:
+            var document = reference.removing("Hollow")
+            document.parts[0].features.append(box("Inside", 56, 36, 28, at: Vector3(2, 2, 2), operation: .cut("Body1")))
+            return document
         }
     }
 }
@@ -94,6 +120,36 @@ extension FeatureKind {
         self = .primitive(primitive)
     }
 
+    mutating func setSize(_ size: Scalar) {
+        switch self {
+        case .fillet(var fillet):
+            fillet.radius = size
+            self = .fillet(fillet)
+        case .chamfer(var chamfer):
+            chamfer.distance = size
+            self = .chamfer(chamfer)
+        case .shell(var shell):
+            shell.thickness = size
+            self = .shell(shell)
+        default: break
+        }
+    }
+
+    mutating func setReferences(_ references: [GeometryReference]) {
+        switch self {
+        case .fillet(var fillet):
+            fillet.edges = references
+            self = .fillet(fillet)
+        case .chamfer(var chamfer):
+            chamfer.edges = references
+            self = .chamfer(chamfer)
+        case .shell(var shell):
+            shell.faces = references
+            self = .shell(shell)
+        default: break
+        }
+    }
+
     mutating func setTranslation(_ translation: Vector3) {
         guard case .primitive(var primitive) = self else { return }
         primitive.placement.translation = translation
@@ -104,8 +160,8 @@ extension FeatureKind {
 @Suite("Seed tasks")
 struct TaskGradingTests {
     static let ids = [
-        "block-pocket", "flanged-shaft", "hemisphere", "l-bracket", "plate-hole", "plate-move-hole",
-        "plate-second-hole", "plate-thickness", "washer",
+        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "open-box", "plate-hole",
+        "plate-move-hole", "plate-second-hole", "plate-thickness", "rounded-plate", "washer",
     ]
     let grader = Grader(kernel: OCCTGeometryKernel())
 

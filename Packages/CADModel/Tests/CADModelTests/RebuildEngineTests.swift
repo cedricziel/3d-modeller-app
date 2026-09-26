@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import CADModel
 
 @Suite("Rebuild engine")
@@ -38,6 +39,15 @@ struct RebuildEngineTests {
         #expect(part.bodies[0].mesh?.triangleCount == 1)
         #expect(kernel.calls.first == "box 5x2x3 @(1,5,0) 90°(0,0,1)")
         #expect(kernel.calls[1] == "cylinder r1 h10 @(0,0,0) 0°(0,0,1)")
+    }
+
+    @Test("Each body reports its topology, with faces named after the features that made them")
+    func topology() async throws {
+        let part = try await rebuild([box("Base"), box("Cap", 2, 2, 2, operation: .join("Body1"))])
+        let names = part.bodies.first?.topology?.faces.flatMap(\.names) ?? []
+
+        #expect(names.contains("Base.top"))
+        #expect(names.contains("Cap.top"))
     }
 
     @Test("Cut, join and intersect modify the named body in place")
