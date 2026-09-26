@@ -32,6 +32,9 @@ jobs:
       - name: Test CADAssistantTools and CADBench
         working-directory: Packages/CADAssistantTools
         run: xcrun swift test
+      - name: Test CADSolvers
+        working-directory: Packages/CADSolvers
+        run: xcrun swift test
       - name: Test app
         run: >
           xcodebuild test
