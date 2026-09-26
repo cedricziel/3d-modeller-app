@@ -8,6 +8,7 @@ extension Kernel {
             guard let (result, history) = solid.shape.filletedWithFullHistory(radius: radius, edges: edges) else {
                 throw KernelError.operationFailed("fillet the selected edges")
             }
+            try requireAllTaken(edges, edgeShapes, history, "fillet")
             return try finish(
                 result, "fillet the selected edges", solid, history, feature: feature, edges: edgeShapes,
                 generatedFromEdge: { "\(feature).face[\($0)]" })
@@ -22,6 +23,7 @@ extension Kernel {
             else {
                 throw KernelError.operationFailed("chamfer the selected edges")
             }
+            try requireAllTaken(edges, edgeShapes, history, "chamfer")
             return try finish(
                 result, "chamfer the selected edges", solid, history, feature: feature, edges: edgeShapes,
                 generatedFromEdge: { "\(feature).face[\($0)]" })
@@ -50,6 +52,21 @@ extension Kernel {
             return try finish(
                 result, "shell the solid", solid, history, feature: feature,
                 generatedFromFace: { "\(feature).inner[\($0)]" })
+        }
+    }
+
+    /// OCCT skips an edge it cannot round or bevel (a seam, an edge between tangent faces) instead of failing; such
+    /// an edge generates nothing, though OCCT may still report it deleted.
+    private static func requireAllTaken(
+        _ indices: [Int], _ edges: [Shape], _ history: ShapeHistoryRef, _ operation: String
+    ) throws {
+        let skipped = zip(indices, edges).filter { _, edge in
+            history.record(of: edge).generated.isEmpty
+        }.map(\.0)
+        guard skipped.isEmpty else {
+            throw KernelError.operationFailed(
+                "\(operation) edge\(skipped.count == 1 ? "" : "s") \(skipped.map(String.init).joined(separator: ", ")); "
+                    + "leave out seams and edges between smoothly joined faces")
         }
     }
 

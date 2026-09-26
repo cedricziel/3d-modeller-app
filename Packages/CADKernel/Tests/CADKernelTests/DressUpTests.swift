@@ -43,6 +43,31 @@ struct FilletTests {
         #expect(names(rounded).isSuperset(of: ["Block.top", "Block.front", "Block.left"]))
     }
 
+    @Test("Filleting every edge of a box, corners included, takes every edge")
+    func allEdges() throws {
+        let rounded = try Kernel.fillet(block, edges: Array(0..<12), radius: 0.1, feature: "Round")
+
+        #expect(try Kernel.metrics(of: rounded).isValid)
+        #expect(names(rounded).isSuperset(of: (0..<12).map { "Round.face[\($0)]" }))
+    }
+
+    @Test("An edge OCCT skips, such as a seam, fails the fillet instead of staying sharp")
+    func seamSkipped() throws {
+        let plate = try Kernel.box(width: 60, depth: 40, height: 10, feature: "P")
+        let hole = try Kernel.cylinder(
+            radius: 5, height: 20, placement: Placement(translation: SIMD3(30, 20, -5)), feature: "H")
+        let drilled = try Kernel.boolean(.subtract, plate, hole, feature: "H")
+        let seam = try #require(try Kernel.topology(of: drilled).edges.firstIndex { $0.faces.count == 1 })
+        let front = try edge(between: "P.front", "P.top", in: drilled)
+
+        #expect(
+            throws: KernelError.operationFailed(
+                "fillet edge \(seam); leave out seams and edges between smoothly joined faces")
+        ) {
+            try Kernel.fillet(drilled, edges: [front, seam], radius: 1, feature: "Round")
+        }
+    }
+
     @Test("Filleting leaves the input solid untouched")
     func inputUnchanged() throws {
         _ = try Kernel.fillet(block, edges: try verticalEdges(), radius: 0.1, feature: "Round")
