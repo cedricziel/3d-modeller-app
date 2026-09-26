@@ -50,8 +50,8 @@ extension Kernel {
                 throw KernelError.operationFailed("match the face names to the faces")
             }
             let faces = zip(faceShapes, solid.faceNames).map { describeFace($0, names: $1) }
-            let edges = shape.subShapes(ofType: .edge).compactMap { edge -> EdgeInfo? in
-                guard let info = Edge(edge) else { return nil }
+            let edges = try shape.subShapes(ofType: .edge).map { edge -> EdgeInfo in
+                guard let info = Edge(edge) else { throw KernelError.operationFailed("describe an edge") }
                 var adjacent: [Int] = []
                 for index in shape.adjacentFaces(forEdge: edge) where !adjacent.contains(index) {
                     adjacent.append(index)
@@ -76,13 +76,12 @@ extension Kernel {
             normal = face?.normal.map(simd_normalize)
         case .cylinder?:
             surface = .cylinder
-            if let properties = geometry?.cylinderProperties {
-                (origin, axis) = (properties.axis.position, properties.axis.direction)
-                radius = positive(properties.radius)
+            if let properties = geometry?.cylinderProperties, let r = positive(properties.radius) {
+                (origin, axis, radius) = (properties.axis.position, properties.axis.direction, r)
             }
         case .cone?:
             surface = .cone
-            if let properties = geometry?.coneProperties {
+            if let properties = geometry?.coneProperties, simd_length(properties.axis.direction) > 0 {
                 (origin, axis) = (properties.axis.position, properties.axis.direction)
             }
         case .sphere?:
