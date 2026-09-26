@@ -14,6 +14,9 @@ public enum CADTools {
             DeleteFeatureTool(session: session),
             RenameFeatureTool(session: session),
             SuppressFeatureTool(session: session),
+            AddSketchTool(session: session),
+            EditSketchTool(session: session),
+            GetSketchTool(session: session),
         ]
     }
 }
