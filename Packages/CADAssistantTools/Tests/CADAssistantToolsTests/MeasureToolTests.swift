@@ -114,7 +114,7 @@ struct MeasureToolTests {
                 .hasPrefix("'a' must be an object such as {\"body\": \"Body1\"}") == true)
         #expect(
             try await harness.refused("measure", ["kind": "size", "a": [:]])?
-                .hasPrefix("'a' needs a 'body' or a 'point'") == true)
+                .hasPrefix("'a' needs a 'body', an 'instance' or a 'point'") == true)
         #expect(
             try await harness.refused(
                 "measure",
@@ -123,7 +123,7 @@ struct MeasureToolTests {
         #expect(
             try await harness.refused(
                 "measure", ["kind": "distance", "a": ["point": [0, 0, 0], "body": "Body1"], "b": ["body": "Body1"]])
-                == "'a' is a point, which stands alone; drop 'part', 'body', 'face' and 'edge'.")
+                == "'a' is a point, which stands alone; drop 'part', 'instance', 'body', 'face' and 'edge'.")
         #expect(
             try await harness.refused("measure", ["kind": "size", "a": ["body": "Body7"]])
                 == "Part Plate has no body named 'Body7'. Bodies: Body1, Body2.")
@@ -187,7 +187,8 @@ struct MeasureToolTests {
             try await harness().refused(
                 "measure",
                 ["kind": "interference", "a": ["body": "Body1", "face": "Base.top"], "b": ["body": "Body2"]])
-                == "interference compares two bodies; give 'a' and 'b' as {\"body\": …} without a face, edge or point.")
+                == "interference compares two bodies; give 'a' and 'b' as {\"body\": …} or {\"instance\": …} "
+                + "without a face, edge or point.")
     }
 
     @Test("On the real kernel: hole-to-wall distance, overlap volume and clearance")

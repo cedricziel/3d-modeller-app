@@ -20,15 +20,18 @@ public struct MeasureTool: AssistantTool {
         normal or radius and bounds; of an edge its type, length and ends or radius. kind interference: the volume two \
         bodies share, or their clearance when they do not overlap. Each operand is {"body": "Body1"}, \
         {"body": "Body1", "face": "Plate.top"}, {"body": "Body1", "edge": "edge(Plate.front, Plate.top)"} or \
-        {"point": [x, y, z]}; add "part" when the document has several parts. A face or edge is a name or a filter \
-        that matches exactly one.
+        {"point": [x, y, z]}; add "part" when the document has several parts. In an assembly, \
+        {"instance": "Lid"} or {"instance": "Lid", "face": "Plate.top"} measures an instance where it is placed \
+        (add "body" when its part has several); interference between two instances checks that they do not \
+        overlap. A face or edge is a name or a filter that matches exactly one.
         """
 
     public var parameters: [ToolParameter] {
         let operand: [String: JSONValue] = [
             "type": "object",
             "properties": [
-                "part": ["type": "string"], "body": ["type": "string"], "face": ["type": "string"],
+                "part": ["type": "string"], "instance": ["type": "string"], "body": ["type": "string"],
+                "face": ["type": "string"],
                 "edge": ["type": "string"],
                 "point": ["type": "array", "items": .object(ToolSchemas.scalar), "minItems": 3, "maxItems": 3],
             ],
@@ -186,7 +189,8 @@ enum Measurement {
     {
         guard case .body(let first, _) = a.element, case .body(let second, _) = b.element else {
             throw ToolError(
-                "interference compares two bodies; give 'a' and 'b' as {\"body\": …} without a face, edge or point.")
+                "interference compares two bodies; give 'a' and 'b' as {\"body\": …} or {\"instance\": …} "
+                    + "without a face, edge or point.")
         }
         let clearance = try kernel { () throws(MeasureError) in try geometry.distance(a.target, b.target) }.distance
         if Format.number(clearance) != "0" {

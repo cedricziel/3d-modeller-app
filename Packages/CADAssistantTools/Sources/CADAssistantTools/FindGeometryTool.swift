@@ -22,7 +22,10 @@ public struct FindGeometryTool: AssistantTool {
     public var parameters: [ToolParameter] {
         [
             ToolSchemas.part,
-            .string("body", description: "The body, such as Body1."),
+            .optionalString(
+                "instance", description: "An assembly instance instead of a part; positions are where it is placed."),
+            .optionalString(
+                "body", description: "The body, such as Body1. Optional for an instance whose part has one body."),
             .enumParameter("kind", description: "faces or edges.", values: GeometryKind.allCases.map(\.rawValue)),
             .optionalString(
                 "filter",
@@ -42,14 +45,27 @@ public struct FindGeometryTool: AssistantTool {
 extension CADSession {
     func findGeometry(_ raw: [String: JSONValue]) async -> ToolExecutionResult {
         do throws(ToolError) {
-            let arguments = try Arguments(raw, allowed: ["part", "body", "kind", "filter"])
-            let partID = document.parts[try document.partIndex(named: try arguments.string("part"))].id
-            let bodyName = try arguments.requiredString("body")
+            let arguments = try Arguments(raw, allowed: ["part", "instance", "body", "kind", "filter"])
             let kindName = try arguments.requiredString("kind")
             guard let kind = GeometryKind(rawValue: kindName) else {
                 throw ToolError("'kind' is faces or edges, not '\(kindName)'.")
             }
             let filter = try arguments.string("filter")
+            if let instanceName = try arguments.string("instance") {
+                guard !arguments.has("part") else { throw ToolError("Give 'part' or 'instance', not both.") }
+                _ = try document.instanceIndex(named: instanceName)
+                guard let result = await currentResult() else {
+                    throw ToolError("The model could not be rebuilt; call get_listing to see the statuses.")
+                }
+                let instance = try builtInstance(named: instanceName, in: result)
+                let body = try instance.body(named: try arguments.string("body"))
+                let partName = document.part(id: instance.part)?.name ?? "missing part"
+                return try Self.listing(
+                    kind, of: body, header: "\(instance.name) (\(partName)/\(body.name))", filter: filter,
+                    parameters: result.parameters)
+            }
+            let partID = document.parts[try document.partIndex(named: try arguments.string("part"))].id
+            let bodyName = try arguments.requiredString("body")
             guard let result = await currentResult(), let part = result.parts.first(where: { $0.id == partID }) else {
                 throw ToolError("The model could not be rebuilt; call get_listing to see the statuses.")
             }
@@ -58,24 +74,29 @@ extension CADSession {
                 throw ToolError(
                     "Part \(part.name) has no body named '\(bodyName)'. Bodies: \(bodies.isEmpty ? "none" : bodies).")
             }
-            guard let topology = body.topology else {
-                throw ToolError("\(bodyName) has no faces to list: \(body.error ?? "the kernel did not describe it").")
-            }
-            let names = TopologyNames(topology)
-            let matches: [Int]
-            do {
-                matches = try GeometryResolver.select(
-                    kind, filter: filter, in: topology, names: names, parameters: result.parameters)
-            } catch {
-                throw ToolError(error.description)
-            }
-            return .success(
-                GeometryListing.render(
-                    kind, matches, topology: topology, names: names, header: "\(bodyName) (\(part.name))",
-                    filter: filter))
+            return try Self.listing(
+                kind, of: body, header: "\(bodyName) (\(part.name))", filter: filter, parameters: result.parameters)
         } catch {
             return .failure(error.description)
         }
+    }
+
+    private static func listing(
+        _ kind: GeometryKind, of body: BodyResult, header: String, filter: String?, parameters: ParameterTable
+    ) throws(ToolError) -> ToolExecutionResult {
+        guard let topology = body.topology else {
+            throw ToolError("\(body.name) has no faces to list: \(body.error ?? "the kernel did not describe it").")
+        }
+        let names = TopologyNames(topology)
+        let matches: [Int]
+        do {
+            matches = try GeometryResolver.select(
+                kind, filter: filter, in: topology, names: names, parameters: parameters)
+        } catch {
+            throw ToolError(error.description)
+        }
+        return .success(
+            GeometryListing.render(kind, matches, topology: topology, names: names, header: header, filter: filter))
     }
 }
 
