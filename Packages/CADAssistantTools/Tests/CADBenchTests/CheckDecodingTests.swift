@@ -27,7 +27,15 @@ struct CheckDecodingTests {
         #expect(try Bench.check(#"{"type": "referenceIoU", "threshold": 0.99}"#) == .referenceIoU(threshold: 0.99))
         #expect(
             try Bench.check(#"{"type": "unchangedExcept", "features": ["Hole"]}"#)
-                == .unchangedExcept(features: ["Hole"], parameters: [], allowNewFeatures: false))
+                == .unchangedExcept(features: ["Hole"], parameters: [], instances: [], allowNewFeatures: false))
+        #expect(try Bench.check(#"{"type": "instanceCount", "equals": 3}"#) == .instanceCount(3))
+        #expect(
+            try Bench.check(#"{"type": "instanceBounds", "instance": "Top", "min": [0, 0, 15]}"#)
+                == .instanceBounds(instance: "Top", min: SIMD3(0, 0, 15), max: nil, size: nil, tolerance: 0.01))
+        #expect(try Bench.check(#"{"type": "noInterference"}"#) == .noInterference)
+        #expect(
+            try Bench.check(#"{"type": "unchangedExcept", "instances": ["Top"]}"#)
+                == .unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false))
     }
 
     @Test(
@@ -40,6 +48,8 @@ struct CheckDecodingTests {
             #"{"type": "featureCount", "feature": "loft", "min": 1}"#,
             #"{"type": "volume"}"#,
             #"{"type": "overlap"}"#,
+            #"{"type": "instanceBounds", "instance": "Top"}"#,
+            #"{"type": "noInterference", "instances": ["A"]}"#,
         ])
     func decodingRefusals(json: String) {
         #expect(throws: (any Error).self) { try Bench.check(json) }
@@ -57,7 +67,19 @@ struct CheckDecodingTests {
             ).description == "bounding box of Body1: min (0, 0, 0), max (80, 50, 6) ±0.01 mm")
         #expect(Check.featureCount(.cylinder, min: 2, max: nil).description == "cylinder features ≥ 2")
         #expect(
-            Check.unchangedExcept(features: ["Hole"], parameters: ["t"], allowNewFeatures: true).description
+            Check.unchangedExcept(features: ["Hole"], parameters: ["t"], instances: [], allowNewFeatures: true)
+                .description
                 == "unchanged except features Hole, parameters t, new features allowed")
+        #expect(Check.instanceCount(3).description == "instance count = 3")
+        #expect(
+            Check.instanceBounds(instance: "Top", min: SIMD3(0, 0, 15), max: nil, size: nil, tolerance: 0.01)
+                .description == "bounds of instance Top: min (0, 0, 15) ±0.01 mm")
+        #expect(
+            Check.instanceBounds(instance: nil, min: nil, max: SIMD3(1, 2, 3), size: nil, tolerance: 0.01)
+                .description == "bounds of all instances: max (1, 2, 3) ±0.01 mm")
+        #expect(Check.noInterference.description == "no interference between instances")
+        #expect(
+            Check.unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false)
+                .description == "unchanged except instances Top")
     }
 }

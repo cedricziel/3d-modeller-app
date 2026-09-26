@@ -35,9 +35,9 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
     }
 
     public func grade(_ task: BenchTask, document: CADDocument) async -> Grade {
-        let result: RebuildResult
+        let model: RebuiltModel
         do {
-            result = try await RebuildEngine(kernel: kernel, sketchSolver: sketchSolver).rebuild(document)
+            model = try await RebuildEngine(kernel: kernel, sketchSolver: sketchSolver).build(document)
         } catch {
             return Grade(
                 outcomes: task.checks.map {
@@ -46,15 +46,16 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         }
         var outcomes: [CheckOutcome] = []
         for check in task.checks {
-            let (passed, detail) = await evaluate(check, task: task, document: document, result: result)
+            let (passed, detail) = await evaluate(check, task: task, document: document, model: model)
             outcomes.append(CheckOutcome(check: check.description, passed: passed, detail: detail))
         }
         return Grade(outcomes: outcomes)
     }
 
     private func evaluate(
-        _ check: Check, task: BenchTask, document: CADDocument, result: RebuildResult
+        _ check: Check, task: BenchTask, document: CADDocument, model: RebuiltModel
     ) async -> (Bool, String) {
+        let result = model.result
         switch check {
         case .gate:
             return gate(result)
@@ -67,14 +68,27 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
             case .success(let selected): bodies = selected
             case .failure(let problem): return (false, problem.message)
             }
-            guard let bounds = Self.bounds(of: bodies) else { return (false, "a selected body has no measurements") }
-            func close(_ a: SIMD3<Double>, _ b: SIMD3<Double>?) -> Bool {
-                guard let b else { return true }
-                let delta = a - b
-                return abs(delta.x) <= tolerance && abs(delta.y) <= tolerance && abs(delta.z) <= tolerance
+            return Self.compare(bodies, min: min, max: max, size: size, tolerance: tolerance)
+        case .instanceCount(let expected):
+            let count = document.instances.count
+            return (count == expected, count == 1 ? "1 instance" : "\(count) instances")
+        case .instanceBounds(let name, let min, let max, let size, let tolerance):
+            let instances = result.assembly?.instances ?? []
+            var selected = instances
+            if let name {
+                selected = instances.filter { $0.name == name }
+                guard !selected.isEmpty else {
+                    let names = instances.map(\.name).joined(separator: ", ")
+                    return (false, "no instance named \(name) (instances: \(names.isEmpty ? "none" : names))")
+                }
             }
-            let passed = close(bounds.min, min) && close(bounds.max, max) && close(bounds.max - bounds.min, size)
-            return (passed, "min \(BenchFormat.vector(bounds.min)), max \(BenchFormat.vector(bounds.max))")
+            guard !selected.isEmpty else { return (false, "no instances") }
+            if let failed = selected.first(where: { $0.status != .ok }) {
+                return (false, "instance \(failed.name): \(failed.status)")
+            }
+            return Self.compare(selected.flatMap(\.bodies), min: min, max: max, size: size, tolerance: tolerance)
+        case .noInterference:
+            return interference(result, model.geometry)
         case .volume(let selector, let expected, let tolerance):
             let bodies: [BodyResult]
             switch select(selector, in: result) {
@@ -107,11 +121,11 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
             } catch {
                 return (false, "overlap could not be computed: \(error)")
             }
-        case .unchangedExcept(let features, let parameters, let allowNewFeatures):
+        case .unchangedExcept(let features, let parameters, let instances, let allowNewFeatures):
             guard let seed = task.seed else { return (false, "the task has no seed") }
             let differences = DocumentComparison.differences(
                 from: seed, to: document, features: Set(features), parameters: Set(parameters),
-                allowNewFeatures: allowNewFeatures)
+                instances: Set(instances), allowNewFeatures: allowNewFeatures)
             return (differences.isEmpty, differences.isEmpty ? "unchanged" : differences.joined(separator: "; "))
         }
     }
@@ -131,6 +145,9 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
                 if let problem = Self.problem(with: body) { problems.append("\(label(part, body.name)): \(problem)") }
             }
         }
+        for instance in result.assembly?.instances ?? [] where instance.status != .ok {
+            problems.append("instance \(instance.name): \(instance.status)")
+        }
         if result.bodies.isEmpty { problems.append("no bodies") }
         return (problems.isEmpty, problems.isEmpty ? "ok" : problems.joined(separator: "; "))
     }
@@ -142,6 +159,49 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         if !metrics.isClosed { return "not closed" }
         if metrics.solidCount != 1 { return "\(metrics.solidCount) solids" }
         return nil
+    }
+
+    private static func compare(
+        _ bodies: [BodyResult], min: SIMD3<Double>?, max: SIMD3<Double>?, size: SIMD3<Double>?, tolerance: Double
+    ) -> (Bool, String) {
+        guard let bounds = Self.bounds(of: bodies) else { return (false, "a selected body has no measurements") }
+        func close(_ a: SIMD3<Double>, _ b: SIMD3<Double>?) -> Bool {
+            guard let b else { return true }
+            let delta = a - b
+            return abs(delta.x) <= tolerance && abs(delta.y) <= tolerance && abs(delta.z) <= tolerance
+        }
+        let passed = close(bounds.min, min) && close(bounds.max, max) && close(bounds.max - bounds.min, size)
+        return (passed, "min \(BenchFormat.vector(bounds.min)), max \(BenchFormat.vector(bounds.max))")
+    }
+
+    /// Every pair of bodies of different instances whose bounds meet is checked for shared volume.
+    private func interference(_ result: RebuildResult, _ geometry: ModelGeometry) -> (Bool, String) {
+        let instances = (result.assembly?.instances ?? []).filter { $0.status == .ok }
+        guard instances.count > 1 else { return (true, "no overlap") }
+        let bodies = instances.flatMap { instance in instance.bodies.map { (instance, $0) } }
+        var overlaps: [String] = []
+        for (i, (first, a)) in bodies.enumerated() {
+            for (second, b) in bodies[(i + 1)...] where first.id != second.id {
+                guard let ma = a.metrics, let mb = b.metrics,
+                    ma.boundsMin.x < mb.boundsMax.x, mb.boundsMin.x < ma.boundsMax.x,
+                    ma.boundsMin.y < mb.boundsMax.y, mb.boundsMin.y < ma.boundsMax.y,
+                    ma.boundsMin.z < mb.boundsMax.z, mb.boundsMin.z < ma.boundsMax.z
+                else { continue }
+                let keys = (
+                    BodyKey(owner: .instance(first.id), body: a.name),
+                    BodyKey(owner: .instance(second.id), body: b.name)
+                )
+                do {
+                    let volume = try geometry.interference(keys.0, keys.1)
+                    if volume > 0 {
+                        overlaps.append("\(first.name) and \(second.name) overlap by \(BenchFormat.number(volume)) mm³")
+                    }
+                } catch {
+                    overlaps.append("\(first.name) and \(second.name) could not be compared: \(error)")
+                }
+            }
+        }
+        return (overlaps.isEmpty, overlaps.isEmpty ? "no overlap" : overlaps.joined(separator: "; "))
     }
 
     private struct SelectionProblem: Error {
@@ -191,11 +251,15 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         var ratio: Double { union > 0 ? intersection / union : 0 }
     }
 
-    /// Intersection over union by inclusion–exclusion, because an empty intersection is a kernel error.
+    /// Intersection over union by inclusion–exclusion, because an empty intersection is a kernel error. When the
+    /// reference has instances, the placed instances are compared instead of the parts.
     private func overlap(_ document: CADDocument, _ reference: CADDocument) async throws -> Overlap? {
         let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
-        let candidate = try await engine.solids(of: document).map(\.body)
-        let expected = try await engine.solids(of: reference).map(\.body)
+        let assembled = !reference.instances.isEmpty
+        let candidate = try await (assembled ? engine.instanceSolids(of: document) : engine.solids(of: document))
+            .map(\.body)
+        let expected = try await (assembled ? engine.instanceSolids(of: reference) : engine.solids(of: reference))
+            .map(\.body)
         guard let a = try fuse(candidate), let b = try fuse(expected) else { return nil }
         let union = try kernel.boolean(.union, a, b, feature: "Overlap")
         let (va, vb, vu) = (try volume(a), try volume(b), try volume(union))
