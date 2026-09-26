@@ -27,7 +27,8 @@ extension Kernel {
                 r[0][2], r[1][2], r[2][2],
                 t.x, t.y, t.z,
             ]),
-            let moved = shape.transformed(matrix: matrix)
+            let moved = shape.transformed(matrix: matrix),
+            moved.isValid
         else {
             throw KernelError.operationFailed("apply the placement")
         }

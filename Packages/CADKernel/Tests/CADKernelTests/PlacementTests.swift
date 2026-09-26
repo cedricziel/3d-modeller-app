@@ -53,6 +53,13 @@ struct PlacementTests {
         #expect(approx(metrics.boundsMax - metrics.boundsMin, SIMD3(2, 1, 4)))
     }
 
+    @Test("A placement that moves the body out of range is rejected")
+    func outOfRange() throws {
+        #expect(throws: KernelError.operationFailed("apply the placement")) {
+            try Kernel.transform(block(), by: Placement(translation: SIMD3(1e308, 0, 0)))
+        }
+    }
+
     @Test("A zero rotation axis is rejected")
     func zeroAxis() throws {
         #expect(throws: KernelError.invalidDimensions("rotation axis must not be zero")) {
