@@ -29,7 +29,9 @@ public enum CADAssistantPrompt {
         - Edges are named by their two faces: edge(Plate.front, Plate.top).
         - fillet and chamfer take 'edges', shell takes 'faces': each entry is a name, which must match exactly one \
         face or edge, or a filter such as "parallel Z and farthest +X", "circular r=2.75", "normal +Z" or \
-        "on Plate.top", which may match several. Prefer names for single edges and filters for sets.
+        "on Plate.top", which may match several. For faces, "normal Z" means facing along Z and "parallel Z" means \
+        a plane containing Z (a side wall); for edges, "parallel Z" means a straight edge along Z. Filters skip seam \
+        edges. Prefer names for single edges and filters for sets.
         - Call find_geometry to see a body's faces or edges with their names, positions and sizes before \
         referring to them. A failed reference lists the candidates.
 

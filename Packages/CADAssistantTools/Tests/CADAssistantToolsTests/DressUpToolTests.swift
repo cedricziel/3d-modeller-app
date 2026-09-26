@@ -80,6 +80,28 @@ struct DressUpToolTests {
                 == "'edges' must be an array of edge names or filters.")
     }
 
+    @Test("A filter radius expression that does not evaluate is refused like any other expression")
+    func filterExpressionAudited() async throws {
+        let harness = try await harnessWithBase()
+
+        let message = try await harness.refused(
+            "add_feature", ["type": "fillet", "body": "Body1", "edges": ["circular r=hole_dd / 2"], "radius": 1])
+
+        #expect(message?.contains("Fillet1.edges[0] r = hole_dd / 2: unknown parameter 'hole_dd'") == true)
+    }
+
+    @Test("Turning a solid into a fillet needs its own radius")
+    func typeChangeNeedsSize() async throws {
+        let harness = try await harnessWithBase()
+        _ = try await harness.call(
+            "add_feature", ["name": "Pin", "type": "cylinder", "radius": 2, "height": 5])
+
+        #expect(
+            try await harness.refused(
+                "edit_feature", ["feature": "Pin", "type": "fillet", "body": "Body1", "edges": ["parallel Z"]])
+                == "A fillet needs 'radius'.")
+    }
+
     @Test("Editing the radius keeps the edges")
     func editRadius() async throws {
         let harness = try await harnessWithBase()
