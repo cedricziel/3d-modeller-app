@@ -15,6 +15,7 @@ enum SketchCompiler {
             guard indices.updateValue(index, forKey: entity.name) == nil else {
                 throw .sketch("more than one entity named '\(entity.name)'")
             }
+            if let problem = entity.geometry.problem { throw .sketch("\(entity.name): \(problem)") }
         }
         var entities = sketch.entities.map { SolverEntity(geometry: $0.geometry.solver, construction: $0.construction) }
         var names = Set<String>()
@@ -76,7 +77,9 @@ private struct ConstraintContext {
         }
         let p = try constraint.points.map { (name) throws(FeatureError) in try point(name) }
         let e = try constraint.entities.map { (name) throws(FeatureError) in try entity(name) }
+        try checkKinds(entities: e, points: p)
         var value = try constraint.value.map { (scalar) throws(FeatureError) in try evaluate(scalar, "value") } ?? 0
+        if constraint.kind.needsPositiveValue, !(value > 0) { throw fail("the value must be greater than 0") }
         if constraint.kind == .angle { value *= .pi / 180 }
         switch constraint.kind {
         case .coincident: return .coincident(p[0], p[1])
@@ -100,6 +103,45 @@ private struct ConstraintContext {
                 entities[p[0].entity].geometry.move(p[0], to: target)
             }
             return .fixed(p[0])
+        }
+    }
+
+    /// The entity kinds and points each constraint accepts, checked here so tools can refuse before writing.
+    func checkKinds(entities e: [Int], points p: [SolverPointRef]) throws(FeatureError) {
+        if e.count == 2, e[0] == e[1] { throw fail("needs two different entities") }
+        if p.count == 2, p[0] == p[1] { throw fail("needs two different points") }
+        func geometry(_ index: Int) -> SketchEntityGeometry { sketch.entities[index].geometry }
+        func isLine(_ index: Int) -> Bool { if case .line = geometry(index) { true } else { false } }
+        func isCurve(_ index: Int) -> Bool {
+            switch geometry(index) {
+            case .arc, .circle: true
+            case .line, .point: false
+            }
+        }
+        func describe(_ index: Int) -> String { "\(sketch.entities[index].name) is a \(geometry(index).typeName)" }
+        switch constraint.kind {
+        case .horizontal, .vertical, .parallel, .perpendicular, .angle:
+            if let bad = e.first(where: { !isLine($0) }) { throw fail("\(describe(bad)); it needs a line") }
+        case .pointLineDistance, .pointOnLine:
+            if !isLine(e[0]) { throw fail("\(describe(e[0])); it needs a line") }
+        case .radius, .diameter, .pointOnCircle:
+            if !isCurve(e[0]) { throw fail("\(describe(e[0])); it needs an arc or a circle") }
+        case .tangent:
+            guard e.allSatisfy({ isLine($0) || isCurve($0) }), !(isLine(e[0]) && isLine(e[1])) else {
+                throw fail("it needs a line and an arc or circle, or two arcs or circles, not two lines or points")
+            }
+        case .equal:
+            guard (isLine(e[0]) && isLine(e[1])) || (isCurve(e[0]) && isCurve(e[1])) else {
+                throw fail("it needs two lines or two arcs or circles")
+            }
+        case .tangentAt:
+            for ref in p {
+                if case .start = ref { continue }
+                if case .end = ref { continue }
+                throw fail("it joins the ends of lines or arcs, such as line1.end and arc1.start")
+            }
+        case .coincident, .distance, .fixed:
+            break
         }
     }
 
@@ -159,6 +201,33 @@ extension SketchConstraintKind {
         case .radius, .diameter: (0, 1, true)
         case .fixed: (1, 0, false)
         case .pointOnLine, .pointOnCircle: (1, 1, false)
+        }
+    }
+}
+
+extension SketchConstraintKind {
+    var needsPositiveValue: Bool {
+        switch self {
+        case .distance, .pointLineDistance, .radius, .diameter: true
+        default: false
+        }
+    }
+}
+
+extension SketchEntityGeometry {
+    /// Why the solver could not use this entity, if it cannot.
+    var problem: String? {
+        switch self {
+        case .point:
+            return nil
+        case .line(let start, let end):
+            return start == end ? "the line has no length" : nil
+        case .circle(_, let radius):
+            return radius > 0 ? nil : "the radius must be greater than 0"
+        case .arc(_, let radius, let start, let end):
+            guard radius > 0 else { return "the radius must be greater than 0" }
+            let span = (end - start).truncatingRemainder(dividingBy: 360)
+            return span == 0 ? "the arc spans no angle or a full turn; use a circle for a full turn" : nil
         }
     }
 }

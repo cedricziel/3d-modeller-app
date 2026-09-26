@@ -87,17 +87,45 @@ struct SketchCompilerTests {
         (SketchConstraint(name: "c20", .fixed, points: ["line1.start"], at: [0]), "'at'"),
         (SketchConstraint(name: "c20", .distance, points: ["line1.start", "line1.end"], value: "nope"), "value"),
         (SketchConstraint(name: "c1", .horizontal, entities: ["line1"]), "more than one constraint named 'c1'"),
+        (SketchConstraint(name: "c20", .radius, entities: ["line1"], value: 3), "an arc or a circle"),
+        (SketchConstraint(name: "c20", .horizontal, entities: ["circle1"]), "a line"),
+        (SketchConstraint(name: "c20", .tangent, entities: ["line1", "line2"]), "not two lines"),
+        (SketchConstraint(name: "c20", .equal, entities: ["line1", "circle1"]), "two lines or two arcs or circles"),
+        (SketchConstraint(name: "c20", .parallel, entities: ["line1", "line1"]), "two different entities"),
+        (SketchConstraint(name: "c20", .coincident, points: ["line1.end", "line1.end"]), "two different points"),
+        (SketchConstraint(name: "c20", .tangentAt, points: ["line1.end", "circle1.center"]), "ends of lines or arcs"),
+        (SketchConstraint(name: "c20", .distance, points: ["line1.start", "line1.end"], value: 0), "greater than 0"),
     ]
 
     @Test("Bad constraints fail with the constraint's name and the problem", arguments: errorCases)
     func compileErrors(constraint: SketchConstraint, expected: String) {
         var sketch = rectangleSketch
+        sketch.entities.append(SketchEntity(name: "circle1", .circle(center: SketchPoint2(30, 20), radius: 5)))
         sketch.constraints.append(constraint)
         #expect {
             try SketchCompiler.compile(sketch, parameters: parameters)
         } throws: { error in
             let text = String(describing: error)
             return text.contains(constraint.name) && text.contains(expected)
+        }
+    }
+
+    static let badEntities: [(SketchEntityGeometry, String)] = [
+        (.circle(center: SketchPoint2(0, 0), radius: 0), "radius must be greater than 0"),
+        (.arc(center: SketchPoint2(0, 0), radius: -1, startAngle: 0, endAngle: 90), "radius must be greater than 0"),
+        (.line(start: SketchPoint2(1, 1), end: SketchPoint2(1, 1)), "no length"),
+        (.arc(center: SketchPoint2(0, 0), radius: 2, startAngle: 0, endAngle: 360), "use a circle"),
+        (.arc(center: SketchPoint2(0, 0), radius: 2, startAngle: 30, endAngle: 30), "use a circle"),
+    ]
+
+    @Test("Degenerate entities fail naming the entity", arguments: badEntities)
+    func invalidEntities(geometry: SketchEntityGeometry, expected: String) {
+        let sketch = SketchFeature(plane: .base(.xy), entities: [SketchEntity(name: "bad1", geometry)])
+        #expect {
+            try SketchCompiler.compile(sketch, parameters: parameters)
+        } throws: { error in
+            let text = String(describing: error)
+            return text.contains("bad1") && text.contains(expected)
         }
     }
 
