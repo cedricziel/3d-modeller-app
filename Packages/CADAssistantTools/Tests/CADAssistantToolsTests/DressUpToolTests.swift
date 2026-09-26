@@ -94,6 +94,28 @@ struct DressUpToolTests {
                 == .fillet(FilletFeature(body: "Body1", edges: [.filter("parallel Z")], radius: 3)))
     }
 
+    @Test("Renaming a feature rewrites the references to its faces")
+    func renameRewritesReferences() async throws {
+        let harness = try await harnessWithBase()
+        _ = try await harness.call(
+            "add_feature",
+            ["name": "Round", "type": "fillet", "body": "Body1", "edges": ["edge(Base.front, Base.top)"], "radius": 2])
+
+        let result = try await harness.call("rename_feature", ["feature": "Base", "new_name": "Plate"])
+
+        #expect(result.success)
+        #expect(
+            harness.document.parts[0].features[1].kind
+                == .fillet(FilletFeature(body: "Body1", edges: [.name("edge(Plate.front, Plate.top)")], radius: 2)))
+        #expect(
+            result.message.contains(
+                """
+                Geometry references updated:
+                  Round now refers to edge(Plate.front, Plate.top) (was edge(Base.front, Base.top))
+                """))
+        #expect(!result.message.contains("failed"))
+    }
+
     @Test("Deleting the feature whose faces a fillet uses leaves the fillet failing with the candidates")
     func deleteLeavesFailingReference() async throws {
         let harness = try await harnessWithBase()

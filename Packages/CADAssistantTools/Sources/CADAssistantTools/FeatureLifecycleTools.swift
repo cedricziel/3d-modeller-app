@@ -12,6 +12,8 @@ public struct DeleteFeatureTool: AssistantTool {
     public let description = """
         Deletes a feature. Deleting a feature that creates a body renumbers later bodies; references to them are \
         updated to match and reported. The delete is refused while another feature uses the deleted feature's body. \
+        Face and edge references to the deleted feature's faces are left as they are and fail if nothing else \
+        carries those names. \
         Returns status changes, every body's validity, volume and bounds, and the changed listing lines.
         """
 
@@ -31,7 +33,10 @@ public struct RenameFeatureTool: AssistantTool {
 
     public let name = "rename_feature"
 
-    public let description = "Renames a feature. Names are unique within a part: letters, digits and _."
+    public let description = """
+        Renames a feature. Names are unique within a part: letters, digits and _. Face and edge references that \
+        use the old name (Old.top, edge(Old.front, Old.top)) are rewritten to the new one and reported.
+        """
 
     public var parameters: [ToolParameter] {
         [ToolSchemas.featureName, .string("new_name", description: "The new name."), ToolSchemas.part]
@@ -94,9 +99,21 @@ extension CADSession {
             let newName = try arguments.requiredString("new_name")
             try Naming.checkFeatureName(newName, in: document.parts[location.part], excluding: feature.id)
             document.parts[location.part].features[location.feature].name = newName
+            var notes: [String] = []
+            for index in document.parts[location.part].features.indices {
+                var kind = document.parts[location.part].features[index].kind
+                let before = kind.geometryReferences
+                kind.renameFeatureReferences(feature.name, to: newName)
+                guard kind.geometryReferences != before else { continue }
+                document.parts[location.part].features[index].kind = kind
+                let changed = zip(kind.geometryReferences, before).filter { $0 != $1 }
+                notes.append(
+                    "\(document.parts[location.part].features[index].name) now refers to "
+                        + changed.map { "\($0.0) (was \($0.1))" }.joined(separator: ", "))
+            }
             return WriteFocus(
                 actionName: "Rename \(feature.name) to \(newName)", summary: "Renamed \(feature.name) to \(newName)",
-                feature: feature.id)
+                feature: feature.id, referenceNotes: notes)
         }
     }
 
