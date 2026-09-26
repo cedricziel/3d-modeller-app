@@ -93,8 +93,8 @@ public enum CADAssistantPrompt {
         nothing, joints that conflict, or origins and axes that could not be brought together.
         - Recipes. Lid on a box: fixed from Box.top to Lid.bottom (planar to let it slide). Pin or bolt in a \
         hole, concentric and flush: revolute or cylindrical from the hole's cylindrical face with its circular edge \
-        on the top face, to the bolt's shank face with the circular edge under its head (use flip if the axes point \
-        opposite ways); or cylindrical on the axes plus planar on the two faces. Slider on a rail: slider between \
+        on the top face, to the bolt's shank face with the circular edge under its head (flip: true when the two axes \
+        point the same way, such as both along +Z; leave it off when they point opposite ways); or cylindrical on the axes plus planar on the two faces. Slider on a rail: slider between \
         faces whose normals run along the rail, with an offset that puts the carriage on top.
 
         ## Working
