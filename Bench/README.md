@@ -86,14 +86,17 @@ Lengths are millimetres. A task file with an unknown key, or a check with an unk
 
 | Check             | Keys (default)                                                                                            | Passes when                                                                                                                                                                 |
 | ----------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gate`            | none                                                                                                      | Every feature rebuilds (none failed or skipped), there is at least one body, and every body is one valid closed solid.                                                      |
+| `gate`            | none                                                                                                      | Every feature and instance rebuilds (none failed or skipped), there is at least one body, and every body is one valid closed solid.                                         |
 | `bodyCount`       | `equals`                                                                                                  | The document has exactly that many bodies.                                                                                                                                  |
 | `boundingBox`     | `part`, `body`, `min`, `max`, `size` (each `[x, y, z]`, at least one), `tolerance` (0.01 mm)              | The bounds of the selected bodies are within the tolerance, per component.                                                                                                  |
 | `volume`          | `part`, `body`, `expected`, `tolerance` (0.005, relative)                                                 | The total volume of the selected bodies is within the tolerance.                                                                                                            |
 | `parameter`       | `name`, `value`, `tolerance` (1e-6)                                                                       | The parameter exists and evaluates to the value.                                                                                                                            |
 | `featureCount`    | `feature` (`box`, `cylinder`, `sphere`, `cone`, `torus`, `boolean`, `transform`, `fillet`, `chamfer`, `shell`, `sketch`, `extrude`, `revolve`), `equals` or `min`/`max` | The number of unsuppressed features of that type is within the bounds.                                                                                                      |
-| `referenceIoU`    | `threshold`                                                                                               | The volume shared with the reference, divided by the combined volume, is at least the threshold.                                                                            |
-| `unchangedExcept` | `features` ([]), `parameters` ([]), `allowNewFeatures` (false)                                            | Compared with the seed, only the named features and parameters changed. New parameters are always allowed; new features only when named or when `allowNewFeatures` is true. |
+| `referenceIoU`    | `threshold`                                                                                               | The volume shared with the reference, divided by the combined volume, is at least the threshold. When the reference has instances, the placed instances are compared.       |
+| `unchangedExcept` | `features` ([]), `parameters` ([]), `instances` ([]), `allowNewFeatures` (false)                          | Compared with the seed, only the named features, parameters and instances changed. New parameters are always allowed; new features only when named or when `allowNewFeatures` is true. Instances are compared by name: part, body, placement and grounding. |
+| `instanceCount`   | `equals`                                                                                                  | The assembly has exactly that many instances.                                                                                                                               |
+| `instanceBounds`  | `instance`, `min`, `max`, `size` (each `[x, y, z]`, at least one), `tolerance` (0.01 mm)                  | The bounds of the named instance where it is placed, or of every instance without `instance`, are within the tolerance. A failed or missing instance fails the check.      |
+| `noInterference`  | none                                                                                                      | No two instances share volume. Touching is allowed.                                                                                                                         |
 
 Without `part` and `body`, `boundingBox` and `volume` use every body. A `body` name that exists in several parts
 fails the check; add `part`.
@@ -103,7 +106,8 @@ fails the check; add `part`.
 1. Create the folder and write `task.json`. State every dimension and position in the prompt. The checks test
    absolute positions, so say where the part sits, for example "one corner at the origin" or "axis on Z, bottom face
    at z = 0".
-2. Write `reference.cadmodel`, by hand or by building it in the app, and `seed.cadmodel` for a modify task.
+2. Write `reference.cadmodel`, by hand or by building it in the app, and `seed.cadmodel` for a modify task. An
+   instance refers to its part by `id`, so a hand-written file gives each placed part a fixed `id`.
 3. Check the reference passes:
 
    ```bash
@@ -136,3 +140,6 @@ Each later layer of the CAD stack adds tasks for what it enables.
 | `revolved-cup`      | build  | A cup revolved from one sketched cross-section about Z.                  |
 | `slotted-plate`     | build  | A slot sketched on a face with arcs and cut through all.                 |
 | `profile-height`    | modify | Changing a parameter a sketch dimension uses.                            |
+| `stacked-plates`    | build  | Two instances of one plate part held apart by a spacer part.             |
+| `table-legs`        | build  | A board on four instances of one leg part.                               |
+| `move-instance`     | modify | Moving one instance and leaving the parts and other instances alone.     |

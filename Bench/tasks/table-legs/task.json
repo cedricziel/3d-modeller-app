@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "equals": 5,
+      "type": "instanceCount"
+    },
+    {
+      "max": [
+        100,
+        60,
+        74
+      ],
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "instance": "Leg4",
+      "max": [
+        98,
+        58,
+        70
+      ],
+      "min": [
+        93,
+        53,
+        0
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "build",
+  "prompt": "Build a table from two parts. Part Top: a 100 × 60 × 4 mm board (X × Y × Z) with one corner at its origin. Part Leg: a 5 × 5 × 70 mm post with one corner at its origin. Place the board as instance Top with its corner at (0, 0, 70), so it rests on the legs, and four instances of Leg named Leg1, Leg2, Leg3 and Leg4 with their corners at (2, 2, 0), (93, 2, 0), (2, 53, 0) and (93, 53, 0). Model the leg once and place it four times."
+}
