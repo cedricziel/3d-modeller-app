@@ -8,7 +8,7 @@ import Testing
 @MainActor
 @Suite("set_parameter")
 struct SetParameterToolTests {
-    @Test("Adding a parameter appends it and reports the changed listing line")
+    @Test("Adding a parameter appends it and reports only the new parameter")
     func adds() async throws {
         let harness = Harness()
 
@@ -21,9 +21,8 @@ struct SetParameterToolTests {
             result.message == """
                 Added parameter width = 60
                 Bodies: none
-                Listing changes:
-                  - parameters: none
-                  + parameters: width = 60
+                Parameters:
+                  + width = 60
                 """)
     }
 
@@ -38,7 +37,8 @@ struct SetParameterToolTests {
         #expect(harness.document.parameters[0].expression == 0)
         #expect(result.message.contains("Status changes elsewhere:\n  Base: ok → failed: dimensions must be positive"))
         #expect(result.message.contains("  Hole: ok → skipped: depends on Base"))
-        #expect(result.message.contains("+ parameters: width = 0, depth = 40"))
+        #expect(result.message.contains("Parameters:\n  width: 60 → 0"))
+        #expect(!result.message.contains("parameters:"))
     }
 
     @Test("Expression strings are kept as expressions and numeric strings become numbers")
@@ -64,6 +64,32 @@ struct SetParameterToolTests {
         #expect(result.success)
         #expect(harness.commits == ["Remove Parameter hole_r"])
         #expect(!harness.document.parameters.contains { $0.name == "hole_r" })
+        #expect(result.message.hasSuffix("Parameters:\n  - hole_r"))
+    }
+
+    @Test("A changed expression shows the old and new value; dependents whose value moved are listed too")
+    func reportsExpressionsAndDependents() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let changed = try await harness.call("set_parameter", ["name": "hole_d", "expression": 6])
+        let rewritten = try await harness.call("set_parameter", ["name": "hole_r", "expression": "hole_d / 4"])
+
+        #expect(changed.message.hasSuffix("Parameters:\n  hole_d: 5.5 → 6\n  hole_r = hole_d / 2: 2.75 → 3"))
+        #expect(rewritten.message.hasSuffix("Parameters:\n  hole_r: hole_d / 2 (= 3) → hole_d / 4 (= 1.5)"))
+    }
+
+    @Test("A single change in a document with 20 parameters costs under 300 characters")
+    func singleChangeBudget() async throws {
+        let parameters = (1...20).map { Parameter(name: "p\($0)", expression: .number(Double($0))) }
+        var document = Fixtures.plate()
+        document.parameters += parameters
+        let harness = Harness(document)
+        try await harness.session.rebuild()
+
+        let result = try await harness.call("set_parameter", ["name": "p7", "expression": 8])
+
+        #expect(result.success)
+        #expect(result.message.count < 300, "\(result.message.count) characters:\n\(result.message)")
     }
 
     @Test("Removing a parameter that features or parameters use is refused with every broken expression")

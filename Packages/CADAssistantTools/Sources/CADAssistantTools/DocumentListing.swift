@@ -9,7 +9,12 @@ public enum DocumentListing {
     }
 
     static func lines(_ document: CADDocument, result: RebuildResult?) -> [String] {
-        var lines = [parametersLine(document.parameters)]
+        [parametersLine(document.parameters)] + modelLines(document, result: result)
+    }
+
+    /// Everything after the parameters line: parts with their features, then the assembly.
+    static func modelLines(_ document: CADDocument, result: RebuildResult?) -> [String] {
+        var lines: [String] = []
         for part in document.parts {
             lines.append("part \(part.name)")
             if part.features.isEmpty { lines.append("  (no features)") }
@@ -28,17 +33,18 @@ public enum DocumentListing {
 
     static func parametersLine(_ parameters: [Parameter]) -> String {
         guard !parameters.isEmpty else { return "parameters: none" }
-        let table = ParameterTable(parameters)
-        let entries = table.parameters.map { parameter in
-            var entry = "\(parameter.name) = \(parameter.expression)"
-            switch parameter.value {
-            case .failure(let error): entry += " (error: \(error))"
-            case .success(let value):
-                if case .expression = parameter.expression { entry += " (= \(Format.number(value)))" }
-            }
-            return entry
-        }
+        let entries = ParameterTable(parameters).parameters.map { "\($0.name) = \(expression($0))" }
         return "parameters: " + entries.joined(separator: ", ")
+    }
+
+    /// The expression as written, with its value when it is not a plain number or its error.
+    static func expression(_ parameter: EvaluatedParameter) -> String {
+        switch parameter.value {
+        case .failure(let error): return "\(parameter.expression) (error: \(error))"
+        case .success(let value):
+            guard case .expression = parameter.expression else { return parameter.expression.description }
+            return "\(parameter.expression) (= \(Format.number(value)))"
+        }
     }
 
     static func summary(_ kind: FeatureKind, body: String?, sketch sketchResult: SketchResult? = nil) -> String {

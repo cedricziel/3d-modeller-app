@@ -51,8 +51,17 @@ struct WriteReport {
         lines += bodyLines(afterResult)
         lines += instanceLines(afterResult)
         lines += jointLines(afterResult)
+        let parameters = Self.parameterChanges(before.parameters, after.parameters)
+        if !parameters.isEmpty {
+            lines.append("Parameters:")
+            lines += parameters.prefix(Self.diffLimit).map { "  \($0)" }
+            if parameters.count > Self.diffLimit {
+                lines.append("  … \(parameters.count - Self.diffLimit) more changed parameters; call get_listing")
+            }
+        }
         let diff = Self.diff(
-            DocumentListing.lines(before, result: beforeResult), DocumentListing.lines(after, result: afterResult))
+            DocumentListing.modelLines(before, result: beforeResult),
+            DocumentListing.modelLines(after, result: afterResult))
         if !diff.isEmpty {
             lines.append("Listing changes:")
             lines += diff.prefix(Self.diffLimit).map { "  \($0)" }
@@ -232,6 +241,34 @@ struct WriteReport {
         let volume = metrics.volume.map { "volume \(Format.number($0)) mm³" } ?? "volume unknown"
         return
             "\(name): \(state), \(counts), \(volume), bounds \(Format.point(metrics.boundsMin)) to \(Format.point(metrics.boundsMax))"
+    }
+
+    /// Parameters added ("+ name = expression"), changed ("name: old → new"), whose value moved through another
+    /// parameter ("name = expression: old → new"), then removed ("- name"). Unchanged parameters are left out.
+    static func parameterChanges(_ old: [Parameter], _ new: [Parameter]) -> [String] {
+        let oldTable = Dictionary(
+            ParameterTable(old).parameters.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        let newParameters = ParameterTable(new).parameters
+        let newNames = Set(newParameters.map(\.name))
+        func value(_ parameter: EvaluatedParameter) -> String {
+            switch parameter.value {
+            case .success(let value): Format.number(value)
+            case .failure(let error): "error: \(error)"
+            }
+        }
+        let changes = newParameters.compactMap { parameter -> String? in
+            guard let previous = oldTable[parameter.name] else {
+                return "+ \(parameter.name) = \(DocumentListing.expression(parameter))"
+            }
+            if previous.expression != parameter.expression {
+                return
+                    "\(parameter.name): \(DocumentListing.expression(previous)) → \(DocumentListing.expression(parameter))"
+            }
+            guard value(previous) != value(parameter) else { return nil }
+            return "\(parameter.name) = \(parameter.expression): \(value(previous)) → \(value(parameter))"
+        }
+        let removed = ParameterTable(old).parameters.filter { !newNames.contains($0.name) }.map { "- \($0.name)" }
+        return changes + removed
     }
 
     /// Lines only in `old` as "- …", then lines only in `new` as "+ …", each in its listing's order.

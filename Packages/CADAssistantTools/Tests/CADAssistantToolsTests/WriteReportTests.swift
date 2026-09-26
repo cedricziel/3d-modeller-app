@@ -85,7 +85,7 @@ struct WriteReportTests {
         let start = try #require(lines.firstIndex(of: "Listing changes:"))
 
         #expect(lines[(start + 1)...].count == 31)
-        #expect(lines.last == "  … 52 more changed lines; call get_listing")
+        #expect(lines.last == "  … 50 more changed lines; call get_listing")
         #expect(result.message.contains("… 10 more status changes; call get_listing"))
     }
 
