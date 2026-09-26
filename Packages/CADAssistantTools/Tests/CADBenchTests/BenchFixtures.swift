@@ -1,6 +1,7 @@
 import CADBench
 import CADModel
 import Foundation
+import SwiftUIAssistant
 
 enum Bench {
     static let root = URL(filePath: #filePath)
@@ -31,4 +32,42 @@ func box(
             PrimitiveFeature(
                 .box(width: w, depth: d, height: h), placement: Placement(translation: translation),
                 operation: operation)))
+}
+
+actor ScriptedProvider: LLMProvider {
+    enum Turn: Sendable {
+        case respond(LLMResponse)
+        case fail(AssistantError)
+        case hang
+    }
+
+    private var turns: [Turn]
+    private(set) var requests = 0
+
+    init(_ turns: [Turn]) {
+        self.turns = turns
+    }
+
+    func sendMessage(
+        _ message: String, systemPrompt: String, conversationHistory: [Message], tools: [any AssistantTool]
+    ) async throws -> LLMResponse {
+        requests += 1
+        guard !turns.isEmpty else {
+            return LLMResponse(content: "(script ended)", toolCalls: nil, stopReason: .endTurn)
+        }
+        switch turns.removeFirst() {
+        case .respond(let response): return response
+        case .fail(let error): throw error
+        case .hang:
+            try await Task.sleep(for: .seconds(3600))
+            throw CancellationError()
+        }
+    }
+}
+
+func reply(_ text: String?, calls: [ToolCall] = [], input: Int = 0, output: Int = 0) -> ScriptedProvider.Turn {
+    .respond(
+        LLMResponse(
+            content: text, toolCalls: calls.isEmpty ? nil : calls, stopReason: calls.isEmpty ? .endTurn : .toolUse,
+            usage: LLMResponse.Usage(inputTokens: input, outputTokens: output)))
 }
