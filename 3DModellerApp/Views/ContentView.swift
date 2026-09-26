@@ -1,35 +1,46 @@
+import CADModel
+import CADModelKernel
 import SwiftUI
 import SwiftUIAssistant
 import SwiftUIAssistantTools
 
-/// Main content view with 3D viewport and assistant panel
 @MainActor
 struct ContentView: View {
-    @ObservedObject var document: SceneDocument
+    @ObservedObject var document: CADModelDocument
     @EnvironmentObject private var appModel: AppModel
     @Environment(\.undoManager) private var undoManager
-    @StateObject private var sceneManager = SceneManager()
-
-    // Assistant setup
+    @State private var result: RebuildResult?
+    @State private var selection: UUID?
     @State private var assistant: Assistant?
+
+    private static let engine = RebuildEngine(kernel: OCCTGeometryKernel())
 
     var body: some View {
         NavigationSplitView {
-            SceneOutlineView(sceneManager: sceneManager)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+            FeatureOutlineView(
+                model: document.model,
+                result: result,
+                selection: $selection,
+                setSuppressed: setSuppressed,
+                delete: delete
+            )
+            .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
         } detail: {
-            Viewport3DView(sceneManager: sceneManager)
+            Viewport3DView(result: result)
                 .overlay(alignment: .bottom) {
-                    SceneStatisticsView(statistics: sceneManager.statistics)
+                    ModelStatisticsView(result: result)
                         .padding()
                 }
         }
         .inspector(isPresented: $appModel.showInspector) {
-            InspectorView(sceneManager: sceneManager, assistant: assistant)
-                .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
+            InspectorView(
+                feature: selection.flatMap(document.model.feature(id:)),
+                featureResult: selection.flatMap { result?.feature(id: $0) },
+                assistant: assistant
+            )
+            .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
         }
         .frame(minWidth: 900, minHeight: 600)
-        .navigationTitle(document.sceneData.metadata.name)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 ToolPicker(selectedTool: $appModel.selectedTool)
@@ -45,14 +56,26 @@ struct ContentView: View {
         }
         .task {
             setupAssistant()
-            adoptUndoManager()
-            syncDocumentToScene()
         }
-        .onChange(of: undoManager) { _, _ in
-            adoptUndoManager()
+        .task(id: document.model) {
+            if let rebuilt = try? await Self.engine.rebuild(document.model) {
+                result = rebuilt
+            }
         }
-        .onChange(of: sceneManager.revision) { _, _ in
-            syncSceneToDocument()
+    }
+
+    // MARK: - Edits
+
+    private func setSuppressed(_ feature: Feature, _ suppressed: Bool) {
+        let action = suppressed ? "Suppress \(feature.name)" : "Unsuppress \(feature.name)"
+        document.edit(action, undoManager: undoManager) { model in
+            model.updateFeature(id: feature.id) { $0.suppressed = suppressed }
+        }
+    }
+
+    private func delete(_ feature: Feature) {
+        document.edit("Delete \(feature.name)", undoManager: undoManager) { model in
+            model.removeFeature(id: feature.id)
         }
     }
 
@@ -61,74 +84,27 @@ struct ContentView: View {
     private func setupAssistant() {
         guard !appModel.llmApiKey.isEmpty else { return }
 
-        let provider = ClaudeProvider(apiKey: appModel.llmApiKey)
-
-        let tools: [any AssistantTool] = [
-            CreatePrimitiveTool(sceneManager: sceneManager),
-            CreateSolidTool(sceneManager: sceneManager),
-            TransformEntityTool(sceneManager: sceneManager),
-            DeleteEntityTool(sceneManager: sceneManager),
-            SetMaterialTool(sceneManager: sceneManager),
-            DuplicateEntityTool(sceneManager: sceneManager),
-            QuerySceneTool(sceneManager: sceneManager),
-            FetchTool(),
-            CalculatorTool(),
-            TimeTool(),
-        ]
-
-        let contextProvider: @Sendable () -> any AssistantContext = { [sceneManager] in
-            SceneContextAdapter(sceneManager: sceneManager)
-        }
-
         let systemPrompt = """
-            You are a 3D modeling assistant with full control over the scene.
-            You can autonomously create, modify, and delete 3D objects.
+            You are the assistant of a parametric CAD app. Models are measured in millimetres.
+            You cannot read or change the model yet; modelling tools arrive in a later release.
+            If asked to model something, say so briefly and describe how you would build it
+            from boxes, cylinders, spheres, cones and tori combined with booleans.
 
-            ## Your Capabilities
-            - Create primitives: box, sphere, cylinder, cone, plane, torus
-            - Transform objects: move, rotate, scale
-            - Modify materials: color, metallic, roughness
-            - Query scene state
-            - Duplicate and delete entities
+            You can:
             - Fetch data from URLs (GET, POST, PUT, PATCH, DELETE)
             - Perform calculations (arithmetic, trigonometry, logarithms)
             - Work with dates and times (parse, format, calculate differences)
-
-            ## Guidelines
-            1. Execute operations directly - you have full scene access
-            2. Provide brief explanations of what you did
-            3. Use metric units (meters)
-            4. When ambiguous, ask for clarification
 
             ## Current Context
             {context}
             """
 
         assistant = Assistant(
-            provider: provider,
-            tools: tools,
-            contextProvider: contextProvider,
-            configuration: AssistantConfiguration(
-                systemPromptTemplate: systemPrompt
-            )
+            provider: ClaudeProvider(apiKey: appModel.llmApiKey),
+            tools: [FetchTool(), CalculatorTool(), TimeTool()],
+            contextProvider: { EmptyContext() },
+            configuration: AssistantConfiguration(systemPromptTemplate: systemPrompt)
         )
-    }
-
-    // MARK: - Document Sync
-
-    private func adoptUndoManager() {
-        if let undoManager {
-            undoManager.levelsOfUndo = 50
-            sceneManager.undoManager = undoManager
-        }
-    }
-
-    private func syncDocumentToScene() {
-        sceneManager.loadSceneData(document.sceneData)
-    }
-
-    private func syncSceneToDocument() {
-        document.sceneData = sceneManager.toSceneData()
     }
 }
 
@@ -155,7 +131,8 @@ struct ToolPicker: View {
 
 @MainActor
 struct InspectorView: View {
-    @ObservedObject var sceneManager: SceneManager
+    let feature: Feature?
+    let featureResult: FeatureResult?
     let assistant: Assistant?
     @EnvironmentObject private var appModel: AppModel
 
@@ -181,7 +158,7 @@ struct InspectorView: View {
 
             switch appModel.inspectorTab {
             case .properties:
-                PropertiesInspectorView(sceneManager: sceneManager)
+                FeatureInspectorView(feature: feature, result: featureResult)
             case .assistant:
                 if let assistant {
                     AssistantView(assistant: assistant)
@@ -232,28 +209,7 @@ private struct AssistantNotConfiguredView: View {
     }
 }
 
-// MARK: - Scene Statistics View
-
-struct SceneStatisticsView: View {
-    let statistics: SceneStatistics
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Label("\(statistics.entityCount) objects", systemImage: "cube")
-            Label("\(statistics.triangleCount) triangles", systemImage: "triangle")
-            Label("\(statistics.materialCount) materials", systemImage: "paintpalette")
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-        .fixedSize()
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
-    }
-}
-
 #Preview {
-    ContentView(document: SceneDocument())
+    ContentView(document: CADModelDocument())
         .environmentObject(AppModel())
 }

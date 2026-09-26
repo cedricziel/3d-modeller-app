@@ -17,12 +17,17 @@ let package = Package(
     dependencies: [
         .package(path: "Packages/SwiftUIAssistant"),
         .package(path: "Packages/SwiftUIAssistantTools"),
-        .package(path: "Packages/CADKernel"),
+        .package(path: "Packages/CADModel"),
     ],
     targets: [
         .executableTarget(
             name: "3DModellerApp",
-            dependencies: ["SwiftUIAssistant", "SwiftUIAssistantTools", "CADKernel"],
+            dependencies: [
+                "SwiftUIAssistant",
+                "SwiftUIAssistantTools",
+                .product(name: "CADModel", package: "CADModel"),
+                .product(name: "CADModelKernel", package: "CADModel"),
+            ],
             path: "3DModellerApp"
         )
     ]

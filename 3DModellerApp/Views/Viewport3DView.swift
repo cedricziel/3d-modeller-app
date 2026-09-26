@@ -1,12 +1,12 @@
-import SwiftUI
+import CADModel
 import RealityKit
+import SwiftUI
 
-/// 3D viewport using RealityKit
 @MainActor
 struct Viewport3DView: View {
-    @ObservedObject var sceneManager: SceneManager
-    @EnvironmentObject private var appModel: AppModel
+    let result: RebuildResult?
 
+    @State private var scene = ViewportScene()
     @State private var camera = OrbitCamera()
     @State private var cameraAtGestureStart: OrbitCamera?
     @State private var cameraEntity: Entity = {
@@ -15,44 +15,25 @@ struct Viewport3DView: View {
         return entity
     }()
 
-    // Track if scene is ready
-    @State private var isSceneReady = false
-
     var body: some View {
-        GeometryReader { _ in
-            if isSceneReady {
-                RealityView { content in
-                    content.add(sceneManager.rootEntity)
-                    content.add(cameraEntity)
-                    aimCamera()
-                } update: { _ in
-                    aimCamera()
-                }
-                .gesture(orbitGesture)
-                .gesture(zoomGesture)
-                .gesture(tapGesture)
-            } else {
-                Color(white: 0.15)
-                    .overlay {
-                        ProgressView("Loading 3D Scene...")
-                    }
-            }
+        RealityView { content in
+            content.add(scene.root)
+            content.add(cameraEntity)
+            aimCamera()
+        } update: { _ in
+            aimCamera()
         }
+        .gesture(orbitGesture)
+        .gesture(zoomGesture)
         .background(Color(white: 0.15))
-        .task {
-            // Delay to allow UI to render first
-            try? await Task.sleep(for: .milliseconds(100))
-            isSceneReady = true
+        .onChange(of: result, initial: true) {
+            scene.show(result)
         }
     }
-
-    // MARK: - Camera
 
     private func aimCamera() {
         cameraEntity.look(at: .zero, from: camera.position, relativeTo: nil)
     }
-
-    // MARK: - Gestures
 
     private var orbitGesture: some Gesture {
         DragGesture()
@@ -77,38 +58,8 @@ struct Viewport3DView: View {
                 cameraAtGestureStart = nil
             }
     }
-
-    /// Tap to select entities
-    private var tapGesture: some Gesture {
-        SpatialTapGesture()
-            .onEnded { value in
-                // For now, deselect on tap
-                // Entity selection requires hit testing which is more complex in RealityView
-                sceneManager.select(id: nil)
-            }
-    }
-}
-
-// MARK: - Entity Selection Highlight
-
-extension Viewport3DView {
-    /// Update visual selection state
-    private func updateSelectionHighlight() {
-        // Remove highlight from all entities
-        for cadEntity in sceneManager.entities.values {
-            // Reset to original material
-        }
-
-        // Add highlight to selected entity
-        if let selectedId = sceneManager.selectedEntityId,
-            let cadEntity = sceneManager.entities[selectedId]
-        {
-            // Apply selection highlight material
-        }
-    }
 }
 
 #Preview {
-    Viewport3DView(sceneManager: SceneManager())
-        .environmentObject(AppModel())
+    Viewport3DView(result: nil)
 }

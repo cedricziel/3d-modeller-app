@@ -5,7 +5,7 @@ struct ModellerApp: App {
     @StateObject private var appModel = AppModel()
 
     var body: some Scene {
-        DocumentGroup(newDocument: { SceneDocument() }) { configuration in
+        DocumentGroup(newDocument: { CADModelDocument() }) { configuration in
             ContentView(document: configuration.document)
                 .environmentObject(appModel)
         }
