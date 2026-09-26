@@ -91,8 +91,10 @@ extension CADSession {
     /// Applies one tool edit as a single undoable step: validates it, keeps body references pointing at the same
     /// creating features, refuses new expression failures, commits, rebuilds and reports.
     func write(_ change: (inout CADDocument) throws(ToolError) -> WriteFocus) async -> ToolExecutionResult {
-        let beforeResult = await currentResult()
+        var beforeResult = await currentResult()
+        if !isResultCurrent { beforeResult = await currentResult() }
         let before = document
+        if !isResultCurrent { beforeResult = nil }
         var after = before
         let focus: WriteFocus
         let notes: [String]

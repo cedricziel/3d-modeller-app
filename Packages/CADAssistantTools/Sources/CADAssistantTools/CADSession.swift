@@ -92,6 +92,9 @@ public final class CADSession {
         return try? await rebuild()
     }
 
+    /// Whether `result` is a rebuild of the current document.
+    public var isResultCurrent: Bool { builtDocument == document }
+
     /// The rebuild of the current document, rebuilding first when the latest result is for another document.
     public func currentResult() async -> RebuildResult? {
         if builtDocument == document { return result }

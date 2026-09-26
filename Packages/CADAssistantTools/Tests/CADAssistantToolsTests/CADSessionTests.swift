@@ -163,4 +163,31 @@ struct CADSessionTests {
         await session.load(ball)
         #expect(session.result?.parts.first?.features.map(\.name) == ["Ball"])
     }
+
+    @Test("A write that waited for a rebuild reports against the document it edits, not the one it waited for")
+    func writeReportsAgainstEditedDocument() async throws {
+        let gate = Gate()
+        let plate = Fixtures.plate()
+        let session = CADSession(document: plate, kernel: FakeKernel(onBox: { gate.pass() }))
+        let write = Task { await session.setParameter(["name": "depth", "expression": 41]) }
+        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+
+        var fixed = plate
+        fixed.parts[0].features[3].kind = .primitive(
+            PrimitiveFeature(.cone(bottomRadius: 3, topRadius: 1, height: 5)))
+        session.adopt(fixed)
+        gate.open()
+        let result = await write.value
+
+        #expect(result.success)
+        #expect(!result.message.contains("Status changes elsewhere"))
+        #expect(
+            result.message.hasSuffix(
+                """
+                Listing changes:
+                  - parameters: width = 60, depth = 40, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
+                  + parameters: width = 60, depth = 41, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
+                """))
+        #expect(session.document.parts[0].features[3] == fixed.parts[0].features[3])
+    }
 }
