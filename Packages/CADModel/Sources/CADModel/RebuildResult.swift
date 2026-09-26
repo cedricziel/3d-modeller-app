@@ -23,6 +23,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
     case bodyConsumed(String, by: String)
     case invalidTools(String)
     case reference(String)
+    case sketch(String)
     case kernel(String)
 
     public var description: String {
@@ -33,6 +34,7 @@ public enum FeatureError: Error, Sendable, Equatable, CustomStringConvertible {
         case .bodyConsumed(let name, let feature): "\(name) was used up as a tool by \(feature)"
         case .invalidTools(let detail): detail
         case .reference(let detail): detail
+        case .sketch(let detail): detail
         case .kernel(let detail): detail
         }
     }
