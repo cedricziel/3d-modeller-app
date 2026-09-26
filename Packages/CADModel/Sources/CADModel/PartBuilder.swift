@@ -54,6 +54,8 @@ struct PartBuilder<Kernel: GeometryKernel> {
             id: feature.id, name: feature.name, status: status, body: feature.kind.affectedBody(newBody: newBody))
     }
 
+    var builtBodies: [(name: String, body: Kernel.Body)] { bodies }
+
     func bodyResults() throws -> [BodyResult] {
         var results: [BodyResult] = []
         for (name, body) in bodies {
