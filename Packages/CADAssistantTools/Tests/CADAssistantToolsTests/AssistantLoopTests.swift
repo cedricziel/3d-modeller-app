@@ -130,4 +130,13 @@ struct AssistantLoopTests {
         #expect(prompt.contains("measure"))
         #expect(prompt.contains("bigger change"))
     }
+
+    @Test("The prompt teaches sketching: fully constraining, tangentAt joints and sketch face names")
+    func promptSketches() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("add_sketch"))
+        #expect(prompt.contains("tangentAt"))
+        #expect(prompt.contains("fully constrained"))
+        #expect(prompt.contains("Extrude1.side[Sketch1.line3]"))
+    }
 }
