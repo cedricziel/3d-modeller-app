@@ -122,4 +122,12 @@ struct AssistantLoopTests {
         #expect(results.last?.hasPrefix("Success: Added Box1 to part P") == true)
         #expect(session.document.parts[0].features.map(\.name) == ["Box1"])
     }
+
+    @Test("The prompt asks for verification with renders and measurements after bigger changes")
+    func promptVerification() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("render_views"))
+        #expect(prompt.contains("measure"))
+        #expect(prompt.contains("bigger change"))
+    }
 }
