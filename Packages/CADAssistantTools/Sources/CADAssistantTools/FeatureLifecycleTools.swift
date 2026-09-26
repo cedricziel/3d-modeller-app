@@ -101,15 +101,21 @@ extension CADSession {
             document.parts[location.part].features[location.feature].name = newName
             var notes: [String] = []
             for index in document.parts[location.part].features.indices {
-                var kind = document.parts[location.part].features[index].kind
-                let before = kind.geometryReferences
+                let other = document.parts[location.part].features[index]
+                var kind = other.kind
                 kind.renameFeatureReferences(feature.name, to: newName)
-                guard kind.geometryReferences != before else { continue }
+                guard kind != other.kind else { continue }
                 document.parts[location.part].features[index].kind = kind
-                let changed = zip(kind.geometryReferences, before).filter { $0 != $1 }
-                notes.append(
-                    "\(document.parts[location.part].features[index].name) now refers to "
-                        + changed.map { "\($0.0) (was \($0.1))" }.joined(separator: ", "))
+                if kind.sketchReference != other.kind.sketchReference, let sketch = kind.sketchReference {
+                    notes.append(
+                        "\(other.name) now uses sketch \(sketch) (was \(other.kind.sketchReference ?? "none"))")
+                }
+                let changed = zip(kind.geometryReferences, other.kind.geometryReferences).filter { $0 != $1 }
+                if !changed.isEmpty {
+                    notes.append(
+                        "\(other.name) now refers to " + changed.map { "\($0.0) (was \($0.1))" }.joined(separator: ", ")
+                    )
+                }
             }
             return WriteFocus(
                 actionName: "Rename \(feature.name) to \(newName)", summary: "Renamed \(feature.name) to \(newName)",

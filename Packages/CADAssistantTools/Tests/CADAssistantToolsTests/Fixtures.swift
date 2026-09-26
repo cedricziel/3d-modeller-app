@@ -54,4 +54,31 @@ enum Fixtures {
                     ])
             ])
     }
+
+    /// A 60 × 40 rectangle `line1`…`line4` with a construction line `line5` along the Y axis.
+    static let rectangleSketch = SketchFeature(
+        plane: .base(.xy),
+        entities: [
+            SketchEntity(name: "line1", .line(start: SketchPoint2(0, 0), end: SketchPoint2(60, 0))),
+            SketchEntity(name: "line2", .line(start: SketchPoint2(60, 0), end: SketchPoint2(60, 40))),
+            SketchEntity(name: "line3", .line(start: SketchPoint2(60, 40), end: SketchPoint2(0, 40))),
+            SketchEntity(name: "line4", .line(start: SketchPoint2(0, 40), end: SketchPoint2(0, 0))),
+            SketchEntity(
+                name: "line5", .line(start: SketchPoint2(0, 0), end: SketchPoint2(0, 10)), construction: true),
+        ],
+        constraints: [
+            SketchConstraint(name: "c1", .horizontal, entities: ["line1"]),
+            SketchConstraint(name: "c2", .distance, points: ["line1.start", "line1.end"], value: "width"),
+        ])
+
+    /// A box `Box1` (Body1) and the rectangle sketch `Sketch1`.
+    static func sketched() -> CADDocument {
+        CADDocument(
+            parameters: plateParameters,
+            parts: [
+                Part(
+                    name: "Plate",
+                    features: [box("Box1", 60, 40, 10), Feature(name: "Sketch1", kind: .sketch(rectangleSketch))])
+            ])
+    }
 }

@@ -95,7 +95,7 @@ struct EditFeatureToolTests {
         )
         #expect(
             try await harness.refused("edit_feature", ["feature": "Hole", "name": "Bore"])
-                == "Unknown argument 'name'. Accepted: feature, part, type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius, distance, thickness, placement, operation, body, tools, edges, faces."
+                == "Unknown argument 'name'. Accepted: feature, part, type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius, distance, thickness, angle, placement, operation, body, tools, edges, faces, sketch, regions, extent, reversed, face, axis, referenceBody."
         )
         #expect(
             try await harness.refused("edit_feature", ["feature": "Base", "radius": 3])
