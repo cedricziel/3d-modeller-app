@@ -21,9 +21,13 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
     public let transform: RigidTransform?
     /// The part's bodies in assembly coordinates, under the part's body names.
     public let bodies: [BodyResult]
+    /// The part's own face and edge names for each body, index-aligned with the moved topology. Computed before the
+    /// move, because `[n]` pieces are ordered by position and a rotation would reorder them.
+    let names: [String: TopologyNames]
 
     public init(
-        id: UUID, name: String, part: UUID, status: InstanceStatus, transform: RigidTransform?, bodies: [BodyResult]
+        id: UUID, name: String, part: UUID, status: InstanceStatus, transform: RigidTransform?, bodies: [BodyResult],
+        names: [String: TopologyNames] = [:]
     ) {
         self.id = id
         self.name = name
@@ -31,6 +35,12 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
         self.status = status
         self.transform = transform
         self.bodies = bodies
+        self.names = names
+    }
+
+    /// The part's names for the faces and edges of one of the instance's bodies.
+    public func names(of body: String) -> TopologyNames? {
+        names[body] ?? bodies.first { $0.name == body }?.topology.map(TopologyNames.init)
     }
 }
 

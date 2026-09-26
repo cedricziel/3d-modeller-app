@@ -109,4 +109,43 @@ struct InstanceGeometryTests {
             try lid.element(.name("Box.top"), .faces, body: nil, parameters: noParameters)
         }
     }
+
+    @Test("A rotated instance keeps the part's [n] names, even where the rotation reorders the pieces")
+    func rotatedPiecesKeepPartNames() async throws {
+        let part = Part(name: "P", features: [box("Box", 60, 40, 10)])
+        let turn = Placement(rotationAxis: Vector3(0, 0, 1), rotationDegrees: 180)
+        let document = CADDocument(
+            parts: [part], assembly: Assembly(instances: [Instance(name: "Lid", part: part.id, placement: turn)]))
+        let result = try await RebuildEngine(kernel: FakeKernel()).rebuild(document)
+        let partTopology = try #require(result.parts.first?.bodies.first?.topology)
+        let lid = try #require(result.assembly?.instances.first)
+        let partNames = TopologyNames(partTopology)
+        let lidNames = try #require(lid.names(of: "Body1"))
+        let front = try lid.element(.name("edge(Box.front, Box.top)"), .edges, body: nil, parameters: noParameters)
+
+        #expect(lidNames == partNames)
+        #expect(front.index == partNames.edges.firstIndex(of: "edge(Box.front, Box.top)"))
+    }
+
+    @Test("Pieces of a split face resolve by the part's [n] names, which a rotation would otherwise reorder")
+    func piecesResolveByPartNames() throws {
+        let piece = { (x: Double) in
+            FaceDescriptor(
+                names: ["Plate.top"], surface: .plane, centroid: SIMD3(x, 0, 5), area: 1, normal: SIMD3(0, 0, 1))
+        }
+        let partTopology = BodyTopology(faces: [piece(10), piece(50)], edges: [])
+        let turn = RigidTransform(ResolvedPlacement(rotationAxis: SIMD3(0, 0, 1), rotationDegrees: 180))
+        let lid = InstanceResult(
+            id: UUID(), name: "Lid", part: UUID(), status: .ok, transform: turn,
+            bodies: [
+                BodyResult(
+                    name: "Body1", metrics: nil, mesh: nil, topology: partTopology.transformed(by: turn), error: nil)
+            ],
+            names: ["Body1": TopologyNames(partTopology)])
+
+        let first = try lid.element(.name("Plate.top[0]"), .faces, body: nil, parameters: noParameters)
+
+        #expect(first.index == 0)
+        #expect(first.name == "Plate.top[0]")
+    }
 }

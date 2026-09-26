@@ -81,6 +81,17 @@ struct AssemblyBuilder<Kernel: GeometryKernel> {
         }
     }
 
+    /// The part's names of each placed body, from its unmoved topology.
+    static func names(_ placed: Placed, partResults: [BodyResult]) -> [String: TopologyNames] {
+        var names: [String: TopologyNames] = [:]
+        for (name, _) in placed.bodies {
+            if let topology = partResults.first(where: { $0.name == name })?.topology {
+                names[name] = TopologyNames(topology)
+            }
+        }
+        return names
+    }
+
     private func resolve(_ placement: Placement) throws(Failure) -> ResolvedPlacement {
         func value(_ scalar: Scalar, _ field: String) throws(Failure) -> Double {
             do {
