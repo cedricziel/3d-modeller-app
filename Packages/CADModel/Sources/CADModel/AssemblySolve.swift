@@ -60,7 +60,9 @@ extension AssemblyBuilder {
             instances = instances.map { instance in
                 guard instance.status == .ok else { return instance }
                 let grounded = assembly.instances.first { $0.id == instance.id }?.grounded ?? false
-                return instance.with(freedoms: grounded ? 0 : freedoms[instance.id] ?? 6)
+                if grounded { return instance.with(freedoms: 0) }
+                guard let freedoms else { return instance }
+                return instance.with(freedoms: freedoms[instance.id] ?? 6)
             }
         }
         return AssembledInstances(result: AssemblyResult(instances: instances, joints: joints), bodies: bodies)
@@ -76,12 +78,12 @@ extension AssemblyBuilder {
     }
 
     /// Each joint's status, the solved transform of every instance the joints moved, and the freedoms of every
-    /// instance that reached the solver.
+    /// instance that reached the solver; no freedoms when nothing was solved.
     private func solveJoints(
         _ assembly: Assembly, instances: [InstanceResult], partResults: [UUID: [BodyResult]],
         solver: (any AssemblySolving)?
-    ) -> ([JointResult], [UUID: RigidTransform], [UUID: Int]) {
-        guard !assembly.joints.isEmpty else { return ([], [:], [:]) }
+    ) -> ([JointResult], [UUID: RigidTransform], [UUID: Int]?) {
+        guard !assembly.joints.isEmpty else { return ([], [:], nil) }
         let resolver = JointResolver(parameters: parameters, instances: instances, partBodies: partResults)
         var statuses: [UUID: JointStatus] = [:]
         var names: Set<String> = []
@@ -124,30 +126,32 @@ extension AssemblyBuilder {
         }
         var solved: [UUID: RigidTransform] = [:]
         var values: [UUID: Double] = [:]
-        var freedoms: [UUID: Int] = [:]
+        var freedoms: [UUID: Int]?
         if !markers.isEmpty {
             let outcome = solve(
                 SolverAssembly(bodies: bodies, joints: markers), solverJoints: solverJoints, assembly: assembly,
                 solver: solver)
-            let placements = outcome.placements ?? bodies.map(\.placement)
             for (position, entry) in solverJoints.enumerated() {
                 var status = outcome.statuses[position]
                 if let problem = entry.drive.problem { status = .failed(problem) }
                 statuses[entry.joint.id] = status
+                guard let placements = outcome.placements else { continue }
                 let a = placements[markers[position].bodyA].composed(with: entry.markers.a)
                 let b = placements[markers[position].bodyB].composed(with: entry.markers.b)
                 values[entry.joint.id] =
                     entry.drive.isDriven && status.holds ? entry.drive.value : entry.drive.measure(a: a, b: b)
             }
-            let mobility = Mobility.freedoms(
-                bodies: bodies.count, grounded: Set(bodies.indices.filter { bodies[$0].grounded }),
-                joints: markers.map {
-                    MobilityJoint(
-                        kind: $0.kind, bodyA: $0.bodyA, bodyB: $0.bodyB,
-                        a: placements[$0.bodyA].composed(with: $0.markerA),
-                        b: placements[$0.bodyB].composed(with: $0.markerB))
-                })
-            for (id, index) in bodyIndex { freedoms[id] = mobility[index] }
+            if let placements = outcome.placements {
+                let mobility = Mobility.freedoms(
+                    bodies: bodies.count, grounded: Set(bodies.indices.filter { bodies[$0].grounded }),
+                    joints: markers.map {
+                        MobilityJoint(
+                            kind: $0.kind, bodyA: $0.bodyA, bodyB: $0.bodyB,
+                            a: placements[$0.bodyA].composed(with: $0.markerA),
+                            b: placements[$0.bodyB].composed(with: $0.markerB))
+                    })
+                freedoms = Dictionary(uniqueKeysWithValues: bodyIndex.map { ($0.key, mobility[$0.value]) })
+            }
             for (id, index) in bodyIndex where !bodies[index].grounded {
                 guard let placement = outcome.placements?[index], !placement.isClose(to: bodies[index].placement)
                 else { continue }

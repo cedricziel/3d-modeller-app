@@ -190,4 +190,12 @@ struct JointDriveTests {
         #expect(abs(value) < 1e-6)
         #expect(result.assembly?.joints.first?.isOutsideLimits == false)
     }
+
+    @Test("Without a solve, joints report no measured value and instances no freedoms")
+    func nothingSolvedReportsNothing() async throws {
+        let result = try await RebuildEngine(kernel: FakeKernel()).rebuild(document(.revolute))
+
+        #expect(result.assembly?.joints.first?.value == nil)
+        #expect(result.assembly?.instances.map(\.freedoms) == [0, nil])
+    }
 }
