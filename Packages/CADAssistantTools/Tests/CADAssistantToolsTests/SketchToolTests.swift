@@ -90,6 +90,13 @@ struct SketchToolTests {
         (["plane": "Box9.top", "entities": rectangle], "'body'"),
         (["plane": "XY", "entities": [["type": "line", "name": "a.b", "start": [0, 0], "end": [1, 1]]]], "'a.b'"),
         (["entities": rectangle], "'plane'"),
+        (
+            [
+                "plane": "XY", "entities": rectangle,
+                "constraints": [["type": "radius", "entities": ["line1"], "value": 3]],
+            ],
+            "an arc or a circle"
+        ),
     ]
 
     @Test("Bad sketches are refused before anything changes", arguments: refusals)
@@ -138,6 +145,38 @@ struct SketchToolTests {
         guard case .sketch(let sketch) = harness.document.parts[0].features[1].kind else { return }
         #expect(sketch.constraints.isEmpty)
         #expect(sketch.entities.count == 4)
+    }
+
+    @Test("A removed entity's name is never handed out again")
+    func namesNotReused() async throws {
+        let harness = Harness(Fixtures.sketched())
+        _ = try await harness.call("edit_sketch", ["sketch": "Sketch1", "remove_entities": ["line5"]])
+        let result = try await harness.call(
+            "edit_sketch", ["sketch": "Sketch1", "add_entities": [["type": "line", "start": [0, 0], "end": [0, 5]]]])
+        #expect(result.success, "\(result.message)")
+        guard case .sketch(let sketch) = harness.document.parts[0].features[1].kind else { return }
+        #expect(sketch.entities.map(\.name) == ["line1", "line2", "line3", "line4", "line6"])
+    }
+
+    @Test("update_entities keeps the construction flag unless given, and refuses a new type")
+    func updateKeepsConstruction() async throws {
+        let harness = Harness(Fixtures.sketched())
+        let result = try await harness.call(
+            "edit_sketch",
+            [
+                "sketch": "Sketch1",
+                "update_entities": [["name": "line5", "type": "line", "start": [0, 0], "end": [0, 12]]],
+            ])
+        #expect(result.success, "\(result.message)")
+        guard case .sketch(let sketch) = harness.document.parts[0].features[1].kind else { return }
+        #expect(sketch.entities[4].construction)
+        let retyped = try await harness.refused(
+            "edit_sketch",
+            [
+                "sketch": "Sketch1",
+                "update_entities": [["name": "line5", "type": "circle", "center": [0, 0], "radius": 2]],
+            ])
+        #expect(retyped?.contains("cannot change line5 from a line to a circle") == true, "\(retyped ?? "")")
     }
 
     @Test("edit_sketch refuses unknown names, values on constraints without one, and empty edits")
