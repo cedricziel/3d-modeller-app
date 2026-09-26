@@ -1,0 +1,29 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: xcodebuild -version
+      - name: Test SwiftUIAssistant
+        working-directory: Packages/SwiftUIAssistant
+        run: xcrun swift test
+      - name: Test SwiftUIAssistantTools
+        working-directory: Packages/SwiftUIAssistantTools
+        run: xcrun swift test
+      - name: Test app
+        run: >
+          xcodebuild test
+          -project 3DModellerApp.xcodeproj
+          -scheme 3DModellerApp
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
