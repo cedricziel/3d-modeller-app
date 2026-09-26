@@ -1,7 +1,7 @@
 public enum SketchState: Sendable, Hashable {
     case fullyConstrained
     case underConstrained(dof: Int)
-    /// Indices into `Sketch.constraints` that contradict each other.
+    /// Indices into `Sketch.constraints` of every constraint in a contradicting group.
     case overConstrained(conflicting: [Int])
     /// Indices into `Sketch.constraints` that are implied by the others.
     case redundant([Int])
