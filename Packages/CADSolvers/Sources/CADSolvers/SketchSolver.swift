@@ -52,11 +52,25 @@ extension SketchGeometry {
             .circle(center: SketchPoint(values[0], values[1]), radius: values[2])
         case (.arc, 5):
             .arc(
-                center: SketchPoint(values[0], values[1]), radius: values[2], startAngle: values[3], endAngle: values[4]
+                center: SketchPoint(values[0], values[1]), radius: values[2],
+                startAngle: Self.angleInFirstTurn(values[3]),
+                endAngle: Self.angleInFirstTurn(values[3]) + Self.sweep(from: values[3], to: values[4])
             )
         default:
             self
         }
+    }
+
+    /// PlaneGCS leaves arc angles unbounded; solved arcs start in [0, 2π) and end after their start.
+    private static func angleInFirstTurn(_ angle: Double) -> Double {
+        let turn = 2 * Double.pi
+        let angle = angle.truncatingRemainder(dividingBy: turn)
+        return angle < 0 ? angle + turn : angle
+    }
+
+    private static func sweep(from start: Double, to end: Double) -> Double {
+        let sweep = angleInFirstTurn(end - start)
+        return sweep == 0 ? 2 * .pi : sweep
     }
 }
 

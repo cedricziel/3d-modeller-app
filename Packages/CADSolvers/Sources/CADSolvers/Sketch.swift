@@ -8,7 +8,8 @@ public struct SketchPoint: Sendable, Hashable {
     }
 }
 
-/// Angles are radians; an arc runs counter-clockwise from `startAngle` to `endAngle`.
+/// Angles are radians; an arc runs counter-clockwise from `startAngle` to `endAngle`. Solved arcs
+/// come back with `startAngle` in [0, 2π) and `endAngle` in (`startAngle`, `startAngle` + 2π].
 public enum SketchGeometry: Sendable, Hashable {
     case point(SketchPoint)
     case line(start: SketchPoint, end: SketchPoint)

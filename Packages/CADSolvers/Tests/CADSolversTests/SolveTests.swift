@@ -217,4 +217,16 @@ struct SolveTests {
         let solution = try solver.solve(sketch)
         #expect(solution.entities.map(\.construction) == [true, false])
     }
+
+    @Test func solvedArcAnglesAreNormalised() throws {
+        let solution = try solver.solve(
+            Sketch(
+                entities: [.arc(center: SketchPoint(0, 0), radius: 5, from: 2.21 + 4 * .pi, to: 0.32)],
+                constraints: [.fixed(.center(0)), .radius(0, 5)]
+            )
+        )
+        let angles = try #require(solution.arcAngles(0))
+        #expect(close(angles.start, 2.21))
+        #expect(close(angles.end, 0.32 + 2 * .pi))
+    }
 }
