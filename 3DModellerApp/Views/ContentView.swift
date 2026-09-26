@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var session: CADSession
     @State private var selection: UUID?
     @State private var assistant: Assistant?
+    @State private var refusal: String?
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
@@ -66,6 +67,14 @@ struct ContentView: View {
         .onChange(of: undoManager, initial: true) { _, undoManager in
             document.connect(session, undoManager: undoManager)
         }
+        .alert(
+            "Can't Delete", isPresented: Binding(get: { refusal != nil }, set: { if !$0 { refusal = nil } }),
+            presenting: refusal
+        ) { _ in
+            Button("OK") {}
+        } message: { message in
+            Text(message)
+        }
     }
 
     // MARK: - Edits
@@ -77,9 +86,10 @@ struct ContentView: View {
         }
     }
 
+    /// Goes through the session so body references are repaired, or the delete refused, as with delete_feature.
     private func delete(_ feature: Feature) {
-        document.edit("Delete \(feature.name)", undoManager: undoManager) { model in
-            model.removeFeature(id: feature.id)
+        Task {
+            refusal = await session.deleteFeature(id: feature.id)
         }
     }
 
