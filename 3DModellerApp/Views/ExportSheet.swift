@@ -10,7 +10,7 @@ struct ExportScope: Hashable, Identifiable {
     let label: String
     let suggestedName: String
 
-    var id: String { label }
+    var id: ExportTarget { target }
 
     func fileName(for format: ExportFormat) -> String {
         "\(suggestedName).\(format.fileExtension)"
@@ -48,7 +48,7 @@ struct ExportSheet: View {
     let scopes: [ExportScope]
     @Environment(\.dismiss) private var dismiss
     @State private var format: ExportFormat = .step
-    @State private var scopeID: String?
+    @State private var scopeID: ExportTarget?
     @State private var tolerance = ModelGeometry.defaultExportTolerance
     @State private var isExporting = false
     @State private var failure: String?
@@ -101,6 +101,7 @@ struct ExportSheet: View {
 
     private func export(_ scope: ExportScope, format: ExportFormat, tolerance: Double, to url: URL) async {
         isExporting = true
+        failure = nil
         defer { isExporting = false }
         do {
             _ = try await session.export(scope.target, as: format, to: url, tolerance: tolerance)
