@@ -27,6 +27,7 @@ public enum CADTools {
             EditJointTool(session: session),
             DeleteJointTool(session: session),
             MoveJointTool(session: session),
+            ExportTool(session: session),
         ]
     }
 }
