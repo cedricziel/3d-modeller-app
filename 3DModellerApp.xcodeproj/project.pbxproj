@@ -12,9 +12,11 @@
 		253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */; };
 		2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */ = {isa = PBXBuildFile; productRef = 3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */; };
 		3421FFE62CDDE5FE33F8E869 /* DeleteEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963AE036BDBB748EFA641D79 /* DeleteEntityTool.swift */; };
+		4021EF09AE9EC9DC2514850B /* CADKernel in Frameworks */ = {isa = PBXBuildFile; productRef = 1C432C8A334A8F767D36CA1D /* CADKernel */; };
 		40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFFBB66155410ABDA8497C94 /* AppModelTests.swift */; };
 		43CDAC7D090816997579D77A /* SwiftUIAssistant in Frameworks */ = {isa = PBXBuildFile; productRef = E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */; };
 		446BE25C8DA24E3904E8713C /* Viewport3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA075440578BA6785256D06A /* Viewport3DView.swift */; };
+		46D5DC1B4058856C8A28FE91 /* KernelMesh+RealityKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB50F153A70C5DFEB535DC8 /* KernelMesh+RealityKit.swift */; };
 		4A1F4945EDD2BA1A2B9E81A8 /* OrbitCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F31C0DE83507BAECFFFEAC /* OrbitCamera.swift */; };
 		4F05D0C8531E7F0B37C9D533 /* SceneManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77262B7DF955D154F10B319F /* SceneManager.swift */; };
 		521165A128D2584BE448AA8F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C7AC13B8AFB6810059AB22A /* ContentView.swift */; };
@@ -25,6 +27,7 @@
 		8D3AA70BBDCFA304A57D3CB9 /* SceneContextAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9128DE107552B2F45B1F81 /* SceneContextAdapter.swift */; };
 		92CBCF72AD0E55F6C3ABA6F1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */; };
 		94FB6803D47CA21068532180 /* TransformEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D65B9758FA8B269BA08BC425 /* TransformEntityTool.swift */; };
+		A609BBFC6EB03AB9AB6C9C6B /* KernelMeshRealityKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFB4F77884E1CF77F2BD3A5 /* KernelMeshRealityKitTests.swift */; };
 		A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */; };
 		B0F6DBE95D03E9BDD37456B9 /* SceneDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA980DDA18639ED43150C241 /* SceneDocument.swift */; };
 		B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */; };
@@ -55,6 +58,7 @@
 		5A89894339D82BFD1FB56297 /* 3DModellerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = 3DModellerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F19B4E515275E6B718ADBB7 /* SwiftUIAssistantTools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistantTools; path = Packages/SwiftUIAssistantTools; sourceTree = SOURCE_ROOT; };
 		6A5F6A4548E9DD7364A36CBB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6BFB4F77884E1CF77F2BD3A5 /* KernelMeshRealityKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelMeshRealityKitTests.swift; sourceTree = "<group>"; };
 		6C7AC13B8AFB6810059AB22A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		77262B7DF955D154F10B319F /* SceneManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneManager.swift; sourceTree = "<group>"; };
 		7E976980A6F107762B5A70CA /* SceneOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneOutlineView.swift; sourceTree = "<group>"; };
@@ -66,8 +70,10 @@
 		C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneManagerTests.swift; sourceTree = "<group>"; };
 		C348D3B3408BC57F176142F2 /* 3DModellerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 3DModellerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA980DDA18639ED43150C241 /* SceneDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDocument.swift; sourceTree = "<group>"; };
+		CFAD96D4CB4330F6C4125766 /* CADKernel */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CADKernel; path = Packages/CADKernel; sourceTree = SOURCE_ROOT; };
 		D65B9758FA8B269BA08BC425 /* TransformEntityTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformEntityTool.swift; sourceTree = "<group>"; };
 		E66F087DC4792997AB310824 /* 3DModellerApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = 3DModellerApp.entitlements; sourceTree = "<group>"; };
+		EAB50F153A70C5DFEB535DC8 /* KernelMesh+RealityKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KernelMesh+RealityKit.swift"; sourceTree = "<group>"; };
 		EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuplicateEntityTool.swift; sourceTree = "<group>"; };
 		ED6058937E5DD57AD2F2ED9A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		EFFBB66155410ABDA8497C94 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
@@ -81,6 +87,7 @@
 			files = (
 				43CDAC7D090816997579D77A /* SwiftUIAssistant in Frameworks */,
 				2D4CBE2018902C7A84A39DDA /* SwiftUIAssistantTools in Frameworks */,
+				4021EF09AE9EC9DC2514850B /* CADKernel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -108,6 +115,7 @@
 		6D1469D4AD91BCC3B5FA0074 /* Scene */ = {
 			isa = PBXGroup;
 			children = (
+				EAB50F153A70C5DFEB535DC8 /* KernelMesh+RealityKit.swift */,
 				CA980DDA18639ED43150C241 /* SceneDocument.swift */,
 				77262B7DF955D154F10B319F /* SceneManager.swift */,
 			);
@@ -133,6 +141,7 @@
 			children = (
 				EFFBB66155410ABDA8497C94 /* AppModelTests.swift */,
 				48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */,
+				6BFB4F77884E1CF77F2BD3A5 /* KernelMeshRealityKitTests.swift */,
 				1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */,
 				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
 				C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */,
@@ -165,6 +174,7 @@
 		D17AF539F25A3FE406E97C5C /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				CFAD96D4CB4330F6C4125766 /* CADKernel */,
 				24E6BB346016D6BB0545D19E /* SwiftUIAssistant */,
 				5F19B4E515275E6B718ADBB7 /* SwiftUIAssistantTools */,
 			);
@@ -211,6 +221,7 @@
 			packageProductDependencies = (
 				E79E310881F5A0304C6ADE04 /* SwiftUIAssistant */,
 				3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */,
+				1C432C8A334A8F767D36CA1D /* CADKernel */,
 			);
 			productName = 3DModellerApp;
 			productReference = C348D3B3408BC57F176142F2 /* 3DModellerApp.app */;
@@ -263,6 +274,7 @@
 			mainGroup = 2415D3243FAD981F4F91B45E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				0557F9E293ACF25B76337C14 /* XCLocalSwiftPackageReference "Packages/CADKernel" */,
 				96026FAF5681850A36FA4BC8 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistant" */,
 				8897795F95BEDB1CBE40C051 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistantTools" */,
 			);
@@ -287,6 +299,7 @@
 				7320708B043C83252FCD0400 /* CreatePrimitiveTool.swift in Sources */,
 				3421FFE62CDDE5FE33F8E869 /* DeleteEntityTool.swift in Sources */,
 				253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */,
+				46D5DC1B4058856C8A28FE91 /* KernelMesh+RealityKit.swift in Sources */,
 				826056080647BCD726193BE1 /* ModellerApp.swift in Sources */,
 				4A1F4945EDD2BA1A2B9E81A8 /* OrbitCamera.swift in Sources */,
 				7EEE685822D00C28AAEB9425 /* PropertiesInspectorView.swift in Sources */,
@@ -308,6 +321,7 @@
 			files = (
 				40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */,
 				7723F1930A49B110243FCFD9 /* AssistantIntegrationTests.swift in Sources */,
+				A609BBFC6EB03AB9AB6C9C6B /* KernelMeshRealityKitTests.swift in Sources */,
 				A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */,
 				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,
 				B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */,
@@ -573,6 +587,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		0557F9E293ACF25B76337C14 /* XCLocalSwiftPackageReference "Packages/CADKernel" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CADKernel;
+		};
 		8897795F95BEDB1CBE40C051 /* XCLocalSwiftPackageReference "Packages/SwiftUIAssistantTools" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SwiftUIAssistantTools;
@@ -584,6 +602,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1C432C8A334A8F767D36CA1D /* CADKernel */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CADKernel;
+		};
 		3055486B3C1351D848F003F3 /* SwiftUIAssistantTools */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftUIAssistantTools;

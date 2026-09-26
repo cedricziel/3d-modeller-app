@@ -11,6 +11,8 @@ packages:
     path: Packages/SwiftUIAssistant
   SwiftUIAssistantTools:
     path: Packages/SwiftUIAssistantTools
+  CADKernel:
+    path: Packages/CADKernel
 
 targets:
   3DModellerApp:
@@ -45,6 +47,8 @@ targets:
         product: SwiftUIAssistant
       - package: SwiftUIAssistantTools
         product: SwiftUIAssistantTools
+      - package: CADKernel
+        product: CADKernel
     info:
       path: 3DModellerApp/Info.plist
       properties:

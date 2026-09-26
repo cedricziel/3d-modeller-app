@@ -6,7 +6,7 @@ let package = Package(
     platforms: [
         .macOS("26.0"),
         .iOS("26.0"),
-        .visionOS("26.0")
+        .visionOS("26.0"),
     ],
     products: [
         .executable(
@@ -16,12 +16,13 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "Packages/SwiftUIAssistant"),
-        .package(path: "Packages/SwiftUIAssistantTools")
+        .package(path: "Packages/SwiftUIAssistantTools"),
+        .package(path: "Packages/CADKernel"),
     ],
     targets: [
         .executableTarget(
             name: "3DModellerApp",
-            dependencies: ["SwiftUIAssistant", "SwiftUIAssistantTools"],
+            dependencies: ["SwiftUIAssistant", "SwiftUIAssistantTools", "CADKernel"],
             path: "3DModellerApp"
         )
     ]
