@@ -14,6 +14,9 @@ final class CADModelDocument: ReferenceFileDocument {
 
     var model: CADDocument { storage.withLock { $0 } }
 
+    /// Called on every change, including undo and redo, before observers re-render.
+    @MainActor var onChange: ((CADDocument) -> Void)?
+
     static var readableContentTypes: [UTType] { [.cadModel] }
 
     init(model: CADDocument = CADDocument()) {
@@ -44,6 +47,7 @@ final class CADModelDocument: ReferenceFileDocument {
         guard new != old else { return }
         objectWillChange.send()
         storage.withLock { $0 = new }
+        onChange?(new)
         guard let undoManager else { return }
         let opensGroup = !undoManager.isUndoing && !undoManager.isRedoing
         if opensGroup { undoManager.beginUndoGrouping() }

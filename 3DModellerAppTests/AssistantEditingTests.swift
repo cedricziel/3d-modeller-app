@@ -57,4 +57,25 @@ struct AssistantEditingTests {
         #expect(document.model == session.document)
         #expect(document.model.parts[0].features.isEmpty)
     }
+
+    @Test("A UI edit made just before a tool call is kept, since the session adopts it at once")
+    func uiEditBeforeToolCallIsKept() async throws {
+        let undoManager = undoManager()
+        let document = CADModelDocument()
+        let session = CADSession(document: document.model, kernel: OCCTGeometryKernel())
+        document.connect(session, undoManager: undoManager)
+        let ball = Feature(name: "Ball", kind: .primitive(PrimitiveFeature(.sphere(radius: 5))))
+
+        document.edit("Add Ball", undoManager: undoManager) { $0.parts[0].features.append(ball) }
+        let result = try await SetParameterTool(session: session).execute(arguments: ["name": "t", "expression": 2])
+
+        #expect(result.success)
+        #expect(document.model.parts[0].features == [ball])
+        #expect(document.model.parameters.map(\.name) == ["t"])
+        #expect(session.document == document.model)
+
+        undoManager.undo()
+        #expect(session.document == document.model)
+        #expect(session.document.parameters.isEmpty)
+    }
 }
