@@ -23,7 +23,9 @@ enum JointArguments {
             let face = GeometryReference(parsing: try arguments.requiredString("face"))
             let edge = try arguments.string("edge").map(GeometryReference.init(parsing:))
             let offset = try arguments.object("offset").map { (object) throws(ToolError) in try Self.offset(object) }
-            if let built = result?.assembly?.instance(id: instance.id) {
+            if let placed = result?.assembly?.instance(id: instance.id) {
+                let partBodies = result?.parts.first { $0.id == instance.part }?.bodies ?? []
+                let built = placed.unmoved(partBodies: partBodies)
                 let parameters = result?.parameters ?? ParameterTable(document.parameters)
                 do throws(ReferenceError) {
                     let element = try built.element(face, .faces, body: body, parameters: parameters)

@@ -172,4 +172,20 @@ struct JointRebuildTests {
         #expect(statuses[1] == .failed("another joint is already named 'Mate'"))
         #expect(statuses[2] == .failed("both sides are on Top"))
     }
+
+    @Test("A filter reference picks the part's own face, whatever the instance's starting placement")
+    func filterResolvesInPartCoordinates() async throws {
+        let solver = FakeAssemblySolver()
+        let upsideDown = Placement(translation: Vector3(0, 0, 80), rotationAxis: Vector3(1, 0, 0), rotationDegrees: 180)
+        let base = Instance(name: "Base", part: part.id, grounded: true)
+        let top = Instance(name: "Top", part: part.id, placement: upsideDown)
+        let joint = Joint(
+            name: "Mate", kind: .fixed, a: JointFrameRef(instance: base.id, face: .name("Box.top")),
+            b: JointFrameRef(instance: top.id, face: .filter("normal -Z")))
+        let document = CADDocument(parts: [part], assembly: Assembly(instances: [base, top], joints: [joint]))
+        _ = try await rebuild(document, solver)
+        let marker = try #require(solver.received.first?.joints.first?.markerB)
+
+        #expect(close(marker.translation, SIMD3(5, 10, 0)))
+    }
 }

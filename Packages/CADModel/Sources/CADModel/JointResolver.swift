@@ -23,11 +23,12 @@ struct JointResolver {
             guard let instance = instances.first(where: { $0.id == side.instance }) else {
                 throw ReferenceError("its instance no longer exists")
             }
-            let face = try instance.element(side.face, .faces, body: side.body, parameters: parameters)
+            let local = instance.unmoved(partBodies: partBodies[instance.part] ?? [])
+            let face = try local.element(side.face, .faces, body: side.body, parameters: parameters)
             let edge = try side.edge.map { edge throws(ReferenceError) in
-                try instance.element(edge, .edges, body: face.body, parameters: parameters)
+                try local.element(edge, .edges, body: face.body, parameters: parameters)
             }
-            guard let topology = partBodies[instance.part]?.first(where: { $0.name == face.body })?.topology else {
+            guard let topology = local.bodies.first(where: { $0.name == face.body })?.topology else {
                 throw ReferenceError("\(instance.name)/\(face.body) has no faces")
             }
             let frame = try GeometryFrame.frame(
