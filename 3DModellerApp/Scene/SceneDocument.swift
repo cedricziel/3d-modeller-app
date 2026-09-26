@@ -1,36 +1,39 @@
 import SwiftUI
+import Synchronization
 import UniformTypeIdentifiers
 
-/// Document type for 3D scenes
-struct SceneDocument: FileDocument {
-    /// The scene data
-    var sceneData: SceneData
+/// Document type for 3D scenes. A reference document, so SwiftUI tracks unsaved changes through
+/// the window's undo manager, where `SceneManager` records its edits.
+final class SceneDocument: ReferenceFileDocument {
+    private let storage: Mutex<SceneData>
 
-    /// Supported content types
+    var sceneData: SceneData {
+        get { storage.withLock { $0 } }
+        set { storage.withLock { $0 = newValue } }
+    }
+
     static var readableContentTypes: [UTType] { [.sceneDocument] }
     static var writableContentTypes: [UTType] { [.sceneDocument] }
 
-    /// Create an empty document
-    init() {
-        self.sceneData = SceneData()
+    init(sceneData: SceneData = SceneData()) {
+        storage = Mutex(sceneData)
     }
 
-    /// Initialize from file
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadCorruptFile)
         }
-
-        let decoder = JSONDecoder()
-        self.sceneData = try decoder.decode(SceneData.self, from: data)
+        storage = Mutex(try JSONDecoder().decode(SceneData.self, from: data))
     }
 
-    /// Save to file
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+    func snapshot(contentType: UTType) throws -> SceneData {
+        sceneData
+    }
+
+    func fileWrapper(snapshot: SceneData, configuration: WriteConfiguration) throws -> FileWrapper {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
-        let data = try encoder.encode(sceneData)
-        return FileWrapper(regularFileWithContents: data)
+        return FileWrapper(regularFileWithContents: try encoder.encode(snapshot))
     }
 }
 
@@ -160,7 +163,7 @@ struct ColorData: Codable, Hashable {
         "white": ColorData(r: 1, g: 1, b: 1),
         "black": ColorData(r: 0, g: 0, b: 0),
         "gray": ColorData(r: 0.5, g: 0.5, b: 0.5),
-        "grey": ColorData(r: 0.5, g: 0.5, b: 0.5)
+        "grey": ColorData(r: 0.5, g: 0.5, b: 0.5),
     ]
 
     /// Named color initializer
@@ -168,4 +171,3 @@ struct ColorData: Codable, Hashable {
         self = Self.namedColors[named.lowercased()] ?? ColorData(r: 0.8, g: 0.8, b: 0.8)
     }
 }
-

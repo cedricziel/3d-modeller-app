@@ -5,8 +5,9 @@ import SwiftUIAssistantTools
 /// Main content view with 3D viewport and assistant panel
 @MainActor
 struct ContentView: View {
-    @Binding var document: SceneDocument
+    @ObservedObject var document: SceneDocument
     @EnvironmentObject private var appModel: AppModel
+    @Environment(\.undoManager) private var undoManager
     @StateObject private var sceneManager = SceneManager()
 
     // Assistant setup
@@ -44,7 +45,11 @@ struct ContentView: View {
         }
         .task {
             setupAssistant()
+            adoptUndoManager()
             syncDocumentToScene()
+        }
+        .onChange(of: undoManager) { _, _ in
+            adoptUndoManager()
         }
         .onChange(of: sceneManager.revision) { _, _ in
             syncSceneToDocument()
@@ -109,6 +114,13 @@ struct ContentView: View {
     }
 
     // MARK: - Document Sync
+
+    private func adoptUndoManager() {
+        if let undoManager {
+            undoManager.levelsOfUndo = 50
+            sceneManager.undoManager = undoManager
+        }
+    }
 
     private func syncDocumentToScene() {
         sceneManager.loadSceneData(document.sceneData)
@@ -241,6 +253,6 @@ struct SceneStatisticsView: View {
 }
 
 #Preview {
-    ContentView(document: .constant(SceneDocument()))
+    ContentView(document: SceneDocument())
         .environmentObject(AppModel())
 }

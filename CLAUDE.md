@@ -62,8 +62,8 @@ This is an AI-first 3D modeling macOS app where users interact primarily through
 
 **3DModellerApp** - The main application consuming SwiftUIAssistant:
 
-- `SceneManager` - Central RealityKit scene management with undo/redo
-- `SceneDocument` - FileDocument for `.scene3d` files (JSON-based)
+- `SceneManager` - Central RealityKit scene management; records undo steps on the window's `UndoManager` (Edit ▸ Undo, ⌘Z)
+- `SceneDocument` - ReferenceFileDocument for `.scene3d` files (JSON-based)
 - Tools implementing `AssistantTool`: `CreatePrimitiveTool`, `TransformEntityTool`, `DeleteEntityTool`, `SetMaterialTool`, `DuplicateEntityTool`, `QuerySceneTool`
 
 ### Key Data Flow
