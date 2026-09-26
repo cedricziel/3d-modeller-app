@@ -12,7 +12,7 @@ struct FeatureOutlineView: View {
         List(selection: $selection) {
             if !model.parameters.isEmpty {
                 Section("Parameters") {
-                    ForEach(model.parameters, id: \.name) { parameter in
+                    ForEach(Array(model.parameters.enumerated()), id: \.offset) { _, parameter in
                         ParameterRow(parameter: parameter, value: result?.parameters.value(of: parameter.name))
                     }
                 }
