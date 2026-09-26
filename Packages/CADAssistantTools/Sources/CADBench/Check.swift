@@ -53,13 +53,19 @@ public enum Check: Sendable, Equatable {
     case parameter(name: String, value: Double, tolerance: Double)
     case featureCount(FeatureType, min: Int?, max: Int?)
     case referenceIoU(threshold: Double)
-    case unchangedExcept(features: [String], parameters: [String], instances: [String], allowNewFeatures: Bool)
+    case unchangedExcept(
+        features: [String], parameters: [String], instances: [String], joints: [String], allowNewFeatures: Bool)
     case instanceCount(Int)
     /// The bounds of one instance, or of every instance when `instance` is nil.
     case instanceBounds(
         instance: String?, min: SIMD3<Double>?, max: SIMD3<Double>?, size: SIMD3<Double>?, tolerance: Double)
     /// No two instances share volume; touching is allowed.
     case noInterference
+    /// At least `minimum` joints, every one holding, with at least one of each kind in `kinds`.
+    case jointsSatisfied(minimum: Int, kinds: [JointKind])
+    /// Where the instance's part origin sits, in assembly coordinates, relative to another instance's origin or to
+    /// the assembly origin.
+    case instancePosition(instance: String, relativeTo: String?, translation: SIMD3<Double>, tolerance: Double)
 }
 
 extension Check: Decodable {
@@ -129,10 +135,10 @@ extension Check: Decodable {
             try allow(["threshold"])
             self = .referenceIoU(threshold: try required("threshold"))
         case "unchangedExcept":
-            try allow(["features", "parameters", "instances", "allowNewFeatures"])
+            try allow(["features", "parameters", "instances", "joints", "allowNewFeatures"])
             self = .unchangedExcept(
                 features: try optional("features") ?? [], parameters: try optional("parameters") ?? [],
-                instances: try optional("instances") ?? [],
+                instances: try optional("instances") ?? [], joints: try optional("joints") ?? [],
                 allowNewFeatures: try optional("allowNewFeatures") ?? false)
         case "instanceCount":
             try allow(["equals"])
@@ -149,6 +155,17 @@ extension Check: Decodable {
         case "noInterference":
             try allow([])
             self = .noInterference
+        case "jointsSatisfied":
+            try allow(["minimum", "kinds"])
+            self = .jointsSatisfied(minimum: try optional("minimum") ?? 1, kinds: try optional("kinds") ?? [])
+        case "instancePosition":
+            try allow(["instance", "relativeTo", "translation", "tolerance"])
+            guard let translation = try vector("translation") else {
+                throw fail("An instancePosition check needs translation [x, y, z]")
+            }
+            self = .instancePosition(
+                instance: try required("instance"), relativeTo: try optional("relativeTo"), translation: translation,
+                tolerance: try optional("tolerance") ?? 0.01)
         default:
             throw fail("Unknown check type '\(type)'")
         }
@@ -171,6 +188,13 @@ extension Check: CustomStringConvertible {
             return "bounds of \(subject): \(Self.bounds(min, max, size, tolerance))"
         case .noInterference:
             return "no interference between instances"
+        case .jointsSatisfied(let minimum, let kinds):
+            let kindText = kinds.isEmpty ? "" : ", including \(kinds.map(\.rawValue).joined(separator: ", "))"
+            return "joints: at least \(minimum), all satisfied\(kindText)"
+        case .instancePosition(let instance, let relativeTo, let translation, let tolerance):
+            let origin = relativeTo.map { "from \($0)" } ?? "from the origin"
+            return
+                "position of \(instance) \(origin) = \(BenchFormat.vector(translation)) ±\(BenchFormat.number(tolerance)) mm"
         case .volume(let selector, let expected, let tolerance):
             return "volume of \(selector) = \(BenchFormat.number(expected)) mm³ ±\(BenchFormat.percent(tolerance))"
         case .parameter(let name, let value, _):
@@ -185,11 +209,12 @@ extension Check: CustomStringConvertible {
             }
         case .referenceIoU(let threshold):
             return "overlap with reference ≥ \(BenchFormat.number(threshold))"
-        case .unchangedExcept(let features, let parameters, let instances, let allowNewFeatures):
+        case .unchangedExcept(let features, let parameters, let instances, let joints, let allowNewFeatures):
             var parts: [String] = []
             if !features.isEmpty { parts.append("features \(features.joined(separator: ", "))") }
             if !parameters.isEmpty { parts.append("parameters \(parameters.joined(separator: ", "))") }
             if !instances.isEmpty { parts.append("instances \(instances.joined(separator: ", "))") }
+            if !joints.isEmpty { parts.append("joints \(joints.joined(separator: ", "))") }
             if allowNewFeatures { parts.append("new features allowed") }
             return parts.isEmpty ? "unchanged elsewhere" : "unchanged except \(parts.joined(separator: ", "))"
         }

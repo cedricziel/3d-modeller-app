@@ -9,7 +9,8 @@ enum DocumentComparison {
 
     static func differences(
         from seed: CADDocument, to document: CADDocument, features exemptFeatures: Set<String>,
-        parameters exemptParameters: Set<String>, instances exemptInstances: Set<String> = [], allowNewFeatures: Bool
+        parameters exemptParameters: Set<String>, instances exemptInstances: Set<String> = [],
+        joints exemptJoints: Set<String> = [], allowNewFeatures: Bool
     ) -> [String] {
         var differences: [String] = []
         let current = Dictionary(
@@ -60,6 +61,57 @@ enum DocumentComparison {
             differences.append("part \(part.name) was added")
         }
         return differences + instanceDifferences(from: seed, to: document, exempt: exemptInstances)
+            + jointDifferences(from: seed, to: document, exempt: exemptJoints)
+    }
+
+    private struct PlacedJoint: Equatable {
+        struct Side: Equatable {
+            let instance: String?
+            let body: String?
+            let face: GeometryReference
+            let edge: GeometryReference?
+            let offset: JointOffset?
+        }
+
+        let kind: JointKind
+        let a: Side
+        let b: Side
+        let flip: Bool
+        let limits: JointLimits?
+
+        init(_ joint: Joint, in document: CADDocument) {
+            func side(_ side: JointFrameRef) -> Side {
+                Side(
+                    instance: document.instances.first { $0.id == side.instance }?.name, body: side.body,
+                    face: side.face, edge: side.edge, offset: side.offset)
+            }
+            kind = joint.kind
+            a = side(joint.a)
+            b = side(joint.b)
+            flip = joint.flip
+            limits = joint.limits
+        }
+    }
+
+    /// Joints by name, with their instances by name.
+    private static func jointDifferences(from seed: CADDocument, to document: CADDocument, exempt: Set<String>)
+        -> [String]
+    {
+        var differences: [String] = []
+        let current = Dictionary(
+            document.joints.map { ($0.name, PlacedJoint($0, in: document)) }, uniquingKeysWith: { first, _ in first })
+        for joint in seed.joints where !exempt.contains(joint.name) {
+            guard let edited = current[joint.name] else {
+                differences.append("joint \(joint.name) was removed")
+                continue
+            }
+            if edited != PlacedJoint(joint, in: seed) { differences.append("joint \(joint.name) changed") }
+        }
+        let seedNames = Set(seed.joints.map(\.name))
+        for joint in document.joints where !seedNames.contains(joint.name) && !exempt.contains(joint.name) {
+            differences.append("joint \(joint.name) was added")
+        }
+        return differences
     }
 
     private struct PlacedInstance: Equatable {

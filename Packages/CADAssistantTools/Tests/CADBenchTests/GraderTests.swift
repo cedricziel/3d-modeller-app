@@ -1,5 +1,7 @@
 import CADModel
 import CADModelKernel
+import CADModelSolvers
+import Foundation
 import Testing
 
 @testable import CADBench
@@ -123,7 +125,8 @@ struct GraderTests {
         var edited = seed
         edited.parameters[0].expression = 30
         let result = await grade(
-            [.unchangedExcept(features: ["Hole"], parameters: [], instances: [], allowNewFeatures: false)], edited,
+            [.unchangedExcept(features: ["Hole"], parameters: [], instances: [], joints: [], allowNewFeatures: false)],
+            edited,
             seed: seed)
         #expect(
             result.outcomes[0]
@@ -181,7 +184,8 @@ struct GraderTests {
         moved.assembly?.instances[1].placement.translation.z = 25
         moved.assembly?.instances[0].grounded = false
         let result = await grade(
-            [.unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false)], moved,
+            [.unchangedExcept(features: [], parameters: [], instances: ["Top"], joints: [], allowNewFeatures: false)],
+            moved,
             seed: seed)
 
         #expect(result.outcomes[0].detail == "instance Bottom changed")
@@ -194,5 +198,77 @@ struct GraderTests {
 
         #expect(same.passed, "\(same.failures)")
         #expect(!moved.passed)
+    }
+
+    /// The stacked plates with Top held on Bottom by a fixed joint, or by a joint to a face that does not exist.
+    private func joined(face: String = "Box.top", kind: JointKind = .fixed) -> CADDocument {
+        var document = stacked(topAt: 0)
+        let (bottom, top) = (document.instances[0].id, document.instances[1].id)
+        document.assembly?.joints = [
+            Joint(
+                name: "Rest", kind: kind, a: JointFrameRef(instance: bottom, face: .name(face)),
+                b: JointFrameRef(instance: top, face: .name("Box.bottom")))
+        ]
+        return document
+    }
+
+    private var solving: Grader<OCCTGeometryKernel> {
+        Grader(kernel: OCCTGeometryKernel(), assemblySolver: OndselAssemblySolver())
+    }
+
+    private func gradeSolved(_ checks: [Check], _ document: CADDocument) async -> Grade {
+        await solving.grade(BenchTask(id: "t", kind: .build, prompt: "p", checks: checks), document: document)
+    }
+
+    @Test("Joints are graded on the solved assembly: satisfied, kinds and the instances' relative position")
+    func jointChecks() async {
+        let offset = SIMD3<Double>(0, 0, 5)
+        let passing = await gradeSolved(
+            [
+                .gate, .jointsSatisfied(minimum: 1, kinds: [.fixed]),
+                .instancePosition(instance: "Top", relativeTo: "Bottom", translation: offset, tolerance: 1e-6),
+                .instancePosition(instance: "Top", relativeTo: nil, translation: offset, tolerance: 1e-6),
+            ], joined())
+        let wrongKind = await gradeSolved([.jointsSatisfied(minimum: 1, kinds: [.revolute])], joined())
+        let tooFew = await gradeSolved([.jointsSatisfied(minimum: 2, kinds: [])], joined())
+        let none = await gradeSolved([.jointsSatisfied(minimum: 1, kinds: [])], stacked(topAt: 5))
+        let moved = await gradeSolved(
+            [.instancePosition(instance: "Top", relativeTo: "Bottom", translation: SIMD3(0, 0, 6), tolerance: 0.01)],
+            joined())
+
+        #expect(passing.passed, "\(passing.failures)")
+        #expect(wrongKind.outcomes[0].detail == "1 joint (fixed); no revolute joint")
+        #expect(!tooFew.passed)
+        #expect(none.outcomes[0].detail == "no joints")
+        #expect(moved.outcomes[0].detail == "Top is at (0, 0, 5) from Bottom")
+    }
+
+    @Test("A failed joint fails the gate and the joints check")
+    func failedJoint() async {
+        let result = await gradeSolved([.gate, .jointsSatisfied(minimum: 1, kinds: [])], joined(face: "Box.nope"))
+
+        #expect(!result.outcomes[0].passed)
+        #expect(result.outcomes[0].detail.contains("joint Rest: failed: a: "))
+        #expect(result.outcomes[1].detail.hasPrefix("Rest: failed: a: "))
+    }
+
+    @Test("Unchanged-elsewhere compares joints by name")
+    func unchangedJoints() async {
+        let seed = joined()
+        var edited = seed
+        edited.assembly?.joints[0].flip = true
+        let changed = await gradeSolved(
+            [.unchangedExcept(features: [], parameters: [], instances: [], joints: [], allowNewFeatures: false)],
+            edited)
+        let exempt = await grade(
+            [.unchangedExcept(features: [], parameters: [], instances: [], joints: ["Rest"], allowNewFeatures: false)],
+            edited, seed: seed)
+        let fresh = await grade(
+            [.unchangedExcept(features: [], parameters: [], instances: [], joints: [], allowNewFeatures: false)],
+            edited, seed: seed)
+
+        #expect(changed.outcomes[0].detail == "the task has no seed")
+        #expect(exempt.passed, "\(exempt.failures)")
+        #expect(fresh.outcomes[0].detail == "joint Rest changed")
     }
 }

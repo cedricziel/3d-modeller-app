@@ -70,7 +70,10 @@ struct BenchRunnerTests {
         let seed = CADDocument(parts: [Part(name: "P", features: [box("Block", 10, 20, 30)])])
         let task = BenchTask(
             id: "m", kind: .modify, prompt: "Leave it.",
-            checks: [.unchangedExcept(features: [], parameters: [], instances: [], allowNewFeatures: false)], seed: seed
+            checks: [
+                .unchangedExcept(features: [], parameters: [], instances: [], joints: [], allowNewFeatures: false)
+            ],
+            seed: seed
         )
         let record = await runner([reply("Nothing to do.")]).run(task, attempt: 2)
         #expect(record.attempt == 2 && record.passed)
