@@ -81,4 +81,49 @@ struct FeatureDisplayTests {
             FeatureKind.chamfer(ChamferFeature(body: "Body1", edges: [.filter("circular")], distance: 1)).title
                 == "Chamfer")
     }
+
+    @Test("Sketches, extrudes and revolves describe their plane, source and extent")
+    func sketchBased() {
+        let sketch = FeatureKind.sketch(
+            SketchFeature(
+                plane: .face(body: "Body1", face: .name("Box1.top"), offset: 2),
+                entities: [
+                    SketchEntity(name: "line1", .line(start: SketchPoint2(0, 0), end: SketchPoint2(1, 0))),
+                    SketchEntity(name: "line2", .line(start: SketchPoint2(1, 0), end: SketchPoint2(1, 1))),
+                    SketchEntity(name: "circle1", .circle(center: SketchPoint2(0, 0), radius: 1)),
+                ],
+                constraints: [SketchConstraint(name: "c1", .horizontal, entities: ["line1"])]))
+        #expect(sketch.title == "Sketch")
+        #expect(
+            sketch.properties == [
+                FeatureProperty(label: "Plane", value: "Box1.top of Body1, offset 2"),
+                FeatureProperty(label: "Entities", value: "2 lines, 1 circle"),
+                FeatureProperty(label: "Constraints", value: "1"),
+            ])
+        let extrude = FeatureKind.extrude(
+            ExtrudeFeature(sketch: "Sketch1", extent: .distance(10), reversed: true, operation: .cut("Body1")))
+        #expect(
+            extrude.properties == [
+                FeatureProperty(label: "Sketch", value: "Sketch1"),
+                FeatureProperty(label: "Regions", value: "All"),
+                FeatureProperty(label: "Extent", value: "10, reversed"),
+                FeatureProperty(label: "Operation", value: "Cut Body1"),
+            ])
+        let revolve = FeatureKind.revolve(RevolveFeature(sketch: "S", axis: .z, angle: 90))
+        #expect(revolve.properties[2] == FeatureProperty(label: "Axis", value: "Z"))
+        #expect(!revolve.symbolName.isEmpty && !extrude.symbolName.isEmpty && !sketch.symbolName.isEmpty)
+    }
+
+    @Test("Sketch entities read as one line each in the inspector")
+    func entityLabels() {
+        #expect(
+            SketchEntity(name: "line1", .line(start: SketchPoint2(0, 0), end: SketchPoint2(60, 0.5))).label
+                == "line (0, 0) to (60, 0.5)")
+        #expect(
+            SketchEntity(name: "arc1", .arc(center: SketchPoint2(0, 0), radius: 5, startAngle: 0, endAngle: 90)).label
+                == "arc centre (0, 0) r 5, 0° to 90°")
+        #expect(
+            SketchEntity(name: "c", .circle(center: SketchPoint2(1, 2), radius: 3), construction: true).label
+                == "circle centre (1, 2) r 3, construction")
+    }
 }

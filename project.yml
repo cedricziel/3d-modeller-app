@@ -51,6 +51,8 @@ targets:
         product: CADModel
       - package: CADModel
         product: CADModelKernel
+      - package: CADModel
+        product: CADModelSolvers
       - package: CADAssistantTools
         product: CADAssistantTools
     info:

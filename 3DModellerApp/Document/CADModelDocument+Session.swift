@@ -1,5 +1,15 @@
 import CADAssistantTools
+import CADModel
+import CADModelKernel
+import CADModelSolvers
 import Foundation
+
+extension CADSession {
+    /// The session a window uses: the Open CASCADE kernel and the PlaneGCS sketch solver.
+    static func forApp(document: CADDocument) -> CADSession {
+        CADSession(document: document, kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
+    }
+}
 
 extension CADModelDocument {
     /// Routes the session's edits through `edit`, so each assistant tool call is one named step on the window's

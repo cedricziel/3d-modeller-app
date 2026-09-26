@@ -162,6 +162,30 @@ extension [SketchEntity] {
     }
 }
 
+extension SketchEntity {
+    var label: String {
+        func point(_ p: SketchPoint2) -> String { "(\(Scalar.number(p.x)), \(Scalar.number(p.y)))" }
+        let text =
+            switch geometry {
+            case .point(let at): "point \(point(at))"
+            case .line(let start, let end): "line \(point(start)) to \(point(end))"
+            case .circle(let center, let radius): "circle centre \(point(center)) r \(Scalar.number(radius))"
+            case .arc(let center, let radius, let start, let end):
+                "arc centre \(point(center)) r \(Scalar.number(radius)), \(Scalar.number(start))° to \(Scalar.number(end))°"
+            }
+        return construction ? text + ", construction" : text
+    }
+}
+
+extension SketchConstraint {
+    var label: String {
+        var text = "\(kind.rawValue) " + (points + entities).joined(separator: ", ")
+        if let value { text += " = \(value)\(kind == .angle ? "°" : "")" }
+        if let at, at.count == 2 { text += " at (\(at[0]), \(at[1]))" }
+        return text
+    }
+}
+
 extension [String] {
     var regionsLabel: String { isEmpty ? "All" : joined(separator: ", ") }
 }

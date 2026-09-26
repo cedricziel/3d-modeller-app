@@ -4,6 +4,7 @@ import SwiftUI
 struct FeatureInspectorView: View {
     let feature: Feature?
     let result: FeatureResult?
+    var sketch: SketchResult?
 
     var body: some View {
         if let feature {
@@ -25,12 +26,39 @@ struct FeatureInspectorView: View {
                         LabeledContent(property.label, value: property.value)
                     }
                 }
+                if case .sketch(let stored) = feature.kind {
+                    SketchInspectorSections(stored: stored, solved: sketch)
+                }
             }
             .formStyle(.grouped)
         } else {
             ContentUnavailableView(
                 "No Selection", systemImage: "cube.transparent",
                 description: Text("Select a feature in the outline to see its parameters"))
+        }
+    }
+}
+
+private struct SketchInspectorSections: View {
+    let stored: SketchFeature
+    let solved: SketchResult?
+
+    var body: some View {
+        Section("Solve") {
+            LabeledContent("State", value: solved?.state.description ?? "Not solved")
+            if let open = solved?.profiles.openEnds, !open.isEmpty {
+                LabeledContent("Open ends", value: open.joined(separator: ", "))
+            }
+        }
+        Section("Entities") {
+            ForEach(solved?.entities ?? stored.entities, id: \.name) { entity in
+                LabeledContent(entity.name, value: entity.label)
+            }
+        }
+        Section("Constraints") {
+            ForEach(stored.constraints, id: \.name) { constraint in
+                LabeledContent(constraint.name, value: constraint.label)
+            }
         }
     }
 }

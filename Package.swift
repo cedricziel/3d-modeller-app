@@ -26,6 +26,7 @@ let package = Package(
                 "SwiftUIAssistant",
                 .product(name: "CADModel", package: "CADModel"),
                 .product(name: "CADModelKernel", package: "CADModel"),
+                .product(name: "CADModelSolvers", package: "CADModel"),
                 .product(name: "CADAssistantTools", package: "CADAssistantTools"),
             ],
             path: "3DModellerApp"
