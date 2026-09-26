@@ -20,11 +20,16 @@ revisions below. Do not edit vendored files by hand; change the shims or the pin
 - Location: `include/Eigen/`, only the headers that the PlaneGCS sources and
   `Sources/CPlaneGCS/CPlaneGCS.cpp` transitively include on arm64 macOS
   (`clang++ -MM` with the package's defines), in Eigen's own directory layout, unmodified
-- Licence: MPL-2.0 (`LICENSES/Eigen-COPYING.MPL2`). A few included files carry other
-  permissive licences, kept in their headers: `src/Core/util/MKL_support.h` (BSD,
-  `LICENSES/Eigen-COPYING.BSD`) and `src/Core/arch/Default/BFloat16.h` (Apache-2.0,
-  `LICENSES/Eigen-COPYING.APACHE`). `LICENSES/Eigen-COPYING.README` is Eigen's licensing note.
+- Licence: MPL-2.0 (`LICENSES/Eigen-COPYING.MPL2`). Some included files keep notices of the
+  code they derive from in their headers: `src/Core/util/MKL_support.h` (BSD,
+  `LICENSES/Eigen-COPYING.BSD`), `src/Core/arch/Default/BFloat16.h` (Apache-2.0,
+  `LICENSES/Eigen-COPYING.APACHE`), `src/Core/arch/Default/Half.h` (Fabian Giesen, permissive),
+  the `src/SparseLU/` files (SuperLU, Xerox) and `src/OrderingMethods/Eigen_Colamd.h` (COLAMD,
+  University of Florida; its licence asks for the notice to reach end users, so the repository's
+  `NOTICE` repeats it). `LICENSES/Eigen-COPYING.README` is Eigen's licensing note.
   `EIGEN_MPL2_ONLY` is defined, so Eigen refuses to compile any LGPL-only code.
+- Architecture: the subset is computed for arm64 (`arch/NEON`); an x86_64 build would need the
+  SSE headers. The app is arm64 only.
 
 ## Local shims (ours, not vendored)
 
