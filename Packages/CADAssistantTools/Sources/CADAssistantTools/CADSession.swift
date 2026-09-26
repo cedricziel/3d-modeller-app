@@ -20,6 +20,9 @@ public final class CADSession {
     /// Measurements on the bodies of `result`.
     @ObservationIgnored public private(set) var geometry: ModelGeometry?
 
+    /// The folder the `export` tool may write into; the tool refuses to export without one.
+    @ObservationIgnored public var exportDirectory: URL?
+
     @ObservationIgnored private let build: @Sendable (CADDocument) async throws -> RebuiltModel
     @ObservationIgnored private var builtDocument: CADDocument?
     /// The running rebuild. Callers share it, and their own cancellation does not stop it; only a rebuild of a

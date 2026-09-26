@@ -78,11 +78,9 @@ public struct ViewRendering: Sendable {
     public let text: String
     public let views: [RenderedView]
 
-    static let palette: [(name: String, colour: SIMD3<Float>)] = [
-        ("blue", SIMD3(0.27, 0.48, 0.85)), ("orange", SIMD3(0.93, 0.55, 0.17)), ("green", SIMD3(0.33, 0.68, 0.32)),
-        ("red", SIMD3(0.85, 0.27, 0.27)), ("purple", SIMD3(0.58, 0.40, 0.80)), ("teal", SIMD3(0.20, 0.66, 0.66)),
-        ("yellow", SIMD3(0.90, 0.78, 0.20)), ("pink", SIMD3(0.90, 0.47, 0.70)),
-    ]
+    static let palette: [(name: String, colour: SIMD3<Float>)] = ExportPalette.colors.map {
+        ($0.name, SIMD3<Float>($0.rgb))
+    }
 
     @concurrent
     static func renderOffMain(

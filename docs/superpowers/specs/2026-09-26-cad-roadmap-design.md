@@ -1,6 +1,6 @@
 # Parametric CAD roadmap: design
 
-Date: 2026-09-26. Status: approved in conversation; delivered as a stack of PRs.
+Date: 2026-09-26. Status: approved in conversation; delivered as a stack of twelve PRs, all implemented (PR 12, export, completes the roadmap).
 Builds on: `docs/superpowers/specs/2026-09-26-geometry-kernel.md` and the spike findings in `docs/spikes/2026-09-26-occt-kernel.md` (PR #10).
 
 ## Goal
@@ -109,7 +109,7 @@ cadbench (CLI)                     runs the assistant loop headlessly over CADAs
 
 ## Export
 
-- STEP AP242 with assembly structure, names and colours (OCCT's document-based STEP export).
+- STEP AP242 with assembly structure, names and colours (OCCT's document-based STEP export). As built, the file is AP214, because OCCTSwift 3.0.0's document writer has no schema switch; see the PR 12 plan.
 - STL and 3MF per body or instance.
 - Available through File ▸ Export and the `export` tool.
 

@@ -147,4 +147,31 @@ struct RealJointTests {
         #expect(moved.message.contains("Top (Lid): ok, bounds (0, 40, 30) to (60, 45, 70)"), "\(moved.message)")
         #expect(measured.message.contains("(0, 40, 30)"), "\(measured.message)")
     }
+
+    @Test("export writes a STEP assembly that reads back with every instance")
+    func exportStepRoundTrip() async throws {
+        let session = CADSession(document: CADDocument(parts: [Part(name: "Plate")]), kernel: OCCTGeometryKernel())
+        let folder = FileManager.default.temporaryDirectory.appending(path: "cadtools-step-\(UUID().uuidString)")
+        session.exportDirectory = folder
+        let tools = Dictionary(uniqueKeysWithValues: CADTools.all(session: session).map { ($0.name, $0) })
+        _ = try await tools["add_feature"]!.execute(arguments: [
+            "name": "Base", "type": "box", "width": 60, "depth": 40, "height": 10,
+        ])
+        _ = try await tools["add_instance"]!.execute(arguments: ["part": "Plate", "name": "Left"])
+        _ = try await tools["add_instance"]!.execute(arguments: [
+            "part": "Plate", "name": "Right", "placement": ["translation": ["x": 100]],
+        ])
+
+        let exported = try await tools["export"]!.execute(arguments: ["format": "step", "path": "plates"])
+        let inspection = try OCCTGeometryKernel.inspectSTEP(at: folder.appending(path: "plates.step"))
+        let bounds = try #require(inspection.bounds)
+        let expectedVolume = 2.0 * 60 * 40 * 10
+
+        #expect(exported.success, "\(exported.message)")
+        #expect(exported.message.contains("products Plate; occurrences Left, Right; 2 bodies."))
+        #expect(inspection.solidCount == 2)
+        #expect(abs(inspection.volume - expectedVolume) < 1e-3 * expectedVolume)
+        #expect(abs(bounds.max.x - 160) < 1e-6)
+        #expect(inspection.names.contains("Right"))
+    }
 }

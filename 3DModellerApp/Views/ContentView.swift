@@ -16,10 +16,12 @@ struct ContentView: View {
     @State private var refusal: String?
     /// The content the user chose; nil follows the document.
     @State private var chosenContent: ViewportContent?
+    @State private var isExporting = false
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
         let session = CADSession.forApp(document: document.model)
+        session.exportDirectory = CADSession.assistantExportDirectory
         _session = State(wrappedValue: session)
         _driver = State(wrappedValue: JointDriver { [session] document in try await session.preview(document) })
     }
@@ -84,6 +86,10 @@ struct ContentView: View {
         }
         .task {
             setupAssistant()
+        }
+        .focusedSceneValue(\.exportAction, ExportAction { isExporting = true })
+        .sheet(isPresented: $isExporting) {
+            ExportSheet(session: session, scopes: ExportScope.choices(for: document.model, result: session.result))
         }
         .task(id: document.model) {
             await session.load(document.model)

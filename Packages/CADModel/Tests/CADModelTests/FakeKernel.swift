@@ -227,6 +227,11 @@ final class FakeKernel: GeometryKernel {
         )
     }
 
+    func mesh(of body: FakeBody, tolerance: Double) throws -> BodyMesh {
+        record("mesh tolerance \(tolerance)")
+        return try mesh(of: body)
+    }
+
     func mesh(of _: FakeBody) throws -> BodyMesh {
         onCall("mesh")
         return BodyMesh(

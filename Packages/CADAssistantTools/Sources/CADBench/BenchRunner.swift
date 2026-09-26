@@ -35,6 +35,10 @@ public struct RunRecord: Sendable {
     public let transcript: [TranscriptEntry]
     /// Pictures of the final document.
     public let renders: [RenderedView]
+    /// The final document exported as STEP, when the export succeeded.
+    public var step: Data? = nil
+    /// Why the final document could not be exported as STEP.
+    public var exportError: String? = nil
 
     public var passed: Bool { grade.passed }
 }
@@ -59,12 +63,14 @@ public struct BenchRunner<Kernel: GeometryKernel> {
         self.makeProvider = makeProvider
     }
 
-    public func run(_ task: BenchTask, attempt: Int) async -> RunRecord {
+    /// `exportDirectory` is the folder the `export` tool may write into during the run.
+    public func run(_ task: BenchTask, attempt: Int, exportDirectory: URL? = nil) async -> RunRecord {
         let clock = ContinuousClock()
         let start = clock.now
         let session = CADSession(
             document: task.seed ?? CADDocument(), kernel: kernel, sketchSolver: sketchSolver,
             assemblySolver: assemblySolver)
+        session.exportDirectory = exportDirectory
         if task.seed != nil { _ = try? await session.rebuild() }
         let provider = RecordingProvider(makeProvider())
         var configuration = CADAssistantPrompt.configuration
@@ -81,6 +87,7 @@ public struct BenchRunner<Kernel: GeometryKernel> {
         let grade = await Grader(kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver).grade(
             task, document: document)
         let renders = await session.renderViews().views
+        let (step, exportError) = await Self.finalStep(session)
         let usage = await provider.usage
         let messages = assistant.messages
         return RunRecord(
@@ -91,7 +98,18 @@ public struct BenchRunner<Kernel: GeometryKernel> {
             costUSD: Pricing.cost(
                 model: settings.model, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens),
             seconds: seconds, listing: session.listing, document: document,
-            transcript: messages.map(TranscriptEntry.init), renders: renders)
+            transcript: messages.map(TranscriptEntry.init), renders: renders, step: step, exportError: exportError)
+    }
+
+    private static func finalStep(_ session: CADSession) async -> (Data?, String?) {
+        let url = FileManager.default.temporaryDirectory.appending(path: "cadbench-\(UUID().uuidString).step")
+        defer { try? FileManager.default.removeItem(at: url) }
+        do {
+            _ = try await session.export(.document, as: .step, to: url)
+            return (try Data(contentsOf: url), nil)
+        } catch {
+            return (nil, String(describing: error))
+        }
     }
 
     /// Races the conversation against the timeout. A provider that ignores cancellation is left behind rather
