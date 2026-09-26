@@ -74,6 +74,8 @@ public actor ClaudeProvider: LLMProvider {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        // The response is not streamed, so nothing arrives while the model thinks; the 60 s default cuts long turns.
+        request.timeoutInterval = 600
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")

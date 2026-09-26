@@ -29,7 +29,7 @@ jobs:
       - name: Test CADModel
         working-directory: Packages/CADModel
         run: xcrun swift test
-      - name: Test CADAssistantTools
+      - name: Test CADAssistantTools and CADBench
         working-directory: Packages/CADAssistantTools
         run: xcrun swift test
       - name: Test app

@@ -1,0 +1,11 @@
+{
+  "kind": "build",
+  "prompt": "Model a block 60 mm along X, 40 mm along Y and 20 mm tall along Z with one corner at the origin, so that it occupies x 0–60, y 0–40, z 0–20. Cut a rectangular pocket into its top face: 30 mm along X, 20 mm along Y and 8 mm deep, centred on the top face. The pocket is open at the top and does not go through the block.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [60, 40, 20], "tolerance": 0.01},
+    {"type": "volume", "expected": 43200, "tolerance": 0.002},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}

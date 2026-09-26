@@ -1,0 +1,39 @@
+{
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "radius": 20,
+            "type": "sphere"
+          },
+          "name": "Ball"
+        },
+        {
+          "kind": {
+            "depth": 50,
+            "height": 25,
+            "operation": {
+              "body": "Body1",
+              "mode": "intersect"
+            },
+            "placement": {
+              "translation": {
+                "x": -25,
+                "y": -25,
+                "z": 0
+              }
+            },
+            "type": "box",
+            "width": 50
+          },
+          "name": "Half"
+        }
+      ],
+      "name": "Dome"
+    }
+  ],
+  "units": "mm"
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "build",
+  "prompt": "Model a flat rectangular plate 80 mm long along X, 50 mm wide along Y and 6 mm thick along Z, with one corner at the origin so that it occupies x 0–80, y 0–50, z 0–6. Drill a 10 mm diameter hole through the full thickness at the centre of the plate.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [0, 0, 0], "max": [80, 50, 6], "tolerance": 0.01},
+    {"type": "volume", "expected": 23528.761, "tolerance": 0.002},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}

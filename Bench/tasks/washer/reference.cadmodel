@@ -1,0 +1,39 @@
+{
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "height": 2.5,
+            "radius": 12,
+            "type": "cylinder"
+          },
+          "name": "Disc"
+        },
+        {
+          "kind": {
+            "height": 4.5,
+            "operation": {
+              "body": "Body1",
+              "mode": "cut"
+            },
+            "placement": {
+              "translation": {
+                "x": 0,
+                "y": 0,
+                "z": -1
+              }
+            },
+            "radius": 6.5,
+            "type": "cylinder"
+          },
+          "name": "Bore"
+        }
+      ],
+      "name": "Washer"
+    }
+  ],
+  "units": "mm"
+}

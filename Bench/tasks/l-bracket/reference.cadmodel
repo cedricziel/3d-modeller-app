@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 5,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Base"
+        },
+        {
+          "kind": {
+            "depth": 5,
+            "height": 40,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Upright"
+        },
+        {
+          "kind": {
+            "operation": "union",
+            "target": "Body1",
+            "tools": [
+              "Body2"
+            ],
+            "type": "boolean"
+          },
+          "name": "Union"
+        }
+      ],
+      "name": "Bracket"
+    }
+  ],
+  "units": "mm"
+}

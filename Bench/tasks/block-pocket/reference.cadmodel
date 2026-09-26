@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 20,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Block"
+        },
+        {
+          "kind": {
+            "depth": 20,
+            "height": 9,
+            "operation": {
+              "body": "Body1",
+              "mode": "cut"
+            },
+            "placement": {
+              "translation": {
+                "x": 15,
+                "y": 10,
+                "z": 12
+              }
+            },
+            "type": "box",
+            "width": 30
+          },
+          "name": "Pocket"
+        }
+      ],
+      "name": "Block"
+    }
+  ],
+  "units": "mm"
+}

@@ -1,0 +1,12 @@
+{
+  "kind": "modify",
+  "prompt": "Add a second through hole with the same diameter as the existing one, centred at x = 20 mm, y = 25 mm. Leave the plate and the existing hole as they are.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "volume", "expected": 23057.522, "tolerance": 0.002},
+    {"type": "featureCount", "feature": "cylinder", "min": 2},
+    {"type": "referenceIoU", "threshold": 0.995},
+    {"type": "unchangedExcept", "allowNewFeatures": true}
+  ]
+}

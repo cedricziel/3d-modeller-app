@@ -1,0 +1,11 @@
+{
+  "kind": "build",
+  "prompt": "Model a solid hemisphere of radius 20 mm: the half of a sphere centred at the origin that lies at z ≥ 0, with its flat face on the XY plane.",
+  "checks": [
+    {"type": "gate"},
+    {"type": "bodyCount", "equals": 1},
+    {"type": "boundingBox", "min": [-20, -20, 0], "max": [20, 20, 20], "tolerance": 0.01},
+    {"type": "volume", "expected": 16755.161, "tolerance": 0.002},
+    {"type": "referenceIoU", "threshold": 0.99}
+  ]
+}

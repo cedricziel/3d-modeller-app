@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "height": 8,
+            "radius": 30,
+            "type": "cylinder"
+          },
+          "name": "Flange"
+        },
+        {
+          "kind": {
+            "height": 40,
+            "placement": {
+              "translation": {
+                "x": 0,
+                "y": 0,
+                "z": 8
+              }
+            },
+            "radius": 15,
+            "type": "cylinder"
+          },
+          "name": "Shaft"
+        },
+        {
+          "kind": {
+            "operation": "union",
+            "target": "Body1",
+            "tools": [
+              "Body2"
+            ],
+            "type": "boolean"
+          },
+          "name": "Union"
+        }
+      ],
+      "name": "Shaft"
+    }
+  ],
+  "units": "mm"
+}
