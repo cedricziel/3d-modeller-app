@@ -135,6 +135,21 @@ struct FakeKernel: GeometryKernel {
     func mesh(of _: FakeBody) throws -> BodyMesh {
         BodyMesh(positions: [.zero, SIMD3(1, 0, 0), SIMD3(0, 1, 0)], normals: [], indices: [0, 1, 2])
     }
+
+    /// The gap between the bounds of the operands; a face or edge counts as its body's bounds.
+    func distance(_ a: GeometryOperand<FakeBody>, _ b: GeometryOperand<FakeBody>) throws -> DistanceMeasurement {
+        let (first, second) = (try bounds(of: a), try bounds(of: b))
+        let gap = pointwiseMax(pointwiseMax(first.min - second.max, second.min - first.max), .zero)
+        let pointA = pointwiseMin(pointwiseMax(second.min, first.min), first.max)
+        return DistanceMeasurement(distance: simd_length(gap), pointA: pointA, pointB: pointA + gap)
+    }
+
+    func bounds(of operand: GeometryOperand<FakeBody>) throws -> Bounds {
+        switch operand {
+        case .point(let point): Bounds(min: point, max: point)
+        case .body(let body), .face(let body, _), .edge(let body, _): Bounds(min: body.boundsMin, max: body.boundsMax)
+        }
+    }
 }
 
 extension BodyTopology {

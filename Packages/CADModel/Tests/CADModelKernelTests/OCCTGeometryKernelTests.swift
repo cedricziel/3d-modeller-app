@@ -115,4 +115,35 @@ struct OCCTGeometryKernelTests {
         let expectedVolume: Double = 2 * .pi * .pi * 10 * 4
         #expect(approx(part.bodies[1].metrics?.volume, expectedVolume))
     }
+
+    @Test("Distances and interference are measured on the rebuilt bodies")
+    func measure() async throws {
+        let json = """
+            {"format": 1, "units": "mm", "parameters": [],
+             "parts": [{"name": "P", "features": [
+               {"name": "Plate", "kind": {"type": "box", "width": 60, "depth": 40, "height": 10}},
+               {"name": "Hole", "kind": {"type": "cylinder", "radius": 2.75, "height": 10,
+                 "placement": {"translation": {"x": 30, "y": 20}}, "operation": {"mode": "cut", "body": "Body1"}}},
+               {"name": "A", "kind": {"type": "box", "width": 10, "depth": 10, "height": 10,
+                 "placement": {"translation": {"x": 100}}}},
+               {"name": "B", "kind": {"type": "box", "width": 10, "depth": 10, "height": 10,
+                 "placement": {"translation": {"x": 105}}}},
+               {"name": "C", "kind": {"type": "box", "width": 10, "depth": 10, "height": 10,
+                 "placement": {"translation": {"x": 200}}}}
+             ]}]}
+            """
+        let model = try await engine.build(try CADDocument(json: Data(json.utf8)))
+        let key = { (name: String) in BodyKey(part: "P", body: name) }
+        let topology = try #require(model.result.bodies.first?.topology)
+        let hole = try #require(topology.faces.firstIndex { $0.names.contains("Hole.side") })
+        let left = try #require(topology.faces.firstIndex { $0.names.contains("Plate.left") })
+
+        let gap = try model.geometry.distance(.face(key("Body1"), hole), .face(key("Body1"), left))
+
+        #expect(approx(gap.distance, 30 - 2.75))
+        #expect(approx(try model.geometry.interference(key("Body2"), key("Body3")), 500))
+        #expect(try model.geometry.interference(key("Body2"), key("Body4")) == 0)
+        #expect(approx(try model.geometry.distance(.body(key("Body3")), .body(key("Body4"))).distance, 85))
+        #expect(approx(try model.geometry.distance(.point(SIMD3(10, 10, 30)), .body(key("Body1"))).distance, 20))
+    }
 }

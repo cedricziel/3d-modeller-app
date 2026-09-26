@@ -1,5 +1,6 @@
 import CADKernel
 import CADModel
+import simd
 
 public struct OCCTGeometryKernel: GeometryKernel {
     public typealias Body = Solid
@@ -99,6 +100,50 @@ public struct OCCTGeometryKernel: GeometryKernel {
     public func mesh(of body: Solid) throws -> BodyMesh {
         let mesh = try Kernel.tessellate(body, tolerance: tessellationTolerance)
         return BodyMesh(positions: mesh.positions, normals: mesh.normals, indices: mesh.indices)
+    }
+}
+
+extension OCCTGeometryKernel {
+    public func distance(_ a: GeometryOperand<Solid>, _ b: GeometryOperand<Solid>) throws -> DistanceMeasurement {
+        switch (Self.solid(a), Self.solid(b)) {
+        case (let (solidA, subA)?, let (solidB, subB)?):
+            return DistanceMeasurement(try Kernel.distance(solidA, subA, solidB, subB))
+        case (let (solid, sub)?, nil):
+            guard case .point(let point) = b else { break }
+            let result = try Kernel.distance(from: point, to: solid, sub)
+            return DistanceMeasurement(distance: result.value, pointA: result.pointB, pointB: result.pointA)
+        case (nil, let (solid, sub)?):
+            guard case .point(let point) = a else { break }
+            return DistanceMeasurement(try Kernel.distance(from: point, to: solid, sub))
+        case (nil, nil):
+            guard case .point(let p) = a, case .point(let q) = b else { break }
+            return DistanceMeasurement(distance: simd_distance(p, q), pointA: p, pointB: q)
+        }
+        throw KernelError.operationFailed("measure the distance")
+    }
+
+    public func bounds(of operand: GeometryOperand<Solid>) throws -> Bounds {
+        guard let (solid, sub) = Self.solid(operand) else {
+            guard case .point(let point) = operand else { throw KernelError.operationFailed("measure the bounds") }
+            return Bounds(min: point, max: point)
+        }
+        let bounds = try Kernel.bounds(of: solid, sub)
+        return Bounds(min: bounds.min, max: bounds.max)
+    }
+
+    private static func solid(_ operand: GeometryOperand<Solid>) -> (Solid, SubShape)? {
+        switch operand {
+        case .point: nil
+        case .body(let solid): (solid, .whole)
+        case .face(let solid, let index): (solid, .face(index))
+        case .edge(let solid, let index): (solid, .edge(index))
+        }
+    }
+}
+
+extension DistanceMeasurement {
+    init(_ distance: Distance) {
+        self.init(distance: distance.value, pointA: distance.pointA, pointB: distance.pointB)
     }
 }
 
