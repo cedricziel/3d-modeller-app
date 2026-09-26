@@ -68,6 +68,16 @@ struct BenchRunnerTests {
         #expect(record.grade.outcomes.first?.detail == "no bodies")
     }
 
+    @Test("A provider that ignores cancellation still ends the run at the timeout")
+    func timeoutWithoutCooperation() async {
+        let record = await runner(
+            [.stall(LLMResponse(content: "late", toolCalls: nil, stopReason: .endTurn))], timeout: .milliseconds(200)
+        )
+        .run(blockTask, attempt: 1)
+        #expect(record.end == .timedOut)
+        #expect(record.seconds < 4)
+    }
+
     @Test("Hitting the round limit is recorded")
     func maxRounds() async {
         let listing = ToolCall(id: "x", name: "get_listing", arguments: [:])

@@ -81,27 +81,56 @@ public struct BenchRunner<Kernel: GeometryKernel> {
             transcript: messages.map(TranscriptEntry.init))
     }
 
+    /// Races the conversation against the timeout. A provider that ignores cancellation is left behind rather
+    /// than awaited, so a stalled run still ends on time.
     private func drive(_ assistant: Assistant, prompt: String) async -> (RunEnd, String?) {
-        let deadline = Deadline()
-        let sending = Task { @MainActor in try await assistant.send(prompt) }
+        let gate = RunGate()
+        let sending = Task { @MainActor in
+            do {
+                try await assistant.send(prompt)
+                gate.settle(.finished)
+            } catch {
+                gate.settle(.failed((error as? LocalizedError)?.errorDescription ?? String(describing: error)))
+            }
+        }
         let timer = Task { @MainActor [timeout = settings.timeout] in
             try await Task.sleep(for: timeout)
-            deadline.passed = true
+            gate.settle(.timedOut)
+        }
+        let outcome = await gate.wait()
+        timer.cancel()
+        switch outcome {
+        case .timedOut:
             sending.cancel()
+            return (.timedOut, nil)
+        case .failed(let message):
+            return (.failed, message)
+        case .finished:
+            return assistant.messages.last?.role == .toolResult ? (.maxToolRounds, nil) : (.completed, nil)
         }
-        defer { timer.cancel() }
-        do {
-            try await sending.value
-        } catch {
-            if deadline.passed { return (.timedOut, nil) }
-            return (.failed, (error as? LocalizedError)?.errorDescription ?? String(describing: error))
-        }
-        if deadline.passed { return (.timedOut, nil) }
-        return assistant.messages.last?.role == .toolResult ? (.maxToolRounds, nil) : (.completed, nil)
     }
 }
 
 @MainActor
-private final class Deadline {
-    var passed = false
+private final class RunGate {
+    enum Outcome {
+        case finished
+        case failed(String)
+        case timedOut
+    }
+
+    private var settled: Outcome?
+    private var waiter: CheckedContinuation<Outcome, Never>?
+
+    func settle(_ outcome: Outcome) {
+        guard settled == nil else { return }
+        settled = outcome
+        waiter?.resume(returning: outcome)
+        waiter = nil
+    }
+
+    func wait() async -> Outcome {
+        if let settled { return settled }
+        return await withCheckedContinuation { waiter = $0 }
+    }
 }

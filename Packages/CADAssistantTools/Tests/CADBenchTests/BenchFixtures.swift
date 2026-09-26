@@ -39,6 +39,8 @@ actor ScriptedProvider: LLMProvider {
         case respond(LLMResponse)
         case fail(AssistantError)
         case hang
+        /// Answers after five seconds whatever happens, like a provider that ignores cancellation.
+        case stall(LLMResponse)
     }
 
     private var turns: [Turn]
@@ -61,6 +63,11 @@ actor ScriptedProvider: LLMProvider {
         case .hang:
             try await Task.sleep(for: .seconds(3600))
             throw CancellationError()
+        case .stall(let response):
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global().asyncAfter(deadline: .now() + 5) { continuation.resume() }
+            }
+            return response
         }
     }
 }
