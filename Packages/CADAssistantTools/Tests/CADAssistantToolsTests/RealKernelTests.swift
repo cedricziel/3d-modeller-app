@@ -1,5 +1,6 @@
 import CADModel
 import CADModelKernel
+import CADModelSolvers
 import Foundation
 import SwiftUIAssistant
 import Testing
@@ -50,5 +51,40 @@ struct RealKernelTests {
         #expect(result.message.contains("Box2: failed:"))
         #expect(session.document.parts[0].features.count == 2)
         #expect(result.message.contains("Body1 (P): valid closed solid, 6 faces, 12 edges, volume 1000 mm³"))
+    }
+}
+
+@MainActor
+@Suite("Sketch tools on Open CASCADE and PlaneGCS")
+struct RealSketchTests {
+    @Test("A fully constrained sketch extrudes into a plate whose side faces are named after its lines")
+    func sketchedPlate() async throws {
+        let session = CADSession(
+            document: CADDocument(parameters: Fixtures.plateParameters, parts: [Part(name: "Plate")]),
+            kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
+        let tools = Dictionary(uniqueKeysWithValues: CADTools.all(session: session).map { ($0.name, $0) })
+        let sketch = try await tools["add_sketch"]!.execute(arguments: [
+            "plane": "XY", "entities": SketchToolTests.rectangle,
+            "constraints": [
+                ["type": "coincident", "points": ["line1.end", "line2.start"]],
+                ["type": "coincident", "points": ["line2.end", "line3.start"]],
+                ["type": "coincident", "points": ["line3.end", "line4.start"]],
+                ["type": "coincident", "points": ["line4.end", "line1.start"]],
+                ["type": "horizontal", "entities": ["line1"]], ["type": "horizontal", "entities": ["line3"]],
+                ["type": "vertical", "entities": ["line2"]], ["type": "vertical", "entities": ["line4"]],
+                ["type": "fixed", "points": ["line1.start"], "at": [0, 0]],
+                ["type": "distance", "points": ["line1.start", "line1.end"], "value": "width"],
+                ["type": "distance", "points": ["line2.start", "line2.end"], "value": "depth"],
+            ],
+        ])
+        #expect(sketch.message.contains("fully constrained; 1 region"), "\(sketch.message)")
+
+        let extrude = try await tools["add_feature"]!.execute(arguments: [
+            "type": "extrude", "sketch": "Sketch1", "distance": "t",
+        ])
+        #expect(extrude.message.contains("Body1 (Plate): valid closed solid, 6 faces, 12 edges, volume 24000 mm³"))
+        let faces = try await tools["find_geometry"]!.execute(arguments: ["body": "Body1", "kind": "faces"])
+        #expect(faces.message.contains("Extrude1.side[Sketch1.line1]  plane"))
+        #expect(faces.message.contains("Extrude1.end  plane"))
     }
 }
