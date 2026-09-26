@@ -41,6 +41,31 @@
 - **Ruling: the app's viewport shows the assembly when the document has instances, and parts otherwise.** A segmented control (Parts | Assembly) appears only when there are instances. Selecting a feature switches to parts; selecting an instance switches to assembly. The inspector shows instances read-only. Cost if wrong: a UI preference.
 - **Ruling: bench checks.** `instanceCount { equals }`, `instanceBounds { instance?, min/max/size, tolerance }` (without `instance`, every instance), `noInterference {}` (every pair of instance bodies shares no volume; touching is allowed). The gate fails on a failed instance. `referenceIoU` compares instance solids when the reference has instances. `unchangedExcept` gains `instances: [names]` and compares instances by name (part name, body, placement, grounded). Cost if wrong: none.
 
+- **Ruling (execution): a part name shared by several parts** (possible only in hand-edited files; the tools refuse duplicates) picks the first part in document order instead of being refused. Geometry is keyed by id, so no mix-up is possible. Cost if wrong: the agent measures the first of two same-named parts.
+- **Ruling (execution): the tools' fake kernel moves bodies by translation only.** Rotation is covered by the real-kernel tests. Cost if wrong: none.
+- **Ruling (execution): the chosen viewport content persists for the window.** It is ignored, not reset, while the document has no instances. Cost if wrong: a UI preference.
+- **Ruling (execution): commits are grouped by file:**
+  - Task 4 references and frames: one commit.
+  - Task 6 instance tools, report and repair: one commit.
+  - Task 7 measure, find and render: one commit, "inspect instances where they are placed".
+  - Task 9 app: one commit.
+
+  Cost if wrong: coarser history.
+- **Ruling (review): an instance resolves face and edge names with its part's own `TopologyNames`, computed before the move** (`InstanceResult.names(of:)`). `[n]` pieces are ordered by position, so a rotation would otherwise renumber them. Cost if wrong: none.
+
+## Deferred after the final review
+
+- The rotated-instance kernel test compares faces only, not edge fields or face `axis`/`axisOrigin`.
+- The chosen viewport content never resets when the instances go to zero and come back.
+- `noInterference` skips body pairs without metrics instead of reporting them. The gate ignores instance body errors, such as metrics failing on a moved body.
+- `stacked-plates` and `table-legs` do not grade "model once, place several times", or `Bottom` being grounded.
+- The `InstanceResult.transform` doc says it is nil only for placement errors; it is nil for every failure.
+- Write reports list every unchanged instance name, with no cap.
+- `add_instance`'s default name, built from a part name that is not an identifier, is refused.
+- With duplicate instance names in a hand-edited file, `edit_instance` and `delete_instance` reach only the first.
+- `render_views` does not note an ok instance body that has no mesh.
+- Four pre-existing `CADSessionTests` still time out under `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1`: their `Gate` blocks a cooperative thread by design.
+
 ## Review Focus
 
 1. **An instance whose part body disappears** (a feature deletes or breaks the body, or a named body does not exist). Expected: the instance fails with a message listing the bodies that exist. Other instances and the parts still build. Pinned in Task 3 (`missingBodyFails`, `brokenPartBodyFailsInstance`).
