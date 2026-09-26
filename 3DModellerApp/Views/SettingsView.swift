@@ -61,7 +61,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("Show Assistant on Launch", isOn: $appModel.showAssistant)
+                Toggle("Show Inspector", isOn: $appModel.showInspector)
             } header: {
                 Text("Assistant")
             }

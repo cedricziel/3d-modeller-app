@@ -35,7 +35,7 @@ struct ModellerApp: App {
 
             CommandMenu("View") {
                 Button("Toggle Assistant") {
-                    appModel.showAssistant.toggle()
+                    appModel.toggleAssistant()
                 }
                 .keyboardShortcut("\\", modifiers: .command)
 
