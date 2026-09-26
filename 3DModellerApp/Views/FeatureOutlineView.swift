@@ -47,6 +47,10 @@ struct FeatureOutlineView: View {
                         )
                         .tag(instance.id)
                     }
+                    ForEach(assembly.joints) { joint in
+                        JointRow(joint: joint, model: model, result: result?.assembly?.joint(id: joint.id))
+                            .tag(joint.id)
+                    }
                 }
             }
         }
@@ -111,5 +115,27 @@ private struct InstanceRow: View {
                 ProgressView().controlSize(.small)
             }
         }
+    }
+}
+
+private struct JointRow: View {
+    let joint: Joint
+    let model: CADDocument
+    let result: JointResult?
+
+    var body: some View {
+        HStack {
+            Image(systemName: joint.kind.symbolName).frame(width: 20).foregroundStyle(.secondary)
+            Text(joint.name).lineLimit(1)
+            Text("\(model.instanceName(joint.a.instance)) ↔ \(model.instanceName(joint.b.instance))")
+                .foregroundStyle(.secondary).lineLimit(1)
+            Spacer()
+            if let status = result?.status {
+                Image(systemName: status.symbolName).foregroundStyle(status.tint).help(status.description)
+            } else {
+                ProgressView().controlSize(.small)
+            }
+        }
+        .help("\(joint.kind.label) joint")
     }
 }
