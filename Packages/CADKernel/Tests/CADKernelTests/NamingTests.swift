@@ -64,3 +64,73 @@ struct NamingTests {
         #expect(names(try Kernel.torus(majorRadius: 5, minorRadius: 1, feature: "Ring")) == ["Ring.surface"])
     }
 }
+
+@Suite("Face names through operations")
+struct OperationNamingTests {
+    let plate = try! Kernel.box(width: 40, depth: 20, height: 5, feature: "Plate")
+
+    @Test("A drilled hole keeps the plate's names and names the wall after the hole")
+    func holeKeepsNames() throws {
+        let drill = try Kernel.cylinder(
+            radius: 2, height: 9, placement: Placement(translation: SIMD3(10, 10, -2)), feature: "Hole")
+        let drilled = try Kernel.boolean(.subtract, plate, drill, feature: "Hole")
+
+        #expect(
+            names(drilled) == [
+                "Plate.left", "Plate.right", "Plate.front", "Plate.back", "Plate.bottom", "Plate.top", "Hole.side",
+            ])
+        let top = try face("Plate.top", in: drilled)
+        let area: Double = 800 - 4 * .pi
+        let centroidX: Double = (800 * 20 - 4 * .pi * 10) / area
+        #expect(approx(top.area, area, tolerance: 1e-4))
+        #expect(approx(top.centroid.x, centroidX, tolerance: 1e-4))
+        #expect(approx(try face("Hole.side", in: drilled).radius ?? 0, 2))
+    }
+
+    @Test("The overlap of two coplanar faces answers to both names, the target's first")
+    func unionMergesNames() throws {
+        let other = try Kernel.box(
+            width: 40, depth: 20, height: 5, placement: Placement(translation: SIMD3(20, 0, 0)), feature: "Other")
+        let merged = try Kernel.boolean(.union, plate, other, feature: "Join")
+        let topology = try Kernel.topology(of: merged)
+
+        let tops = topology.faces.filter { $0.names.contains("Plate.top") || $0.names.contains("Other.top") }
+        #expect(Set(tops.map(\.names)) == [["Plate.top"], ["Plate.top", "Other.top"], ["Other.top"]])
+        let shared = try #require(tops.first { $0.names.count == 2 })
+        #expect(approx(shared.area, 400, tolerance: 1e-4))
+    }
+
+    @Test("A slot across the top splits it into two faces that keep the name")
+    func namesSurviveBooleanSplit() throws {
+        let slot = try Kernel.box(
+            width: 4, depth: 30, height: 3, placement: Placement(translation: SIMD3(18, -5, 3)), feature: "Slot")
+        let slotted = try Kernel.boolean(.subtract, plate, slot, feature: "Slot")
+        let tops = try Kernel.topology(of: slotted).faces.filter { $0.names == ["Plate.top"] }
+
+        #expect(tops.count == 2)
+        #expect(names(slotted).isSuperset(of: ["Slot.left", "Slot.right", "Slot.bottom"]))
+    }
+
+    @Test("Faces no input explains are named after the feature")
+    func fallbackNames() throws {
+        #expect(Naming.fallback(2, feature: "F", existing: ["F.face[0]"]) == [["F.face[1]"], ["F.face[2]"]])
+    }
+
+    @Test("A transform moves the faces but keeps their names")
+    func transformKeepsNames() throws {
+        let moved = try Kernel.transform(
+            plate, by: Placement(translation: SIMD3(0, 0, 10), axis: SIMD3(0, 0, 1), angle: .pi))
+
+        #expect(moved.faceNames == plate.faceNames)
+        #expect(approx(try face("Plate.front", in: moved).normal ?? .zero, SIMD3(0, 1, 0)))
+    }
+
+    @Test("Splitting a body into solids keeps each face's names")
+    func solidsKeepNames() throws {
+        let far = try Kernel.box(
+            width: 5, depth: 5, height: 5, placement: Placement(translation: SIMD3(100, 0, 0)), feature: "Far")
+        let pieces = Kernel.solids(of: try Kernel.boolean(.union, plate, far, feature: "Join"))
+
+        #expect(pieces.map { names($0).sorted().first } == ["Plate.back", "Far.back"])
+    }
+}

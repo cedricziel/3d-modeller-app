@@ -34,3 +34,61 @@ enum Naming {
         return (face.normal?.z ?? 0) < 0 ? "bottom" : "top"
     }
 }
+
+extension Naming {
+    struct Input {
+        let shape: Shape
+        let names: [[String]]
+    }
+
+    /// Names the faces of an operation's result from the inputs they came from, following OCCT's history: a face
+    /// left alone or modified keeps its names; a face generated from a named face gets `generatedFromFace(name)`;
+    /// a face generated from `edges[i]` gets `generatedFromEdge(i)`; every other face `<feature>.face[k]`.
+    static func carry(
+        _ inputs: [Input], into result: Shape, history: ShapeHistoryRef, feature: String,
+        edges: [Shape] = [], generatedFromEdge: ((Int) -> String)? = nil,
+        generatedFromFace: ((String) -> String)? = nil
+    ) -> [[String]] {
+        let faces = result.subShapes(ofType: .face)
+        var names = [[String]](repeating: [], count: faces.count)
+        func indices(of shapes: [Shape]) -> [Int] {
+            shapes.compactMap { shape in faces.firstIndex { $0.isSame(as: shape) } }
+        }
+        var generated: [(index: Int, name: String)] = []
+        for input in inputs {
+            for (face, faceNames) in zip(input.shape.subShapes(ofType: .face), input.names) {
+                let record = history.record(of: face)
+                var targets = indices(of: record.modified)
+                if let same = faces.firstIndex(where: { $0.isSame(as: face) }) { targets.append(same) }
+                for index in targets {
+                    for name in faceNames where !names[index].contains(name) { names[index].append(name) }
+                }
+                if let generatedFromFace, let primary = faceNames.first {
+                    generated += indices(of: record.generated).map { ($0, generatedFromFace(primary)) }
+                }
+            }
+        }
+        if let generatedFromEdge {
+            for (position, edge) in edges.enumerated() {
+                generated += indices(of: history.record(of: edge).generated).map { ($0, generatedFromEdge(position)) }
+            }
+        }
+        for (index, name) in generated where names[index].isEmpty { names[index] = [name] }
+        return fillGaps(names, feature: feature)
+    }
+
+    /// Gives every unnamed face the next free `<feature>.face[k]`.
+    static func fillGaps(_ names: [[String]], feature: String) -> [[String]] {
+        let existing = Set(names.flatMap(\.self))
+        var next = 0
+        return names.map { $0.isEmpty ? [freeName(feature, &next, existing)] : $0 }
+    }
+
+    /// Names of each solid's faces, looked up in the solid it was taken from.
+    static func names(of part: Shape, in whole: Shape, names: [[String]]) -> [[String]] {
+        let faces = whole.subShapes(ofType: .face)
+        return part.subShapes(ofType: .face).map { face in
+            faces.firstIndex { $0.isSame(as: face) }.map { names[$0] } ?? []
+        }
+    }
+}

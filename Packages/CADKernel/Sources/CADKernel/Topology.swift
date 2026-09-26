@@ -64,7 +64,7 @@ extension Kernel {
 
     private static func describeFace(_ shape: Shape, names: [String]) -> FaceInfo {
         let face = Face(shape)
-        let inertia = face?.surfaceInertia
+        let inertia = shape.surfaceInertia
         var surface = SurfaceKind.other
         var (normal, origin, axis, radius): (SIMD3<Double>?, SIMD3<Double>?, SIMD3<Double>?, Double?)
         // The *Properties views borrow the surface's handle without retaining it.
