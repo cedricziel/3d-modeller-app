@@ -9,6 +9,7 @@ struct Viewport3DView: View {
     @State private var scene = ViewportScene()
     @State private var camera = OrbitCamera()
     @State private var cameraAtGestureStart: OrbitCamera?
+    @State private var hasFramedModel = false
     @State private var cameraEntity: Entity = {
         let entity = Entity()
         entity.components.set(PerspectiveCameraComponent())
@@ -28,11 +29,15 @@ struct Viewport3DView: View {
         .background(Color(white: 0.15))
         .onChange(of: result, initial: true) {
             scene.show(result)
+            if !hasFramedModel, let bounds = ViewportFrame.sceneBounds(of: result) {
+                camera = .framing(bounds)
+                hasFramedModel = true
+            }
         }
     }
 
     private func aimCamera() {
-        cameraEntity.look(at: .zero, from: camera.position, relativeTo: nil)
+        cameraEntity.look(at: camera.target, from: camera.position, relativeTo: nil)
     }
 
     private var orbitGesture: some Gesture {
