@@ -138,7 +138,7 @@ struct MeasureToolTests {
                 == "'kind' is distance, angle, size or interference, not 'volume'.")
     }
 
-    @Test("Parts sharing a name cannot be told apart, so measuring them is refused")
+    @Test("Parts sharing a name are measured by id: the name picks the first part, never a mix")
     func duplicatePartNames() async throws {
         let harness = Harness(
             CADDocument(parts: [
@@ -147,9 +147,10 @@ struct MeasureToolTests {
             ]))
         try await harness.session.rebuild()
 
-        #expect(
-            try await harness.refused("measure", ["kind": "size", "a": ["part": "P", "body": "Body1"]])
-                == "Several parts are named P; rename one before measuring.")
+        let result = try await harness.call(
+            "measure", ["kind": "distance", "a": ["part": "P", "body": "Body1"], "b": ["point": [5, 5, 5]]])
+
+        #expect(result.message.hasPrefix("Distance 6.928 mm between Body1 (P) and point (5, 5, 5)"))
     }
 
     @Test("A reference that matches several faces is refused with the matches")
