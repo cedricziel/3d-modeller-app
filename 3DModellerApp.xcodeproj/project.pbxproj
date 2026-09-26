@@ -26,6 +26,7 @@
 		7EEE685822D00C28AAEB9425 /* PropertiesInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */; };
 		826056080647BCD726193BE1 /* ModellerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17993460361E0DC0931AD47F /* ModellerApp.swift */; };
 		8D3AA70BBDCFA304A57D3CB9 /* SceneContextAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9128DE107552B2F45B1F81 /* SceneContextAdapter.swift */; };
+		8EB736741A4470C3544D7B4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 076C9052B33D923C5ACB0C09 /* Assets.xcassets */; };
 		92CBCF72AD0E55F6C3ABA6F1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */; };
 		94FB6803D47CA21068532180 /* TransformEntityTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D65B9758FA8B269BA08BC425 /* TransformEntityTool.swift */; };
 		A609BBFC6EB03AB9AB6C9C6B /* KernelMeshRealityKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFB4F77884E1CF77F2BD3A5 /* KernelMeshRealityKitTests.swift */; };
@@ -50,6 +51,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		076C9052B33D923C5ACB0C09 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		14A5FA3A4877BE1F739AE562 /* CreateSolidToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSolidToolTests.swift; sourceTree = "<group>"; };
 		17993460361E0DC0931AD47F /* ModellerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModellerApp.swift; sourceTree = "<group>"; };
 		1866688A42039FF6B151709C /* CreateSolidTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSolidTool.swift; sourceTree = "<group>"; };
@@ -132,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				E66F087DC4792997AB310824 /* 3DModellerApp.entitlements */,
+				076C9052B33D923C5ACB0C09 /* Assets.xcassets */,
 				6A5F6A4548E9DD7364A36CBB /* Info.plist */,
 				B8E0F3708F82FEEDC4A2EB4E /* App */,
 				30168CBC72915FBE8ADE4961 /* Context */,
@@ -220,6 +223,7 @@
 			buildConfigurationList = 699F61ADCC3A7B4D33A4445A /* Build configuration list for PBXNativeTarget "3DModellerApp" */;
 			buildPhases = (
 				2670FF02A2143528A65F2A16 /* Sources */,
+				927AE294FF2CE4A8F797FF49 /* Resources */,
 				0C020B864809AC530E85D4E4 /* Frameworks */,
 			);
 			buildRules = (
@@ -297,6 +301,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		927AE294FF2CE4A8F797FF49 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8EB736741A4470C3544D7B4B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2670FF02A2143528A65F2A16 /* Sources */ = {
