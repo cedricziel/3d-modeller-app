@@ -50,8 +50,9 @@ summary.json               the same data, plus every check outcome of every run
 <task>/run-<n>/
   document.cadmodel        the final document; open it in the app
   listing.txt              the final listing, as the model saw it
-  transcript.json          every message, tool call, tool result and per-turn context
+  transcript.json          every message, tool call, tool result and per-turn context (image captions only)
   run.json                 how the run ended, check outcomes, usage and cost
+  view-<name>.png          the final model rendered iso, top, front and right, as render_views returns it
 ```
 
 A run passes when its final document passes every check. How the run ended (`completed`, `maxToolRounds`,
