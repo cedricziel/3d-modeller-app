@@ -1,3 +1,5 @@
+import Foundation
+
 public struct RebuiltModel: Sendable {
     public let result: RebuildResult
     /// Measurements on the bodies of `result`.
@@ -25,6 +27,7 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
         let parameters = ParameterTable(document.parameters)
         var parts: [PartResult] = []
         var bodies: [BodyKey: Kernel.Body] = [:]
+        var partBodies: [UUID: [(name: String, body: Kernel.Body)]] = [:]
         for part in document.parts {
             var builder = PartBuilder(kernel: kernel, sketchSolver: sketchSolver, parameters: parameters)
             var features: [FeatureResult] = []
@@ -36,13 +39,39 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
                 PartResult(
                     id: part.id, name: part.name, features: features, bodies: try builder.bodyResults(),
                     sketches: builder.sketchResults))
+            partBodies[part.id] = builder.builtBodies
             for (name, body) in builder.builtBodies {
                 bodies[BodyKey(part: part.id, body: name)] = body
             }
         }
+        var assembly: AssemblyResult?
+        if let documentAssembly = document.assembly {
+            let builder = AssemblyBuilder(
+                kernel: kernel, parameters: parameters, parts: document.parts, partBodies: partBodies)
+            var instances: [InstanceResult] = []
+            for (instance, outcome) in try builder.place(documentAssembly) {
+                switch outcome {
+                case .success(let placed):
+                    let partResults = parts.first { $0.id == instance.part }?.bodies ?? []
+                    instances.append(
+                        InstanceResult(
+                            id: instance.id, name: instance.name, part: instance.part, status: .ok,
+                            transform: placed.transform, bodies: builder.bodyResults(placed, partResults: partResults)))
+                    for (name, body) in placed.bodies {
+                        bodies[BodyKey(owner: .instance(instance.id), body: name)] = body
+                    }
+                case .failure(let failure):
+                    instances.append(
+                        InstanceResult(
+                            id: instance.id, name: instance.name, part: instance.part,
+                            status: .failed(failure.reason), transform: nil, bodies: []))
+                }
+            }
+            assembly = AssemblyResult(instances: instances)
+        }
         try Task.checkCancellation()
         return RebuiltModel(
-            result: RebuildResult(parameters: parameters, parts: parts),
+            result: RebuildResult(parameters: parameters, parts: parts, assembly: assembly),
             geometry: ModelGeometry(kernel: kernel, bodies: bodies))
     }
 }
