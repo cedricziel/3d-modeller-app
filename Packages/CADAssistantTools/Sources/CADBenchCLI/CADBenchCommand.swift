@@ -35,8 +35,10 @@ struct CADBenchCommand {
         case .grade(let id, let path, let directory):
             let task = try TaskLoader.load(id: id, from: URL(filePath: directory))
             let document = try CADDocument(json: Data(contentsOf: URL(filePath: path)))
-            let grade = await Grader(kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver()).grade(
-                task, document: document)
+            let grade = await Grader(
+                kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver(),
+                assemblySolver: OndselAssemblySolver()
+            ).grade(task, document: document)
             for outcome in grade.outcomes {
                 print("\(outcome.passed ? "PASS" : "FAIL")  \(outcome.check) — \(outcome.detail)")
             }
@@ -63,7 +65,7 @@ struct CADBenchCommand {
         let model = options.model
         let effort = options.effort
         let runner = BenchRunner(
-            kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver(),
+            kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver(), assemblySolver: OndselAssemblySolver(),
             settings: RunSettings(
                 model: model, timeout: .seconds(options.timeoutSeconds), maxToolRounds: options.maxToolRounds),
             makeProvider: { ClaudeProvider(apiKey: key, model: model, effort: effort) })

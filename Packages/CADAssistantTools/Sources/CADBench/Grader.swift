@@ -28,16 +28,24 @@ public struct Grade: Sendable, Codable, Equatable {
 public struct Grader<Kernel: GeometryKernel>: Sendable {
     public let kernel: Kernel
     public let sketchSolver: (any SketchSolving)?
+    public let assemblySolver: (any AssemblySolving)?
 
-    public init(kernel: Kernel, sketchSolver: (any SketchSolving)? = nil) {
+    public init(
+        kernel: Kernel, sketchSolver: (any SketchSolving)? = nil, assemblySolver: (any AssemblySolving)? = nil
+    ) {
         self.kernel = kernel
         self.sketchSolver = sketchSolver
+        self.assemblySolver = assemblySolver
+    }
+
+    private var engine: RebuildEngine<Kernel> {
+        RebuildEngine(kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver)
     }
 
     public func grade(_ task: BenchTask, document: CADDocument) async -> Grade {
         let model: RebuiltModel
         do {
-            model = try await RebuildEngine(kernel: kernel, sketchSolver: sketchSolver).build(document)
+            model = try await engine.build(document)
         } catch {
             return Grade(
                 outcomes: task.checks.map {
@@ -254,7 +262,6 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
     /// Intersection over union by inclusion–exclusion, because an empty intersection is a kernel error. When the
     /// reference has instances, the placed instances are compared instead of the parts.
     private func overlap(_ document: CADDocument, _ reference: CADDocument) async throws -> Overlap? {
-        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
         let assembled = !reference.instances.isEmpty
         let candidate = try await (assembled ? engine.instanceSolids(of: document) : engine.solids(of: document))
             .map(\.body)
