@@ -22,6 +22,9 @@ extension FeatureKind {
         case .fillet: "Fillet"
         case .chamfer: "Chamfer"
         case .shell: "Shell"
+        case .sketch: "Sketch"
+        case .extrude: "Extrude"
+        case .revolve: "Revolve"
         }
     }
 
@@ -40,6 +43,9 @@ extension FeatureKind {
         case .fillet: "rectangle.roundedtop"
         case .chamfer: "octagon"
         case .shell: "cube.transparent"
+        case .sketch: "pencil.and.outline"
+        case .extrude: "arrow.up.square"
+        case .revolve: "arrow.triangle.2.circlepath"
         }
     }
 
@@ -73,6 +79,27 @@ extension FeatureKind {
                 FeatureProperty(label: "Body", value: shell.body),
                 FeatureProperty(label: "Open faces", value: shell.faces.label),
                 FeatureProperty(label: "Thickness", value: shell.thickness.description),
+            ]
+        case .sketch(let sketch):
+            return [
+                FeatureProperty(label: "Plane", value: sketch.plane.label),
+                FeatureProperty(label: "Entities", value: sketch.entities.countLabel),
+                FeatureProperty(label: "Constraints", value: "\(sketch.constraints.count)"),
+            ]
+        case .extrude(let extrude):
+            return [
+                FeatureProperty(label: "Sketch", value: extrude.sketch),
+                FeatureProperty(label: "Regions", value: extrude.regions.regionsLabel),
+                FeatureProperty(label: "Extent", value: extrude.extentLabel),
+                FeatureProperty(label: "Operation", value: extrude.operation.label),
+            ]
+        case .revolve(let revolve):
+            return [
+                FeatureProperty(label: "Sketch", value: revolve.sketch),
+                FeatureProperty(label: "Regions", value: revolve.regions.regionsLabel),
+                FeatureProperty(label: "Axis", value: revolve.axis.label),
+                FeatureProperty(label: "Angle", value: "\(revolve.angle)°"),
+                FeatureProperty(label: "Operation", value: revolve.operation.label),
             ]
         }
     }
@@ -112,6 +139,55 @@ extension Placement {
             FeatureProperty(label: "Position", value: translation.label),
             FeatureProperty(label: "Rotation", value: "\(rotationDegrees)° about \(rotationAxis.label)"),
         ]
+    }
+}
+
+extension SketchPlane {
+    var label: String {
+        let offset = self.offset == .number(0) ? "" : ", offset \(self.offset)"
+        return switch self {
+        case .base(let base, _): base.rawValue + offset
+        case .face(let body, let face, _): "\(face) of \(body)" + offset
+        }
+    }
+}
+
+extension [SketchEntity] {
+    var countLabel: String {
+        let counts = Dictionary(grouping: self, by: \.geometry.typeName).mapValues(\.count)
+        let parts = ["line", "arc", "circle", "point"].compactMap { kind in
+            counts[kind].map { "\($0) \(kind)\($0 == 1 ? "" : "s")" }
+        }
+        return parts.isEmpty ? "none" : parts.joined(separator: ", ")
+    }
+}
+
+extension [String] {
+    var regionsLabel: String { isEmpty ? "All" : joined(separator: ", ") }
+}
+
+extension ExtrudeFeature {
+    var extentLabel: String {
+        let text =
+            switch extent {
+            case .distance(let value): "\(value)"
+            case .symmetric(let value): "\(value) symmetric"
+            case .throughAll: "Through all"
+            case .upToFace(let body, let face): "Up to \(face) of \(body)"
+            }
+        return reversed ? text + ", reversed" : text
+    }
+}
+
+extension RevolveAxis {
+    var label: String {
+        switch self {
+        case .sketchLine(let line): line
+        case .x: "X"
+        case .y: "Y"
+        case .z: "Z"
+        case .edge(let body, let edge): "\(edge) of \(body)"
+        }
     }
 }
 

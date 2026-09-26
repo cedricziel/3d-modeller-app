@@ -29,6 +29,9 @@ public enum FeatureKind: Sendable, Hashable {
     case fillet(FilletFeature)
     case chamfer(ChamferFeature)
     case shell(ShellFeature)
+    case sketch(SketchFeature)
+    case extrude(ExtrudeFeature)
+    case revolve(RevolveFeature)
 }
 
 public struct PrimitiveFeature: Sendable, Hashable {
@@ -140,13 +143,31 @@ public enum SolidOperation: Sendable, Hashable {
 }
 
 extension FeatureKind {
-    var createsNewBody: Bool {
-        if case .primitive(let primitive) = self { primitive.operation == .newBody } else { false }
+    var createsNewBody: Bool { solidOperation == .newBody }
+
+    /// How a solid-making feature (primitive, extrude, revolve) combines with the bodies before it.
+    public var solidOperation: SolidOperation? {
+        switch self {
+        case .primitive(let primitive): primitive.operation
+        case .extrude(let extrude): extrude.operation
+        case .revolve(let revolve): revolve.operation
+        case .boolean, .transform, .fillet, .chamfer, .shell, .sketch: nil
+        }
+    }
+
+    /// The sketch an extrude or revolve uses.
+    public var sketchReference: String? {
+        switch self {
+        case .extrude(let extrude): extrude.sketch
+        case .revolve(let revolve): revolve.sketch
+        default: nil
+        }
     }
 
     func affectedBody(newBody: String?) -> String? {
         switch self {
-        case .primitive(let primitive): primitive.operation.targetBody ?? newBody
+        case .primitive, .extrude, .revolve: solidOperation?.targetBody ?? newBody
+        case .sketch: nil
         case .boolean(let boolean): boolean.target
         case .transform(let transform): transform.body
         case .fillet(let fillet): fillet.body
@@ -155,12 +176,18 @@ extension FeatureKind {
         }
     }
 
-    /// The geometry references of a fillet, chamfer or shell.
+    /// The face and edge references of a feature, in a fixed order.
     public var geometryReferences: [GeometryReference] {
         switch self {
         case .fillet(let fillet): fillet.edges
         case .chamfer(let chamfer): chamfer.edges
         case .shell(let shell): shell.faces
+        case .sketch(let sketch):
+            if case .face(_, let face, _) = sketch.plane { [face] } else { [] }
+        case .extrude(let extrude):
+            if case .upToFace(_, let face) = extrude.extent { [face] } else { [] }
+        case .revolve(let revolve):
+            if case .edge(_, let edge) = revolve.axis { [edge] } else { [] }
         case .primitive, .boolean, .transform: []
         }
     }
@@ -180,6 +207,23 @@ extension FeatureKind {
         case .shell(var shell):
             shell.faces = rename(shell.faces)
             self = .shell(shell)
+        case .sketch(var sketch):
+            if case .face(let body, let face, let offset) = sketch.plane {
+                sketch.plane = .face(body: body, face: face.renamingFeature(old, to: new), offset: offset)
+            }
+            self = .sketch(sketch)
+        case .extrude(var extrude):
+            if extrude.sketch == old { extrude.sketch = new }
+            if case .upToFace(let body, let face) = extrude.extent {
+                extrude.extent = .upToFace(body: body, face: face.renamingFeature(old, to: new))
+            }
+            self = .extrude(extrude)
+        case .revolve(var revolve):
+            if revolve.sketch == old { revolve.sketch = new }
+            if case .edge(let body, let edge) = revolve.axis {
+                revolve.axis = .edge(body: body, edge: edge.renamingFeature(old, to: new))
+            }
+            self = .revolve(revolve)
         case .primitive, .boolean, .transform:
             break
         }

@@ -55,6 +55,18 @@ extension FeatureKind {
         case .fillet(let fillet): [("radius", fillet.radius)] + Self.filterFields("edges", fillet.edges)
         case .chamfer(let chamfer): [("distance", chamfer.distance)] + Self.filterFields("edges", chamfer.edges)
         case .shell(let shell): [("thickness", shell.thickness)] + Self.filterFields("faces", shell.faces)
+        case .sketch(let sketch):
+            [("plane.offset", sketch.plane.offset)]
+                + sketch.constraints.flatMap { constraint in
+                    (constraint.value.map { [("\(constraint.name).value", $0)] } ?? [])
+                        + (constraint.at ?? []).enumerated().map { ("\(constraint.name).at[\($0.offset)]", $0.element) }
+                }
+        case .extrude(let extrude):
+            switch extrude.extent {
+            case .distance(let value), .symmetric(let value): [("extent.value", value)]
+            case .throughAll, .upToFace: []
+            }
+        case .revolve(let revolve): [("angle", revolve.angle)]
         }
     }
 
