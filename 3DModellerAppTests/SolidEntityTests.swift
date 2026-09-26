@@ -9,6 +9,13 @@ import Testing
 struct SolidEntityTests {
     let recipe = SolidRecipe(width: 0.4, height: 0.2, depth: 0.1, filletRadius: 0.02)
 
+    private func expectBlockGeometry(_ entity: CADEntity, sourceLocation: SourceLocation = #_sourceLocation) throws {
+        let extents = try #require((entity.entity as? ModelEntity)?.model?.mesh.bounds.extents)
+        #expect(abs(extents.x - 0.4) < 1e-3, sourceLocation: sourceLocation)
+        #expect(abs(extents.y - 0.1) < 1e-3, sourceLocation: sourceLocation)
+        #expect(abs(extents.z - 0.2) < 1e-3, sourceLocation: sourceLocation)
+    }
+
     @Test("createSolid adds a selectable entity with the recipe")
     func createsEntity() throws {
         let scene = SceneManager()
@@ -43,6 +50,7 @@ struct SolidEntityTests {
         let entity = try #require(reloaded.entity(named: "Bracket"))
         #expect(entity.type == .solid)
         #expect(entity.solid == recipe)
+        try expectBlockGeometry(entity)
     }
 
     @Test("Scene files written before solids existed still load")
@@ -71,6 +79,7 @@ struct SolidEntityTests {
         let restored = try #require(scene.entities.values.first { $0.name == "Bracket" })
         #expect(restored.type == .solid)
         #expect(restored.solid == recipe)
+        try expectBlockGeometry(restored)
     }
 
     @Test("Duplicating a block copies its recipe")
@@ -82,5 +91,6 @@ struct SolidEntityTests {
 
         #expect(copy.type == .solid)
         #expect(copy.solid == recipe)
+        try expectBlockGeometry(copy)
     }
 }
