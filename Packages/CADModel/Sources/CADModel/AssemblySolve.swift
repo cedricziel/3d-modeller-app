@@ -35,7 +35,8 @@ extension AssemblyBuilder {
                         transform: nil, bodies: []))
             }
         }
-        let (joints, solved) = solveJoints(assembly, instances: instances, partResults: partResults, solver: solver)
+        let (joints, solved, freedoms) = solveJoints(
+            assembly, instances: instances, partResults: partResults, solver: solver)
         for (id, transform) in solved {
             guard let index = instances.firstIndex(where: { $0.id == id }), let entry = placedBodies[id] else {
                 continue
@@ -55,6 +56,13 @@ extension AssemblyBuilder {
         let bodies = assembly.instances.compactMap { instance in
             placedBodies[instance.id].map { (instance, $0.placed.bodies) }
         }
+        if !assembly.joints.isEmpty {
+            instances = instances.map { instance in
+                guard instance.status == .ok else { return instance }
+                let grounded = assembly.instances.first { $0.id == instance.id }?.grounded ?? false
+                return instance.with(freedoms: grounded ? 0 : freedoms[instance.id] ?? 6)
+            }
+        }
         return AssembledInstances(result: AssemblyResult(instances: instances, joints: joints), bodies: bodies)
     }
 
@@ -67,12 +75,13 @@ extension AssemblyBuilder {
             movedByJoints: movedByJoints)
     }
 
-    /// Each joint's status, and the solved transform of every instance the joints moved.
+    /// Each joint's status, the solved transform of every instance the joints moved, and the freedoms of every
+    /// instance that reached the solver.
     private func solveJoints(
         _ assembly: Assembly, instances: [InstanceResult], partResults: [UUID: [BodyResult]],
         solver: (any AssemblySolving)?
-    ) -> ([JointResult], [UUID: RigidTransform]) {
-        guard !assembly.joints.isEmpty else { return ([], [:]) }
+    ) -> ([JointResult], [UUID: RigidTransform], [UUID: Int]) {
+        guard !assembly.joints.isEmpty else { return ([], [:], [:]) }
         let resolver = JointResolver(parameters: parameters, instances: instances, partBodies: partResults)
         var statuses: [UUID: JointStatus] = [:]
         var names: Set<String> = []
@@ -115,6 +124,7 @@ extension AssemblyBuilder {
         }
         var solved: [UUID: RigidTransform] = [:]
         var values: [UUID: Double] = [:]
+        var freedoms: [UUID: Int] = [:]
         if !markers.isEmpty {
             let outcome = solve(
                 SolverAssembly(bodies: bodies, joints: markers), solverJoints: solverJoints, assembly: assembly,
@@ -129,6 +139,15 @@ extension AssemblyBuilder {
                 values[entry.joint.id] =
                     entry.drive.isDriven && status.holds ? entry.drive.value : entry.drive.measure(a: a, b: b)
             }
+            let mobility = Mobility.freedoms(
+                bodies: bodies.count, grounded: Set(bodies.indices.filter { bodies[$0].grounded }),
+                joints: markers.map {
+                    MobilityJoint(
+                        kind: $0.kind, bodyA: $0.bodyA, bodyB: $0.bodyB,
+                        a: placements[$0.bodyA].composed(with: $0.markerA),
+                        b: placements[$0.bodyB].composed(with: $0.markerB))
+                })
+            for (id, index) in bodyIndex { freedoms[id] = mobility[index] }
             for (id, index) in bodyIndex where !bodies[index].grounded {
                 guard let placement = outcome.placements?[index], !placement.isClose(to: bodies[index].placement)
                 else { continue }
@@ -142,7 +161,7 @@ extension AssemblyBuilder {
                 motion: joint.kind.motion, value: values[joint.id], minimum: drive.minimum, maximum: drive.maximum,
                 driven: drive.isDriven, freedoms: joint.kind.freedoms - (drive.isDriven ? 1 : 0))
         }
-        return (results, solved)
+        return (results, solved, freedoms)
     }
 
     private func solve(

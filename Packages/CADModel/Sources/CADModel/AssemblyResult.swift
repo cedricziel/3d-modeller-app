@@ -22,6 +22,9 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
     public let transform: RigidTransform?
     /// Whether the joints moved the instance away from its document placement.
     public let movedByJoints: Bool
+    /// How many ways the instance can still move, when the assembly has joints: 0 when grounded or held, 6 when
+    /// nothing holds it.
+    public let freedoms: Int?
     /// The part's bodies in assembly coordinates, under the part's body names.
     public let bodies: [BodyResult]
     /// The part's own face and edge names for each body, index-aligned with the moved topology. Computed before the
@@ -30,9 +33,10 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
 
     public init(
         id: UUID, name: String, part: UUID, status: InstanceStatus, transform: RigidTransform?, bodies: [BodyResult],
-        names: [String: TopologyNames] = [:], movedByJoints: Bool = false
+        names: [String: TopologyNames] = [:], movedByJoints: Bool = false, freedoms: Int? = nil
     ) {
         self.movedByJoints = movedByJoints
+        self.freedoms = freedoms
         self.id = id
         self.name = name
         self.part = part
@@ -40,6 +44,12 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
         self.transform = transform
         self.bodies = bodies
         self.names = names
+    }
+
+    func with(freedoms: Int) -> InstanceResult {
+        InstanceResult(
+            id: id, name: name, part: part, status: status, transform: transform, bodies: bodies, names: names,
+            movedByJoints: movedByJoints, freedoms: freedoms)
     }
 
     /// The part's names for the faces and edges of one of the instance's bodies.

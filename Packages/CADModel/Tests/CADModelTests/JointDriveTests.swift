@@ -158,4 +158,19 @@ struct JointDriveTests {
         }
         #expect(reason.hasPrefix("value: "))
     }
+
+    @Test("Instances report the freedoms their joints leave them")
+    func instanceFreedoms() async throws {
+        var free = document(.revolute)
+        free.assembly?.instances.append(Instance(name: "Loose", part: part.id))
+        let freeResult = try await rebuild(free, FakeAssemblySolver())
+        let drivenResult = try await rebuild(document(.revolute, value: 10), FakeAssemblySolver())
+        var unjoined = document(.revolute)
+        unjoined.assembly?.joints = []
+        let unjoinedResult = try await rebuild(unjoined, FakeAssemblySolver())
+
+        #expect(freeResult.assembly?.instances.map(\.freedoms) == [0, 1, 6])
+        #expect(drivenResult.assembly?.instances.map(\.freedoms) == [0, 0])
+        #expect(unjoinedResult.assembly?.instances.map(\.freedoms) == [nil, nil])
+    }
 }
