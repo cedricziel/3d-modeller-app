@@ -4,13 +4,17 @@ An AI-first parametric CAD application for macOS. A model is a list of parameter
 
 ## Features
 
-- **Parametric documents** - `.cadmodel` files: plain, key-sorted JSON in millimetres
+- **Parametric documents** - `.cadmodel` files: plain, key-sorted JSON in millimetres, rebuilt on open
 - **Parameters** - Named values and expressions (`width / 2 + t`) usable in every numeric field
-- **Feature trees** - Box, cylinder, sphere, cone and torus with placements; booleans (union, subtract, intersect) and transforms; each solid can start a new body or join, cut or intersect an existing one
-- **Robust rebuild** - Each feature reports ok, failed (with the reason), skipped (with the feature it depends on) or suppressed; one failure never stops the rest
-- **Exact CAD geometry** - Solids built by the Open CASCADE kernel and drawn in a RealityKit viewport
-- **Undo/Redo** - Document edits go through the window's undo history (Edit ▸ Undo, ⌘Z)
-- **AI assistant** - Chat panel backed by Claude that reads a text listing of the model and edits it through typed tools (parameters, add/edit/delete/rename/suppress features); each tool call is one undo step
+- **Feature trees** - Box, cylinder, sphere, cone and torus with placements; booleans and transforms; fillet, chamfer and shell by named faces and edges or filters (`edges parallel Z`); each solid starts a new body or joins, cuts or intersects an existing one
+- **Sketches** - Points, lines, arcs and circles on a plane or a face, with constraints solved by FreeCAD's PlaneGCS; extrude and revolve their closed profiles
+- **Parts and assemblies** - Several parts per document, placed as instances and mated by fixed, revolute, slider, cylindrical, ball and planar joints solved by FreeCAD's OndselSolver
+- **Motion** - Joint limits, degrees of freedom per joint and instance, drive a joint to a value, and animate it through its range
+- **Robust rebuild** - Each feature, sketch, instance and joint reports its status and the reason it failed; one failure never stops the rest
+- **Export** - STEP with the assembly's structure, names and colours; binary STL and 3MF for printing (File ▸ Export… or the assistant's `export` tool)
+- **Undo/Redo** - Every edit, the assistant's included, is one step in the window's undo history (⌘Z)
+- **AI assistant** - Chat panel backed by Claude that reads a text listing of the model and edits it through typed tools, measures it and renders views to check its work
+- **Benchmark** - `cadbench` runs build and modify tasks through the assistant headlessly and grades the results (`Bench/README.md`)
 
 ## Requirements
 
@@ -54,6 +58,7 @@ xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
 (cd Packages/CADKernel && xcrun swift test)
 (cd Packages/CADModel && xcrun swift test)
 (cd Packages/CADAssistantTools && xcrun swift test)
+(cd Packages/CADSolvers && xcrun swift test)
 ```
 
 ### Configure API Key
@@ -91,7 +96,7 @@ Open or create a `.cadmodel` document. A small example, a plate with a hole:
 }
 ```
 
-The outline lists parameters and features with their rebuild status; select a feature to see its values in the inspector. Right-click a feature to suppress or delete it. With an API key in Settings, ask the assistant to build or change the model ("a 60 × 40 × 10 plate with a 5.5 mm hole in the middle"); every change it makes appears in the outline and can be undone with ⌘Z.
+The outline lists parameters, features, instances and joints with their rebuild status; select a feature to see its values in the inspector. Right-click a feature to suppress or delete it. With an API key in Settings, ask the assistant to build or change the model ("a 60 × 40 × 10 plate with a 5.5 mm hole in the middle"); every change it makes appears in the outline and can be undone with ⌘Z. File ▸ Export… writes STEP, STL or 3MF of the whole model, a part, a body or an instance.
 
 ## Architecture
 
@@ -100,8 +105,9 @@ The outline lists parameters and features with their rebuild status; select a fe
 │   ├── SwiftUIAssistant/      # Reusable AI assistant library
 │   ├── SwiftUIAssistantTools/ # Common tools (fetch, calculator, time)
 │   ├── CADKernel/             # Open CASCADE geometry (the only OCCT importer)
-│   ├── CADModel/              # Document, parameters, features, rebuild engine
-│   │                          # (+ CADModelKernel: the CADKernel adapter)
+│   ├── CADSolvers/            # PlaneGCS and OndselSolver (the only C++ solver code)
+│   ├── CADModel/              # Document, parameters, features, sketches, assembly, rebuild, export
+│   │                          # (+ CADModelKernel and CADModelSolvers: the adapters)
 │   └── CADAssistantTools/     # Headless session, listing and CAD tools for the assistant
 │
 └── 3DModellerApp/             # Main application
@@ -127,7 +133,7 @@ Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorT
 
 ### CADAssistantTools
 
-The agent-facing surface, usable without the app: a `CADSession` that owns a document and its rebuild, the text listing the assistant sees each turn, and the tools `get_listing`, `set_parameter`, `add_feature`, `edit_feature`, `delete_feature`, `rename_feature` and `suppress_feature`.
+The agent-facing surface, usable without the app: a `CADSession` that owns a document and its rebuild, the text listing the assistant sees each turn, and the tools that read (`get_listing`, `find_geometry`, `measure`, `render_views`), edit (parameters, features, sketches, parts, instances, joints, `move_joint`) and `export` the model. The same package holds `cadbench`.
 
 ### Technology Stack
 
