@@ -363,6 +363,59 @@ struct SceneManagerTests {
         #expect(sceneManager.entity(named: "New") != nil)
     }
 
+    // MARK: - Undo/Redo Tests
+
+    @Test("Undoing a delete restores exactly one entity with the original id")
+    func testUndoDeleteRestoresOriginalEntity() {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box, name: "Keeper")
+        _ = sceneManager.deleteEntity(id: entity.id)
+
+        sceneManager.undo()
+
+        #expect(sceneManager.entities.count == 1)
+        #expect(sceneManager.entities[entity.id]?.name == "Keeper")
+        #expect(sceneManager.statistics.entityCount == 1)
+    }
+
+    @Test("Undo then redo walks the history in both directions")
+    func testUndoThenRedo() {
+        let sceneManager = SceneManager()
+        let first = sceneManager.createPrimitive(type: .box, name: "First")
+        let second = sceneManager.createPrimitive(type: .sphere, name: "Second")
+
+        sceneManager.undo()
+        sceneManager.undo()
+        #expect(sceneManager.entities.isEmpty)
+
+        sceneManager.redo()
+        #expect(Set(sceneManager.entities.keys) == [first.id])
+
+        sceneManager.redo()
+        #expect(Set(sceneManager.entities.keys) == [first.id, second.id])
+    }
+
+    @Test("Material, rotation and scale survive undo")
+    func testUndoKeepsMaterialAndTransform() throws {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box)
+        _ = sceneManager.setMaterial(
+            id: entity.id, color: ColorData(r: 0, g: 0, b: 1), metallic: 0.8, roughness: 0.2)
+        _ = sceneManager.transformEntity(id: entity.id, rotation: [0, 90, 0], scale: [2, 2, 2])
+        let orientation = entity.entity.orientation
+        _ = sceneManager.deleteEntity(id: entity.id)
+
+        sceneManager.undo()
+
+        let restored = try #require(sceneManager.entities[entity.id])
+        #expect(restored.material.color == ColorData(r: 0, g: 0, b: 1))
+        #expect(restored.material.metallic == 0.8)
+        #expect(restored.material.roughness == 0.2)
+        #expect(restored.entity.scale == [2, 2, 2])
+        #expect(restored.entity.orientation == orientation)
+        #expect(restored.entity.parent === sceneManager.rootEntity)
+    }
+
     // MARK: - Entity Lookup Tests
 
     @Test("Find entity by name")
