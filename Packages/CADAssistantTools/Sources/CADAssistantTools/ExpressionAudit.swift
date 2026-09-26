@@ -52,6 +52,9 @@ extension FeatureKind {
         case .primitive(let primitive): primitive.shape.scalarFields + primitive.placement.scalarFields
         case .boolean: []
         case .transform(let transform): transform.placement.scalarFields
+        case .fillet(let fillet): [("radius", fillet.radius)]
+        case .chamfer(let chamfer): [("distance", chamfer.distance)]
+        case .shell(let shell): [("thickness", shell.thickness)]
         }
     }
 }

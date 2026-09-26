@@ -1,8 +1,9 @@
-@testable import CADAssistantTools
 import CADModel
 import Foundation
 import SwiftUIAssistant
 import Testing
+
+@testable import CADAssistantTools
 
 @MainActor
 @Suite("edit_feature")
@@ -45,7 +46,7 @@ struct EditFeatureToolTests {
         let result = try await harness.call("edit_feature", ["feature": "Hole", "operation": "newBody"])
 
         #expect(result.success)
-        guard case let .primitive(primitive) = hole(harness) else {
+        guard case .primitive(let primitive) = hole(harness) else {
             Issue.record("not a primitive")
             return
         }
@@ -94,7 +95,7 @@ struct EditFeatureToolTests {
         )
         #expect(
             try await harness.refused("edit_feature", ["feature": "Hole", "name": "Bore"])
-                == "Unknown argument 'name'. Accepted: feature, part, type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius, placement, operation, body, tools."
+                == "Unknown argument 'name'. Accepted: feature, part, type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius, distance, thickness, placement, operation, body, tools, edges, faces."
         )
         #expect(
             try await harness.refused("edit_feature", ["feature": "Base", "radius": 3])

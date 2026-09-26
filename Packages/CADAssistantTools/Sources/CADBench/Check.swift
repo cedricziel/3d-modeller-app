@@ -21,12 +21,15 @@ public struct BodySelector: Sendable, Equatable, CustomStringConvertible {
 }
 
 public enum FeatureType: String, Sendable, Codable, CaseIterable {
-    case box, cylinder, sphere, cone, torus, boolean, transform
+    case box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell
 
     public init(_ kind: FeatureKind) {
         switch kind {
         case .boolean: self = .boolean
         case .transform: self = .transform
+        case .fillet: self = .fillet
+        case .chamfer: self = .chamfer
+        case .shell: self = .shell
         case .primitive(let primitive):
             switch primitive.shape {
             case .box: self = .box
