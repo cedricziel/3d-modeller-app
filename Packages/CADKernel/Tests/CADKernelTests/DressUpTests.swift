@@ -34,7 +34,8 @@ struct FilletTests {
         let removedPerEdge = radius * radius * (1 - Double.pi / 4) * 0.5
         #expect(vertical.count == 4)
         #expect(metrics.isValid)
-        #expect(approx(metrics.volume, 1 - 4 * removedPerEdge))
+        let expectedVolume: Double = 1 - 4 * removedPerEdge
+        #expect(approx(metrics.volume, expectedVolume))
         for index in 0..<4 {
             let face = try face("Round.face[\(index)]", in: rounded)
             #expect(face.surface == .cylinder)
@@ -140,15 +141,17 @@ struct ShellTests {
     func openTop() throws {
         let shelled = try Kernel.shell(box, removing: [try top()], thickness: 2, feature: "Hollow")
         let metrics = try Kernel.metrics(of: shelled)
+        let expectedVolume: Double = 60 * 40 * 30 - 56 * 36 * 28
+        let expectedTopArea: Double = 60 * 40 - 56 * 36
 
         #expect(metrics.isValid)
         #expect(metrics.solidCount == 1)
-        #expect(approx(metrics.volume, 60 * 40 * 30 - 56 * 36 * 28, tolerance: 1e-4))
+        #expect(approx(metrics.volume, expectedVolume, tolerance: 1e-4))
         #expect(approx(metrics.boundsMax, SIMD3(60, 40, 30), tolerance: 1e-4))
         let inner = try face("Hollow.inner[Box.front]", in: shelled)
         #expect(approx(inner.centroid.y, 2, tolerance: 1e-4))
         #expect(approx(try face("Hollow.inner[Box.bottom]", in: shelled).centroid.z, 2, tolerance: 1e-4))
-        #expect(approx(try face("Box.top", in: shelled).area, 60 * 40 - 56 * 36, tolerance: 1e-4))
+        #expect(approx(try face("Box.top", in: shelled).area, expectedTopArea, tolerance: 1e-4))
     }
 
     @Test("A wall thicker than the box fails with a kernel error")

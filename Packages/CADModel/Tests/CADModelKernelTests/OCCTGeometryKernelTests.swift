@@ -112,6 +112,7 @@ struct OCCTGeometryKernelTests {
         let merged = try #require(part.bodies.first?.metrics)
         #expect(approx(merged.volume, 1500))
         #expect(approx(merged.boundsMin.z, 100))
-        #expect(approx(part.bodies[1].metrics?.volume, 2 * .pi * .pi * 10 * 4))
+        let expectedVolume: Double = 2 * .pi * .pi * 10 * 4
+        #expect(approx(part.bodies[1].metrics?.volume, expectedVolume))
     }
 }

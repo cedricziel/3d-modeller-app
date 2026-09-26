@@ -10,7 +10,8 @@ struct BooleanTests {
         let drill = try Kernel.cylinder(radius: 1, height: 4, placement: Placement(translation: SIMD3(2, 2, -1)))
         let metrics = try Kernel.metrics(of: Kernel.boolean(.subtract, plate, drill))
 
-        #expect(approx(metrics.volume, 32 - 2 * .pi))
+        let expectedVolume: Double = 32 - 2 * .pi
+        #expect(approx(metrics.volume, expectedVolume))
         #expect(metrics.isClosed)
         #expect(metrics.solidCount == 1)
         #expect(metrics.faceCount == 7)

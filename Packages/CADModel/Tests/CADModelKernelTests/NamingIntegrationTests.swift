@@ -36,7 +36,8 @@ struct NamingIntegrationTests {
 
         #expect(part.features.map(\.status) == [.ok, .ok, .ok])
         let corners = 2 * 9 * (1 - Double.pi / 4) * 10
-        #expect(approx(part.bodies.first?.metrics?.volume, 60 * 40 * 10 - .pi * 25 * 10 - corners))
+        let expectedVolume: Double = 60 * 40 * 10 - .pi * 25 * 10 - corners
+        #expect(approx(part.bodies.first?.metrics?.volume, expectedVolume))
         let names = Set(part.bodies.first?.topology?.faces.flatMap(\.names) ?? [])
         #expect(names.isSuperset(of: ["Round.face[0]", "Round.face[1]", "Hole.side", "Plate.top"]))
     }
@@ -51,7 +52,8 @@ struct NamingIntegrationTests {
 
         #expect(part.features[2].status == .ok)
         let corners = 4 * 9 * (1 - Double.pi / 4) * 10
-        #expect(approx(part.bodies.first?.metrics?.volume, 60 * 40 * 10 - .pi * 25 * 10 - corners))
+        let expectedVolume: Double = 60 * 40 * 10 - .pi * 25 * 10 - corners
+        #expect(approx(part.bodies.first?.metrics?.volume, expectedVolume))
     }
 
     @Test("Filleting the hole's seam by name fails instead of leaving it sharp")
@@ -101,7 +103,8 @@ struct NamingIntegrationTests {
 
         #expect(part.features[2].status == .ok)
         let ring = Double.pi * (5 + 1.0 / 3) * 1
-        #expect(approx(part.bodies.first?.metrics?.volume, 60 * 40 * 10 - .pi * 25 * 10 - ring))
+        let expectedVolume: Double = 60 * 40 * 10 - .pi * 25 * 10 - ring
+        #expect(approx(part.bodies.first?.metrics?.volume, expectedVolume))
     }
 
     @Test("Shelling a box open at the top")
@@ -113,7 +116,8 @@ struct NamingIntegrationTests {
         ])
 
         #expect(part.features[1].status == .ok)
-        #expect(approx(part.bodies.first?.metrics?.volume, 60 * 40 * 10 - 56 * 36 * 8))
+        let expectedVolume: Double = 60 * 40 * 10 - 56 * 36 * 8
+        #expect(approx(part.bodies.first?.metrics?.volume, expectedVolume))
     }
 
     @Test("A slot splits the top; the bare name becomes ambiguous and a piece name still works")
