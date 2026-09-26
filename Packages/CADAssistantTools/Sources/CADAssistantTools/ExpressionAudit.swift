@@ -32,6 +32,18 @@ enum ExpressionAudit {
                 }
             }
         }
+        for instance in document.instances {
+            for (field, scalar) in instance.placement.scalarFields {
+                do {
+                    _ = try table.evaluate(scalar)
+                } catch {
+                    failures.append(
+                        Failure(
+                            key: "instance \(instance.id) \(field) \(scalar)",
+                            text: "\(instance.name).\(field) = \(scalar): \(error)"))
+                }
+            }
+        }
         return failures
     }
 

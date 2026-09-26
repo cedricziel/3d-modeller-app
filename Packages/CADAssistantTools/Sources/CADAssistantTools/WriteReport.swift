@@ -7,6 +7,7 @@ import SwiftUIAssistant
 struct WriteReport {
     var summary: String
     var focus: UUID?
+    var instanceFocus: UUID?
     var notes: [String] = []
     var referenceNotes: [String] = []
     var before: CADDocument
@@ -22,6 +23,9 @@ struct WriteReport {
         }
         if let focus, let feature = afterResult.feature(id: focus) {
             lines.append("\(feature.name): \(feature.status)")
+        }
+        if let instanceFocus, let instance = afterResult.assembly?.instance(id: instanceFocus) {
+            lines.append("\(instance.name): \(instance.status)")
         }
         let changes = statusChanges(afterResult)
         if !changes.isEmpty {
@@ -40,6 +44,7 @@ struct WriteReport {
             lines += referenceNotes.map { "  \($0)" }
         }
         lines += bodyLines(afterResult)
+        lines += instanceLines(afterResult)
         let diff = Self.diff(
             DocumentListing.lines(before, result: beforeResult), DocumentListing.lines(after, result: afterResult))
         if !diff.isEmpty {
@@ -54,11 +59,61 @@ struct WriteReport {
 
     private func statusChanges(_ afterResult: RebuildResult) -> [String] {
         guard let beforeResult else { return [] }
-        return afterResult.parts.flatMap(\.features).compactMap { feature in
+        let features = afterResult.parts.flatMap(\.features).compactMap { feature -> String? in
             guard feature.id != focus, let old = beforeResult.feature(id: feature.id), old.status != feature.status
             else { return nil }
             return "\(feature.name): \(old.status) → \(feature.status)"
         }
+        let instances = (afterResult.assembly?.instances ?? []).compactMap { instance -> String? in
+            guard instance.id != instanceFocus, let old = beforeResult.assembly?.instance(id: instance.id),
+                old.status != instance.status
+            else { return nil }
+            return "\(instance.name): \(old.status) → \(instance.status)"
+        }
+        return features + instances
+    }
+
+    /// Changed or faulty instances in full with their bounds; the others by name.
+    private func instanceLines(_ afterResult: RebuildResult) -> [String] {
+        let oldInstances = beforeResult?.assembly?.instances ?? []
+        let old = Dictionary(
+            oldInstances.map { ($0.id, Self.describe($0, in: before)) }, uniquingKeysWith: { first, _ in first })
+        var changed: [String] = []
+        var unchanged: [String] = []
+        let current = afterResult.assembly?.instances ?? []
+        for instance in current {
+            let line = Self.describe(instance, in: after)
+            let definitionKept =
+                before.instances.first { $0.id == instance.id } == after.instances.first { $0.id == instance.id }
+            if instance.status == .ok, definitionKept, old[instance.id] == line {
+                unchanged.append(instance.name)
+            } else {
+                changed.append(line)
+            }
+        }
+        let currentIDs = Set(current.map(\.id))
+        let removed = oldInstances.filter { !currentIDs.contains($0.id) }.map(\.name)
+        var lines: [String] = []
+        if !changed.isEmpty { lines.append("Instances:") }
+        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
+        if changed.count > Self.diffLimit {
+            lines.append("  … \(changed.count - Self.diffLimit) more changed instances; call get_listing")
+        }
+        if !unchanged.isEmpty { lines.append("Unchanged instances: \(unchanged.joined(separator: ", "))") }
+        if !removed.isEmpty { lines.append("Removed instances: \(removed.joined(separator: ", "))") }
+        return lines
+    }
+
+    static func describe(_ instance: InstanceResult, in document: CADDocument) -> String {
+        let name = "\(instance.name) (\(document.part(id: instance.part)?.name ?? "missing part"))"
+        guard instance.status == .ok else { return "\(name): \(instance.status)" }
+        let metrics = instance.bodies.compactMap(\.metrics)
+        guard metrics.count == instance.bodies.count, let first = metrics.first else {
+            return "\(name): ok, bounds unknown"
+        }
+        let low = metrics.dropFirst().reduce(first.boundsMin) { pointwiseMin($0, $1.boundsMin) }
+        let high = metrics.dropFirst().reduce(first.boundsMax) { pointwiseMax($0, $1.boundsMax) }
+        return "\(name): ok, bounds \(Format.point(low)) to \(Format.point(high))"
     }
 
     static let diffLimit = 30
@@ -159,6 +214,7 @@ struct WriteFocus {
     var summary: String
     var feature: UUID?
     var referenceNotes: [String] = []
+    var instance: UUID?
 }
 
 extension CADSession {
@@ -182,7 +238,8 @@ extension CADSession {
         guard after != before else { return .success("\(focus.summary). Nothing changed.") }
         let afterResult = await apply(after, actionName: focus.actionName)
         let report = WriteReport(
-            summary: focus.summary, focus: focus.feature, notes: notes, referenceNotes: focus.referenceNotes,
+            summary: focus.summary, focus: focus.feature, instanceFocus: focus.instance, notes: notes,
+            referenceNotes: focus.referenceNotes,
             before: before,
             beforeResult: beforeResult, after: after, afterResult: afterResult)
         return .success(report.render())

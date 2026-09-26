@@ -29,7 +29,8 @@ struct SessionDeleteTests {
         let message = await harness.session.deleteFeature(id: base.id)
 
         #expect(
-            message?.hasPrefix("Nothing changed, because bodies that other features use would no longer exist") == true)
+            message?.hasPrefix(
+                "Nothing changed, because bodies that other features or instances use would no longer exist") == true)
         #expect(harness.document == before)
         #expect(harness.commits.isEmpty)
         #expect(await harness.session.deleteFeature(id: UUID()) == "The feature no longer exists.")
