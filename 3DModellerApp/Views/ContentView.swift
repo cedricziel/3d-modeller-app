@@ -16,7 +16,7 @@ struct ContentView: View {
         NavigationSplitView {
             // Left sidebar: Scene outline
             SceneOutlineView(sceneManager: sceneManager)
-                .frame(minWidth: 200)
+                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 280)
         } content: {
             // Center: 3D Viewport
             Viewport3DView(sceneManager: sceneManager)
@@ -28,10 +28,11 @@ struct ContentView: View {
                     SceneStatisticsView(statistics: sceneManager.statistics)
                         .padding()
                 }
+                .navigationSplitViewColumnWidth(min: 400, ideal: 700)
         } detail: {
             // Right sidebar: Properties Inspector (always visible)
             PropertiesInspectorView(sceneManager: sceneManager)
-                .frame(minWidth: 250)
+                .frame(minWidth: 250, idealWidth: 280, maxWidth: 360)
         }
         .inspector(isPresented: $appModel.showAssistant) {
             if let assistant = assistant {
@@ -61,6 +62,7 @@ struct ContentView: View {
             }
         }
         .inspectorColumnWidth(min: 300, ideal: 350, max: 500)
+        .frame(minWidth: 1150, minHeight: 600)
         .navigationTitle(document.sceneData.metadata.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -188,6 +190,8 @@ struct SceneStatisticsView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .fixedSize()
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(.regularMaterial, in: Capsule())

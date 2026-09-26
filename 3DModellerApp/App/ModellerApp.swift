@@ -9,6 +9,7 @@ struct ModellerApp: App {
             ContentView(document: configuration.$document)
                 .environmentObject(appModel)
         }
+        .defaultSize(width: 1440, height: 860)
         .commands {
             CommandMenu("Tools") {
                 Button("Select") {
@@ -53,10 +54,10 @@ struct ModellerApp: App {
         }
 
         #if os(macOS)
-        Settings {
-            SettingsView()
-                .environmentObject(appModel)
-        }
+            Settings {
+                SettingsView()
+                    .environmentObject(appModel)
+            }
         #endif
     }
 }
