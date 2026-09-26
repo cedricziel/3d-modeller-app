@@ -362,6 +362,157 @@ struct SceneManagerTests {
         #expect(sceneManager.entity(named: "New") != nil)
     }
 
+    // MARK: - Round-Trip Tests
+
+    private func isClose(_ a: SIMD3<Float>, _ b: SIMD3<Float>, tolerance: Float = 1e-4) -> Bool {
+        simd_length(a - b) < tolerance
+    }
+
+    private func sampleSceneData() -> SceneData {
+        var data = SceneData()
+        data.metadata.name = "My Workshop"
+        data.metadata.createdAt = Date(timeIntervalSince1970: 1_000_000)
+        data.entities = [
+            EntityData(
+                id: UUID(),
+                name: "Table",
+                type: .box,
+                transform: TransformData(
+                    position: [1, 2, 3],
+                    rotation: [0.3, -0.5, 1.1],
+                    scale: [2, 0.5, 1.5]
+                ),
+                material: MaterialData(
+                    color: ColorData(r: 0.1, g: 0.2, b: 0.3, a: 0.9),
+                    metallic: 0.7,
+                    roughness: 0.25
+                ),
+                parentId: UUID(),
+                isVisible: false
+            )
+        ]
+        return data
+    }
+
+    @Test("Save after load keeps every entity field")
+    func entityRoundTrip() throws {
+        let sceneManager = SceneManager()
+        let original = sampleSceneData()
+
+        sceneManager.loadSceneData(original)
+        let saved = try #require(sceneManager.toSceneData().entities.first)
+        let expected = original.entities[0]
+
+        #expect(saved.id == expected.id)
+        #expect(saved.name == expected.name)
+        #expect(saved.type == expected.type)
+        #expect(isClose(saved.transform.position, expected.transform.position))
+        #expect(isClose(saved.transform.rotation, expected.transform.rotation))
+        #expect(isClose(saved.transform.scale, expected.transform.scale))
+        #expect(saved.material.color == expected.material.color)
+        #expect(saved.material.metallic == expected.material.metallic)
+        #expect(saved.material.roughness == expected.material.roughness)
+        #expect(saved.parentId == expected.parentId)
+        #expect(saved.isVisible == expected.isVisible)
+    }
+
+    @Test("Save after load keeps the scene metadata")
+    func metadataRoundTrip() {
+        let sceneManager = SceneManager()
+        let original = sampleSceneData()
+
+        sceneManager.loadSceneData(original)
+        _ = sceneManager.transformEntity(id: original.entities[0].id, position: [0, 0, 0])
+        let saved = sceneManager.toSceneData()
+
+        #expect(saved.metadata.name == "My Workshop")
+        #expect(saved.metadata.createdAt == original.metadata.createdAt)
+    }
+
+    @Test("Rotation set in degrees is saved in radians")
+    func rotationSerialization() throws {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box)
+
+        _ = sceneManager.transformEntity(id: entity.id, rotation: [30, 45, 60])
+        let saved = try #require(sceneManager.toSceneData().entities.first)
+
+        #expect(isClose(saved.transform.rotation, SIMD3<Float>(30, 45, 60) * (.pi / 180)))
+    }
+
+    @Test("Loading a scene does not count as an edit")
+    func loadDoesNotTouchUndoOrRevision() {
+        let sceneManager = SceneManager()
+        let revision = sceneManager.revision
+
+        sceneManager.loadSceneData(sampleSceneData())
+        sceneManager.undo()
+
+        #expect(sceneManager.revision == revision)
+        #expect(sceneManager.entities.count == 1)
+        #expect(sceneManager.statistics.entityCount == 1)
+    }
+
+    @Test("Undo restores the previous transform")
+    func undoRestoresTransform() {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box, position: [1, 0, 0])
+
+        _ = sceneManager.transformEntity(id: entity.id, position: [5, 5, 5], scale: [2, 2, 2])
+        sceneManager.undo()
+
+        let restored = sceneManager.entities[entity.id]
+        #expect(restored?.entity.position == [1, 0, 0])
+        #expect(restored?.entity.scale == [1, 1, 1])
+    }
+
+    @Test("Undo then redo returns to the edited state")
+    func undoThenRedo() throws {
+        let sceneManager = SceneManager()
+        let original = sampleSceneData()
+        sceneManager.loadSceneData(original)
+        let id = original.entities[0].id
+        let loaded = try #require(sceneManager.toSceneData().entities.first)
+
+        _ = sceneManager.setMaterial(id: id, metallic: 0.1)
+        _ = sceneManager.transformEntity(id: id, scale: [3, 3, 3])
+        let edited = try #require(sceneManager.toSceneData().entities.first)
+
+        sceneManager.undo()
+        sceneManager.undo()
+        let undone = try #require(sceneManager.toSceneData().entities.first)
+        #expect(undone.id == loaded.id)
+        #expect(undone.material.metallic == loaded.material.metallic)
+        #expect(isClose(undone.transform.scale, loaded.transform.scale))
+        #expect(isClose(undone.transform.rotation, loaded.transform.rotation))
+
+        sceneManager.redo()
+        sceneManager.redo()
+        let redone = try #require(sceneManager.toSceneData().entities.first)
+        #expect(redone.id == edited.id)
+        #expect(redone.material.metallic == 0.1)
+        #expect(isClose(redone.transform.scale, [3, 3, 3]))
+        #expect(isClose(redone.transform.rotation, loaded.transform.rotation))
+        #expect(redone.isVisible == false)
+    }
+
+    @Test("Undo does not clear the redo stack")
+    func undoKeepsRedoStack() {
+        let sceneManager = SceneManager()
+        _ = sceneManager.createPrimitive(type: .box, name: "A")
+        _ = sceneManager.createPrimitive(type: .box, name: "B")
+
+        sceneManager.undo()
+        sceneManager.undo()
+        sceneManager.redo()
+        sceneManager.redo()
+
+        #expect(sceneManager.entity(named: "A") != nil)
+        #expect(sceneManager.entity(named: "B") != nil)
+        sceneManager.undo()
+        #expect(sceneManager.entity(named: "B") == nil)
+    }
+
     // MARK: - Entity Lookup Tests
 
     @Test("Find entity by name")

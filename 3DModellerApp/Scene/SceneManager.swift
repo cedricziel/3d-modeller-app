@@ -27,6 +27,9 @@ final class SceneManager: ObservableObject {
     /// Ground grid entity
     private var gridEntity: Entity?
 
+    /// Name and dates of the loaded document, written back on save
+    private var metadata = SceneData.SceneMetadata()
+
     /// Entity name counter for auto-naming
     private var entityCounters: [EntityData.EntityType: Int] = [:]
 
@@ -105,12 +108,23 @@ final class SceneManager: ObservableObject {
     ) -> CADEntity {
         saveUndoState()
 
-        let entityName = name ?? generateName(for: type)
-        let id = UUID()
+        let data = EntityData(
+            name: name ?? generateName(for: type),
+            type: type,
+            transform: TransformData(position: position),
+            material: MaterialData(color: color)
+        )
+        let cadEntity = addEntity(from: data, size: size)
+        sceneDidChange()
 
-        // Create RealityKit mesh
+        return cadEntity
+    }
+
+    /// Builds an entity from its saved data without recording an undo step
+    @discardableResult
+    private func addEntity(from data: EntityData, size: Float = 0.5) -> CADEntity {
         let mesh: MeshResource
-        switch type {
+        switch data.type {
         case .box:
             mesh = .generateBox(size: size)
         case .sphere:
@@ -131,47 +145,67 @@ final class SceneManager: ObservableObject {
             mesh = .generateBox(size: size)
         }
 
-        // Create material
+        let modelEntity = ModelEntity(mesh: mesh, materials: [Self.makeMaterial(data.material)])
+        modelEntity.name = data.name
+        modelEntity.position = data.transform.position
+        modelEntity.orientation = Self.orientation(fromEuler: data.transform.rotation)
+        modelEntity.scale = data.transform.scale
+        modelEntity.isEnabled = data.isVisible
+
+        rootEntity.addChild(modelEntity)
+
+        let cadEntity = CADEntity(
+            id: data.id,
+            name: data.name,
+            type: data.type,
+            entity: modelEntity,
+            material: data.material,
+            parentId: data.parentId
+        )
+        entities[data.id] = cadEntity
+        return cadEntity
+    }
+
+    private static func makeMaterial(_ data: MaterialData) -> SimpleMaterial {
         var material = SimpleMaterial()
         #if os(macOS)
             material.color = .init(
                 tint: NSColor(
-                    red: CGFloat(color.r),
-                    green: CGFloat(color.g),
-                    blue: CGFloat(color.b),
-                    alpha: CGFloat(color.a)
+                    red: CGFloat(data.color.r),
+                    green: CGFloat(data.color.g),
+                    blue: CGFloat(data.color.b),
+                    alpha: CGFloat(data.color.a)
                 ))
         #else
             material.color = .init(
                 tint: UIColor(
-                    red: CGFloat(color.r),
-                    green: CGFloat(color.g),
-                    blue: CGFloat(color.b),
-                    alpha: CGFloat(color.a)
+                    red: CGFloat(data.color.r),
+                    green: CGFloat(data.color.g),
+                    blue: CGFloat(data.color.b),
+                    alpha: CGFloat(data.color.a)
                 ))
         #endif
+        material.metallic = .init(floatLiteral: data.metallic)
+        material.roughness = .init(floatLiteral: data.roughness)
+        return material
+    }
 
-        // Create model entity
-        let modelEntity = ModelEntity(mesh: mesh, materials: [material])
-        modelEntity.position = position
-        modelEntity.name = entityName
+    /// Euler angles in radians, applied as X * Y * Z
+    private static func orientation(fromEuler angles: SIMD3<Float>) -> simd_quatf {
+        simd_quatf(angle: angles.x, axis: [1, 0, 0])
+            * simd_quatf(angle: angles.y, axis: [0, 1, 0])
+            * simd_quatf(angle: angles.z, axis: [0, 0, 1])
+    }
 
-        // Add to scene
-        rootEntity.addChild(modelEntity)
-
-        // Create CAD entity wrapper
-        let cadEntity = CADEntity(
-            id: id,
-            name: entityName,
-            type: type,
-            entity: modelEntity,
-            material: MaterialData(color: color)
-        )
-
-        entities[id] = cadEntity
-        sceneDidChange()
-
-        return cadEntity
+    /// Inverse of `orientation(fromEuler:)`
+    private static func eulerAngles(from orientation: simd_quatf) -> SIMD3<Float> {
+        let m = simd_float3x3(orientation)
+        let sinY = min(max(m[2][0], -1), 1)
+        let y = asin(sinY)
+        if abs(sinY) < 0.9999 {
+            return [atan2(-m[2][1], m[2][2]), y, atan2(-m[1][0], m[0][0])]
+        }
+        return [atan2(m[1][2], m[1][1]), y, 0]
     }
 
     /// Delete an entity by ID
@@ -215,18 +249,7 @@ final class SceneManager: ObservableObject {
         }
 
         if let rot = rotation {
-            // Convert Euler angles (degrees) to quaternion
-            let radians = rot * (Float.pi / 180)
-            cadEntity.entity.orientation =
-                simd_quatf(
-                    angle: radians.x, axis: [1, 0, 0]
-                )
-                * simd_quatf(
-                    angle: radians.y, axis: [0, 1, 0]
-                )
-                * simd_quatf(
-                    angle: radians.z, axis: [0, 0, 1]
-                )
+            cadEntity.entity.orientation = Self.orientation(fromEuler: rot * (Float.pi / 180))
         }
 
         if let scl = scale {
@@ -265,40 +288,17 @@ final class SceneManager: ObservableObject {
 
         saveUndoState()
 
-        var material = SimpleMaterial()
-
         if let color = color {
-            #if os(macOS)
-                material.color = .init(
-                    tint: NSColor(
-                        red: CGFloat(color.r),
-                        green: CGFloat(color.g),
-                        blue: CGFloat(color.b),
-                        alpha: CGFloat(color.a)
-                    ))
-            #else
-                material.color = .init(
-                    tint: UIColor(
-                        red: CGFloat(color.r),
-                        green: CGFloat(color.g),
-                        blue: CGFloat(color.b),
-                        alpha: CGFloat(color.a)
-                    ))
-            #endif
             cadEntity.material.color = color
         }
-
         if let metallic = metallic {
-            material.metallic = .init(floatLiteral: metallic)
             cadEntity.material.metallic = metallic
         }
-
         if let roughness = roughness {
-            material.roughness = .init(floatLiteral: roughness)
             cadEntity.material.roughness = roughness
         }
 
-        modelEntity.model?.materials = [material]
+        modelEntity.model?.materials = [Self.makeMaterial(cadEntity.material)]
         sceneDidChange()
         return true
     }
@@ -359,6 +359,10 @@ final class SceneManager: ObservableObject {
 
     private func sceneDidChange() {
         revision += 1
+        updateStatistics()
+    }
+
+    private func updateStatistics() {
         statistics = SceneStatistics(
             entityCount: entities.count,
             triangleCount: calculateTriangleCount(),
@@ -402,8 +406,7 @@ final class SceneManager: ObservableObject {
     // MARK: - Undo/Redo
 
     private func saveUndoState() {
-        let snapshot = SceneSnapshot(entities: entities)
-        undoStack.append(snapshot)
+        undoStack.append(snapshot())
         redoStack.removeAll()
 
         // Limit undo stack size
@@ -414,77 +417,69 @@ final class SceneManager: ObservableObject {
 
     func undo() {
         guard let snapshot = undoStack.popLast() else { return }
-        let currentSnapshot = SceneSnapshot(entities: entities)
-        redoStack.append(currentSnapshot)
+        redoStack.append(self.snapshot())
         restoreSnapshot(snapshot)
+        sceneDidChange()
     }
 
     func redo() {
         guard let snapshot = redoStack.popLast() else { return }
-        let currentSnapshot = SceneSnapshot(entities: entities)
-        undoStack.append(currentSnapshot)
+        undoStack.append(self.snapshot())
         restoreSnapshot(snapshot)
+        sceneDidChange()
+    }
+
+    private func snapshot() -> SceneSnapshot {
+        SceneSnapshot(entities: entities.values.map(entityData(for:)))
     }
 
     private func restoreSnapshot(_ snapshot: SceneSnapshot) {
-        // Clear current entities
         for entity in entities.values {
             entity.entity.removeFromParent()
         }
         entities.removeAll()
 
-        // Restore from snapshot
-        for (id, data) in snapshot.entities {
-            // Recreate entity from data
-            let cadEntity = createPrimitive(
-                type: data.type,
-                name: data.name,
-                position: data.entity.position,
-                color: data.material.color
-            )
-            entities[id] = cadEntity
+        for data in snapshot.entities {
+            addEntity(from: data)
         }
 
-        sceneDidChange()
+        if let selected = selectedEntityId, entities[selected] == nil {
+            selectedEntityId = nil
+        }
     }
 
     // MARK: - Serialization
 
-    func toSceneData() -> SceneData {
-        var data = SceneData()
-        data.entities = entities.values.map { entity in
-            EntityData(
-                id: entity.id,
-                name: entity.name,
-                type: entity.type,
-                transform: TransformData(
-                    position: entity.entity.position,
-                    rotation: .zero,  // TODO: Extract Euler from quaternion
-                    scale: entity.entity.scale
-                ),
-                material: entity.material
-            )
-        }
-        return data
+    private func entityData(for entity: CADEntity) -> EntityData {
+        EntityData(
+            id: entity.id,
+            name: entity.name,
+            type: entity.type,
+            transform: TransformData(
+                position: entity.entity.position,
+                rotation: Self.eulerAngles(from: entity.entity.orientation),
+                scale: entity.entity.scale
+            ),
+            material: entity.material,
+            parentId: entity.parentId,
+            isVisible: entity.entity.isEnabled
+        )
     }
 
-    func loadSceneData(_ data: SceneData) {
-        // Clear current scene
-        for entity in entities.values {
-            entity.entity.removeFromParent()
-        }
-        entities.removeAll()
-        entityCounters.removeAll()
+    func toSceneData() -> SceneData {
+        var metadata = self.metadata
+        metadata.modifiedAt = Date()
+        return SceneData(entities: entities.values.map(entityData(for:)), metadata: metadata)
+    }
 
-        // Load entities
-        for entityData in data.entities {
-            _ = createPrimitive(
-                type: entityData.type,
-                name: entityData.name,
-                position: entityData.transform.position,
-                color: entityData.material.color
-            )
-        }
+    /// Replaces the scene with `data`. Not an edit: the undo history is cleared and `revision` is unchanged.
+    func loadSceneData(_ data: SceneData) {
+        restoreSnapshot(SceneSnapshot(entities: data.entities))
+        metadata = data.metadata
+        entityCounters.removeAll()
+        undoStack.removeAll()
+        redoStack.removeAll()
+        updateStatistics()
     }
 }
 
@@ -497,19 +492,22 @@ class CADEntity {
     let type: EntityData.EntityType
     let entity: Entity
     var material: MaterialData
+    var parentId: UUID?
 
     init(
         id: UUID,
         name: String,
         type: EntityData.EntityType,
         entity: Entity,
-        material: MaterialData
+        material: MaterialData,
+        parentId: UUID? = nil
     ) {
         self.id = id
         self.name = name
         self.type = type
         self.entity = entity
         self.material = material
+        self.parentId = parentId
     }
 }
 
@@ -522,5 +520,5 @@ struct SceneStatistics {
 
 /// Snapshot for undo/redo
 struct SceneSnapshot {
-    let entities: [UUID: CADEntity]
+    let entities: [EntityData]
 }
