@@ -5,11 +5,12 @@ public enum GeometryResolver {
 
     /// The faces or edges the references pick, sorted and without repeats. A name must match exactly one; a filter
     /// at least one. Otherwise the error lists the candidates.
+    /// `names` defaults to the topology's own; an instance passes its part's, which a move must not reorder.
     public static func resolve(
         _ references: [GeometryReference], kind: GeometryKind, in topology: BodyTopology,
-        parameters: ParameterTable
+        parameters: ParameterTable, names: TopologyNames? = nil
     ) throws(ReferenceError) -> [Int] {
-        let names = TopologyNames(topology)
+        let names = names ?? TopologyNames(topology)
         var selected = Set<Int>()
         for reference in references {
             switch reference {

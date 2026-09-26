@@ -56,7 +56,8 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
                     instances.append(
                         InstanceResult(
                             id: instance.id, name: instance.name, part: instance.part, status: .ok,
-                            transform: placed.transform, bodies: builder.bodyResults(placed, partResults: partResults)))
+                            transform: placed.transform, bodies: builder.bodyResults(placed, partResults: partResults),
+                            names: AssemblyBuilder<Kernel>.names(placed, partResults: partResults)))
                     for (name, body) in placed.bodies {
                         bodies[BodyKey(owner: .instance(instance.id), body: name)] = body
                     }

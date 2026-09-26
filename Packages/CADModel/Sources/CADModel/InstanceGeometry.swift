@@ -55,7 +55,7 @@ public extension InstanceResult {
             }
             do {
                 let matches = try GeometryResolver.resolve(
-                    [reference], kind: kind, in: topology, parameters: parameters
+                    [reference], kind: kind, in: topology, parameters: parameters, names: names(of: candidate.name)
                 )
                 found.append((candidate, topology, matches))
             } catch {
@@ -68,7 +68,7 @@ public extension InstanceResult {
             throw ReferenceError("'\(reference.text)' matches \(kind.rawValue) in \(owners) of \(name); add 'body'")
         }
         let (owner, topology, matches) = found[0]
-        let names = TopologyNames(topology).names(kind)
+        let names = (names(of: owner.name) ?? TopologyNames(topology)).names(kind)
         guard matches.count == 1 else {
             let shown = matches.prefix(10).map { names[$0] }.joined(separator: ", ")
             throw ReferenceError(

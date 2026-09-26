@@ -62,7 +62,7 @@ extension CADSession {
                 let partName = document.part(id: instance.part)?.name ?? "missing part"
                 return try Self.listing(
                     kind, of: body, header: "\(instance.name) (\(partName)/\(body.name))", filter: filter,
-                    parameters: result.parameters)
+                    parameters: result.parameters, names: instance.names(of: body.name))
             }
             let partID = document.parts[try document.partIndex(named: try arguments.string("part"))].id
             let bodyName = try arguments.requiredString("body")
@@ -82,12 +82,13 @@ extension CADSession {
     }
 
     private static func listing(
-        _ kind: GeometryKind, of body: BodyResult, header: String, filter: String?, parameters: ParameterTable
+        _ kind: GeometryKind, of body: BodyResult, header: String, filter: String?, parameters: ParameterTable,
+        names: TopologyNames? = nil
     ) throws(ToolError) -> ToolExecutionResult {
         guard let topology = body.topology else {
             throw ToolError("\(body.name) has no faces to list: \(body.error ?? "the kernel did not describe it").")
         }
-        let names = TopologyNames(topology)
+        let names = names ?? TopologyNames(topology)
         let matches: [Int]
         do {
             matches = try GeometryResolver.select(
