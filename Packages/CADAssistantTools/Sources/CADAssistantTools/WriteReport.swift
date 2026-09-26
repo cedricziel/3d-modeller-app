@@ -29,7 +29,8 @@ struct WriteReport {
             lines.append("\(instance.name): \(instance.status)")
         }
         if let jointFocus, let joint = afterResult.assembly?.joint(id: jointFocus) {
-            lines.append("\(joint.name): \(joint.status)")
+            let motion = after.joints.first { $0.id == jointFocus }.flatMap { JointMotionText.describe($0, joint) }
+            lines.append("\(joint.name): \(joint.status)" + (motion.map { ", \($0)" } ?? ""))
         }
         let changes = statusChanges(afterResult)
         if !changes.isEmpty {
