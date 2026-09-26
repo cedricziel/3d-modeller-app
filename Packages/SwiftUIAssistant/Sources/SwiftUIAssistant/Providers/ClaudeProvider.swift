@@ -166,9 +166,10 @@ public actor ClaudeProvider: LLMProvider {
     /// The text alone as a string, or with images as text and image blocks
     private func toolResultContent(_ message: Message) -> Any {
         guard !message.images.isEmpty else { return message.content }
-        var blocks: [[String: Any]] = [["type": "text", "text": message.content]]
+        // The API refuses empty text blocks.
+        var blocks: [[String: Any]] = message.content.isEmpty ? [] : [["type": "text", "text": message.content]]
         for image in message.images {
-            if let caption = image.caption {
+            if let caption = image.caption, !caption.isEmpty {
                 blocks.append(["type": "text", "text": caption])
             }
             blocks.append([

@@ -162,4 +162,20 @@ struct ClaudeProviderTests {
         #expect((first["content"] as? [[String: Any]])?.count == 2)
         #expect(second["content"] as? String == "Success: ok")
     }
+
+    @Test("Empty text and captions are left out of an image tool result")
+    func emptyTextBlocks() async throws {
+        let request = try await ClaudeProvider(apiKey: "test").buildRequest(
+            systemPrompt: "s",
+            messages: [
+                .user("look"),
+                .toolResult(toolCallId: "a", content: "", images: [ToolImage(data: Data([1]), caption: "")]),
+            ],
+            tools: [])
+        let messages = try #require(try body(of: request)["messages"] as? [[String: Any]])
+        let result = try #require((messages[1]["content"] as? [[String: Any]])?.first)
+        let content = try #require(result["content"] as? [[String: Any]])
+
+        #expect(content.map { $0["type"] as? String } == ["image"])
+    }
 }
