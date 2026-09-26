@@ -39,7 +39,10 @@ cd Packages/SwiftUIAssistant && xcrun swift test
 cd Packages/SwiftUIAssistantTools && xcrun swift test
 cd Packages/CADKernel && xcrun swift test
 cd Packages/CADModel && xcrun swift test
-cd Packages/CADAssistantTools && xcrun swift test
+cd Packages/CADAssistantTools && xcrun swift test   # includes the CADBench tests
+
+# Benchmark (calls the Claude API; see Bench/README.md)
+xcrun swift run --package-path Packages/CADAssistantTools cadbench run
 
 # Run a single test
 xcrun swift test --filter SwiftUIAssistantTests.AssistantTests/testSendMessage
@@ -82,6 +85,7 @@ This is an AI-first parametric CAD app for macOS. A document holds parameters an
 - Tools (`CADTools.all(session:)`): `get_listing`, `set_parameter`, `add_feature`, `edit_feature`, `delete_feature`, `rename_feature`, `suppress_feature`. Every write is one commit: it is validated first (unknown names, duplicates, bad arguments, and any expression that would newly fail are refused with nothing changed), body references are renumbered when body-creating features move, and the result reports the feature's status, status changes elsewhere, every body's validity/volume/bounds and the changed listing lines
 - `CADAssistantPrompt.system` / `.configuration` - the modelling system prompt (mm, degrees, check statuses after each write) with per-message context
 - Tests use a fake kernel, plus `OCCTGeometryKernel` for integration and a scripted `LLMProvider` driving the `Assistant` loop
+- `CADBench` (library) and `cadbench` (executable, `Sources/CADBenchCLI`) in the same package: task loading (`Bench/tasks/<id>/`), the `Grader` (gate, counts, bounds, volume, parameters, feature counts, overlap with a reference, unchanged-elsewhere), the headless `BenchRunner` with a usage-recording provider, and the pass@k report. How to run it and add tasks: `Bench/README.md`
 
 **3DModellerApp** - The main application:
 
