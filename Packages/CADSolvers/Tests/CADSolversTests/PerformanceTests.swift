@@ -45,6 +45,13 @@ struct PerformanceTests {
         return Sketch(entities: entities, constraints: constraints)
     }
 
+    #if DEBUG
+        /// Unoptimised Eigen takes about 1.3 s here on an M-series Mac; CI runners are slower.
+        static let budget = Duration.seconds(20)
+    #else
+        static let budget = Duration.seconds(1)
+    #endif
+
     @Test func hundredEntities() throws {
         let sketch = Self.staircase()
         #expect(sketch.entities.count == 100)
@@ -54,7 +61,7 @@ struct PerformanceTests {
         let solved = try #require(solution)
         #expect(solved.state == .fullyConstrained)
         #expect(solved.line(97).map { close($0.end, SketchPoint(200, 150)) } == true)
-        #expect(elapsed < .seconds(5), "solved in \(elapsed)")
+        #expect(elapsed < Self.budget, "solved in \(elapsed)")
     }
 
     @Test func concurrentSolves() async throws {
