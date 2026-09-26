@@ -46,6 +46,7 @@ struct PGSSketch
     std::vector<Entity> entities;
     std::vector<int> conflicting;
     std::vector<int> redundant;
+    int highestTag = 0;
     std::string lastError;
 
     double* unknown(double value)
@@ -288,6 +289,21 @@ void readDiagnosis(PGSSketch& sketch, PGSReport& report)
     report.redundantCount = static_cast<int32_t>(sketch.redundant.size());
 }
 
+/// PlaneGCS checks redundant constraints against the parameters before it writes the solution
+/// back, so a sketch with a redundant constraint solved from a rough start reports `Converged`
+/// although it is solved. Every constraint is therefore checked on the applied solution instead.
+bool satisfiesEveryConstraint(PGSSketch& sketch)
+{
+    const int firstTag = sketch.arcs.empty() ? 1 : 0;
+    for (int tag = firstTag; tag <= sketch.highestTag; ++tag) {
+        const double error = sketch.system.calculateConstraintErrorByTag(tag);
+        if (!(error * error <= sketch.system.convergence)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int32_t copyTags(const std::vector<int>& source, int32_t* tags, int32_t capacity)
 {
     const auto count = std::min<std::size_t>(source.size(), static_cast<std::size_t>(std::max(capacity, 0)));
@@ -368,6 +384,7 @@ int32_t pgs_add_constraint(PGSSketch* sketch, int32_t tag, PGSConstraint constra
             throw ArgumentError {"constraint tags must be greater than 0"};
         }
         addConstraint(*sketch, tag, constraint);
+        sketch->highestTag = std::max(sketch->highestTag, int(tag));
         return int32_t {PGS_OK};
     });
 }
@@ -380,16 +397,19 @@ int32_t pgs_solve(PGSSketch* sketch, PGSReport* report)
         system.declareUnknowns(sketch->unknowns);
         system.initSolution(GCS::DogLeg);
 
-        GCS::SolveStatus status = GCS::SolveStatus::Failed;
+        bool solved = false;
         for (GCS::Algorithm algorithm : {GCS::DogLeg, GCS::LevenbergMarquardt, GCS::BFGS}) {
-            status = system.solve(algorithm);
-            if (status == GCS::SolveStatus::Success) {
+            if (system.solve(algorithm) == GCS::SolveStatus::Failed) {
+                continue;
+            }
+            system.applySolution();
+            if (satisfiesEveryConstraint(*sketch)) {
+                solved = true;
                 break;
             }
         }
 
-        if (status == GCS::SolveStatus::Success) {
-            system.applySolution();
+        if (solved) {
             system.invalidatedDiagnosis();
             system.initSolution(GCS::DogLeg);
             report->solved = 1;
