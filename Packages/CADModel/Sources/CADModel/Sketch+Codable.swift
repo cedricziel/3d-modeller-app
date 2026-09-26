@@ -121,14 +121,15 @@ extension SketchConstraint: Codable {
 }
 
 extension SketchFeature: Codable {
-    private enum CodingKeys: String, CodingKey { case plane, entities, constraints }
+    private enum CodingKeys: String, CodingKey { case plane, entities, constraints, retired }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             plane: try container.decode(SketchPlane.self, forKey: .plane),
             entities: try container.decodeIfPresent([SketchEntity].self, forKey: .entities) ?? [],
-            constraints: try container.decodeIfPresent([SketchConstraint].self, forKey: .constraints) ?? [])
+            constraints: try container.decodeIfPresent([SketchConstraint].self, forKey: .constraints) ?? [],
+            retiredNames: try container.decodeIfPresent([String].self, forKey: .retired) ?? [])
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -136,6 +137,7 @@ extension SketchFeature: Codable {
         try container.encode(plane, forKey: .plane)
         try container.encode(entities, forKey: .entities)
         try container.encode(constraints, forKey: .constraints)
+        if !retiredNames.isEmpty { try container.encode(retiredNames, forKey: .retired) }
     }
 }
 
