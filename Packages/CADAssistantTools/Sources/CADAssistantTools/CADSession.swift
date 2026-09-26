@@ -76,6 +76,12 @@ public final class CADSession {
         return rebuilt.result
     }
 
+    /// Builds `document` off the main actor without adopting it, for previews that must not edit the document.
+    public func preview(_ document: CADDocument) async throws -> RebuildResult {
+        let build = build
+        return try await build(document).result
+    }
+
     /// Takes over a document the host changed, at once and without rebuilding, so an edit computed right after
     /// starts from it. Follow with `load` to rebuild.
     public func adopt(_ document: CADDocument) {
