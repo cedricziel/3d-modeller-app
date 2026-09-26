@@ -26,12 +26,14 @@ public struct Assembly: Codable, Sendable, Hashable {
 public enum DocumentError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case unsupportedFormat(Int)
     case unsupportedUnits(String)
+    case duplicateID(UUID)
 
     public var description: String {
         switch self {
         case .unsupportedFormat(let format):
             "Unsupported document format \(format); this app reads format \(CADDocument.format)"
         case .unsupportedUnits(let units): "Unsupported units '\(units)'; documents use \(CADDocument.units)"
+        case .duplicateID(let id): "More than one part or feature has the id \(id)"
         }
     }
 
@@ -63,6 +65,10 @@ public struct CADDocument: Codable, Sendable, Hashable {
         parameters = try container.decodeIfPresent([Parameter].self, forKey: .parameters) ?? []
         parts = try container.decodeIfPresent([Part].self, forKey: .parts) ?? []
         assembly = try container.decodeIfPresent(Assembly.self, forKey: .assembly)
+        var ids: Set<UUID> = []
+        for id in parts.map(\.id) + parts.flatMap(\.features).map(\.id) where !ids.insert(id).inserted {
+            throw DocumentError.duplicateID(id)
+        }
     }
 
     public func encode(to encoder: any Encoder) throws {

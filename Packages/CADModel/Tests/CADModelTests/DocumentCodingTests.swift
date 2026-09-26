@@ -124,4 +124,20 @@ struct DocumentCodingTests {
         let data = try JSONEncoder().encode(operation)
         #expect(try JSONDecoder().decode(SolidOperation.self, from: data) == operation)
     }
+
+    @Test("Two features or parts sharing an id are refused")
+    func duplicateIDs() throws {
+        let id = "8E1C6B55-0000-4000-8000-000000000001"
+        let uuid = try #require(UUID(uuidString: id))
+        let features = """
+            {"format": 1, "units": "mm", "parts": [{"name": "P", "features": [
+              {"id": "\(id)", "name": "A", "kind": {"type": "sphere", "radius": 1}},
+              {"id": "\(id)", "name": "B", "kind": {"type": "sphere", "radius": 2}}]}]}
+            """
+        #expect(throws: DocumentError.duplicateID(uuid)) { try CADDocument(json: Data(features.utf8)) }
+        let parts = """
+            {"format": 1, "units": "mm", "parts": [{"id": "\(id)", "name": "P"}, {"id": "\(id)", "name": "Q"}]}
+            """
+        #expect(throws: DocumentError.duplicateID(uuid)) { try CADDocument(json: Data(parts.utf8)) }
+    }
 }
