@@ -7,13 +7,14 @@ An AI-first 3D modeling application for macOS where users interact primarily thr
 - **AI-Powered Modeling** - Chat with an assistant to create and modify 3D objects
 - **RealityKit Viewport** - Hardware-accelerated 3D rendering with orbit, zoom, and pan controls
 - **Primitive Shapes** - Box, sphere, cylinder, cone, plane, torus
+- **Exact CAD Geometry** - Blocks with filleted edges built by the Open CASCADE kernel (early spike)
 - **Material System** - Color, metallic, and roughness properties
 - **Document-Based** - Save and load scenes as `.scene3d` files
 - **Undo/Redo** - Full history support for all operations
 
 ## Requirements
 
-- macOS 26.0+
+- macOS 26.0+ on Apple Silicon
 - Xcode 26+ (Swift 6)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - An Anthropic API key (for Claude integration)
@@ -120,6 +121,10 @@ Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorT
 | AI Integration | Claude API |
 | State Management | @Observable, @MainActor |
 | File Format | JSON (Codable) |
+
+## Acknowledgements
+
+This app uses [Open CASCADE Technology](https://dev.opencascade.org) (LGPL 2.1 with the Open CASCADE Exception) through [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift) (LGPL 2.1). See [NOTICE](NOTICE).
 
 ## License
 

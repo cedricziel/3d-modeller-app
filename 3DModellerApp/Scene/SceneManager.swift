@@ -1,3 +1,4 @@
+import CADKernel
 import SwiftUI
 import RealityKit
 import Combine
@@ -147,7 +148,11 @@ final class SceneManager: ObservableObject {
         default:
             mesh = .generateBox(size: size)
         }
+        return addEntity(from: data, mesh: mesh)
+    }
 
+    @discardableResult
+    private func addEntity(from data: EntityData, mesh: MeshResource) -> CADEntity {
         let modelEntity = ModelEntity(mesh: mesh, materials: [Self.makeMaterial(data.material)])
         modelEntity.name = data.name
         modelEntity.position = data.transform.position
@@ -163,10 +168,42 @@ final class SceneManager: ObservableObject {
             type: data.type,
             entity: modelEntity,
             material: data.material,
-            parentId: data.parentId
+            parentId: data.parentId,
+            solid: data.solid
         )
         entities[data.id] = cadEntity
         return cadEntity
+    }
+
+    func createSolid(
+        recipe: SolidRecipe,
+        name: String? = nil,
+        position: SIMD3<Float> = .zero,
+        color: ColorData = ColorData(r: 0.8, g: 0.8, b: 0.8)
+    ) throws -> CADEntity {
+        let mesh = try Self.buildMesh(for: recipe)
+
+        saveUndoState()
+
+        let data = EntityData(
+            name: name ?? generateName(for: .solid),
+            type: .solid,
+            transform: TransformData(position: position),
+            material: MaterialData(color: color),
+            solid: recipe
+        )
+        let cadEntity = addEntity(from: data, mesh: mesh)
+        sceneDidChange()
+
+        return cadEntity
+    }
+
+    private static func buildMesh(for recipe: SolidRecipe) throws -> MeshResource {
+        var solid = try Kernel.extrudeRectangle(width: recipe.width, height: recipe.height, depth: recipe.depth)
+        if let radius = recipe.filletRadius {
+            solid = try Kernel.fillet(solid, edges: .parallel(to: SIMD3(0, 0, 1)), radius: radius)
+        }
+        return try MeshResource.generate(from: [Kernel.tessellate(solid).meshDescriptor])
     }
 
     private static func makeMaterial(_ data: MaterialData) -> SimpleMaterial {
@@ -325,10 +362,14 @@ final class SceneManager: ObservableObject {
 
         let name = newName ?? "\(original.name)_copy"
 
+        let position = original.entity.position + SIMD3<Float>(0.5, 0, 0.5)
+        if let recipe = original.solid {
+            return try? createSolid(recipe: recipe, name: name, position: position, color: original.material.color)
+        }
         return createPrimitive(
             type: original.type,
             name: name,
-            position: original.entity.position + SIMD3<Float>(0.5, 0, 0.5),
+            position: position,
             color: original.material.color
         )
     }
@@ -444,7 +485,8 @@ final class SceneManager: ObservableObject {
                 type: saved.type,
                 entity: entity,
                 material: saved.material,
-                parentId: saved.parentId
+                parentId: saved.parentId,
+                solid: saved.solid
             )
         }
 
@@ -467,7 +509,8 @@ final class SceneManager: ObservableObject {
             ),
             material: entity.material,
             parentId: entity.parentId,
-            isVisible: entity.entity.isEnabled
+            isVisible: entity.entity.isEnabled,
+            solid: entity.solid
         )
     }
 
@@ -485,7 +528,13 @@ final class SceneManager: ObservableObject {
         entities.removeAll()
         selectedEntityId = nil
         for entityData in data.entities {
-            addEntity(from: entityData)
+            if let recipe = entityData.solid {
+                if let mesh = try? Self.buildMesh(for: recipe) {
+                    addEntity(from: entityData, mesh: mesh)
+                }
+            } else {
+                addEntity(from: entityData)
+            }
         }
         metadata = data.metadata
         entityCounters.removeAll()
@@ -504,6 +553,7 @@ class CADEntity {
     let entity: Entity
     var material: MaterialData
     var parentId: UUID?
+    let solid: SolidRecipe?
 
     init(
         id: UUID,
@@ -511,7 +561,8 @@ class CADEntity {
         type: EntityData.EntityType,
         entity: Entity,
         material: MaterialData,
-        parentId: UUID? = nil
+        parentId: UUID? = nil,
+        solid: SolidRecipe? = nil
     ) {
         self.id = id
         self.name = name
@@ -519,6 +570,7 @@ class CADEntity {
         self.entity = entity
         self.material = material
         self.parentId = parentId
+        self.solid = solid
     }
 }
 
@@ -541,7 +593,8 @@ struct SceneSnapshot {
                 type: live.type,
                 entity: live.entity.clone(recursive: true),
                 material: live.material,
-                parentId: live.parentId
+                parentId: live.parentId,
+                solid: live.solid
             )
         }
     }

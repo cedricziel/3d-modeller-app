@@ -11,6 +11,8 @@ packages:
     path: Packages/SwiftUIAssistant
   SwiftUIAssistantTools:
     path: Packages/SwiftUIAssistantTools
+  CADKernel:
+    path: Packages/CADKernel
 
 targets:
   3DModellerApp:
@@ -35,6 +37,7 @@ targets:
         ENABLE_HARDENED_RUNTIME: "YES"
         CODE_SIGN_ENTITLEMENTS: 3DModellerApp/3DModellerApp.entitlements
         SWIFT_VERSION: "6.0"
+        ARCHS: arm64
       configs:
         Debug:
           SWIFT_OPTIMIZATION_LEVEL: "-Onone"
@@ -45,6 +48,8 @@ targets:
         product: SwiftUIAssistant
       - package: SwiftUIAssistantTools
         product: SwiftUIAssistantTools
+      - package: CADKernel
+        product: CADKernel
     info:
       path: 3DModellerApp/Info.plist
       properties:
@@ -74,6 +79,7 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.0"
+        ARCHS: arm64
         GENERATE_INFOPLIST_FILE: "YES"
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/3D Modeller.app/Contents/MacOS/3D Modeller"

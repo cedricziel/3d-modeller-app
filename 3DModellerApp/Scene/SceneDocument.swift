@@ -68,6 +68,7 @@ struct EntityData: Codable, Identifiable {
     var material: MaterialData
     var parentId: UUID?
     var isVisible: Bool
+    var solid: SolidRecipe?
 
     enum EntityType: String, Codable {
         case box
@@ -79,6 +80,7 @@ struct EntityData: Codable, Identifiable {
         case capsule
         case imported
         case group
+        case solid
     }
 
     init(
@@ -88,7 +90,8 @@ struct EntityData: Codable, Identifiable {
         transform: TransformData = TransformData(),
         material: MaterialData = MaterialData(),
         parentId: UUID? = nil,
-        isVisible: Bool = true
+        isVisible: Bool = true,
+        solid: SolidRecipe? = nil
     ) {
         self.id = id
         self.name = name
@@ -97,7 +100,15 @@ struct EntityData: Codable, Identifiable {
         self.material = material
         self.parentId = parentId
         self.isVisible = isVisible
+        self.solid = solid
     }
+}
+
+struct SolidRecipe: Codable, Equatable {
+    var width: Double
+    var height: Double
+    var depth: Double
+    var filletRadius: Double?
 }
 
 /// Serializable transform data

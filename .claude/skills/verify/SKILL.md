@@ -23,4 +23,8 @@ Bundle id: `com.example.3dmodeller`. Open a hand-written `.scene3d` file rather 
 ## Gotchas
 
 - Typing into inspector fields needs full-screen computer-use control; background `app_type` is refused.
-- Close the debug app afterwards: `pkill -f "dd/Build/Products/Debug/3D Modeller.app"`.
+
+## When you're done
+
+1. Close the debug app: `pkill -f "dd/Build/Products/Debug/3D Modeller.app"`.
+2. Let go of screen control, even if the check failed or you stopped early: call `app_release` (no arguments) to drop every app lock, and `release_full_control` if you took full-screen control. Don't leave the user's screen locked or glowing after verification.
