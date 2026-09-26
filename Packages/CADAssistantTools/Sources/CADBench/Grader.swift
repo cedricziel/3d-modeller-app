@@ -195,14 +195,14 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         let candidate = try await engine.solids(of: document).map(\.body)
         let expected = try await engine.solids(of: reference).map(\.body)
         guard let a = try fuse(candidate), let b = try fuse(expected) else { return nil }
-        let union = try kernel.boolean(.union, a, b)
+        let union = try kernel.boolean(.union, a, b, feature: "Overlap")
         let (va, vb, vu) = (try volume(a), try volume(b), try volume(union))
         return Overlap(intersection: max(0, va + vb - vu), union: vu)
     }
 
     private func fuse(_ bodies: [Kernel.Body]) throws -> Kernel.Body? {
         guard var fused = bodies.first else { return nil }
-        for body in bodies.dropFirst() { fused = try kernel.boolean(.union, fused, body) }
+        for body in bodies.dropFirst() { fused = try kernel.boolean(.union, fused, body, feature: "Overlap") }
         return fused
     }
 

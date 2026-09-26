@@ -47,6 +47,7 @@ public struct BodyResult: Sendable, Equatable {
     public let name: String
     public let metrics: BodyMetrics?
     public let mesh: BodyMesh?
+    public let topology: BodyTopology?
     public let error: String?
 }
 

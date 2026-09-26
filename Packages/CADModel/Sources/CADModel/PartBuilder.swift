@@ -71,9 +71,14 @@ struct PartBuilder<Kernel: GeometryKernel> {
                 mesh = nil
                 problems.append(String(describing: error))
             }
+            let topology: BodyTopology?
+            do { topology = try kernel.topology(of: body) } catch {
+                topology = nil
+                problems.append(String(describing: error))
+            }
             results.append(
                 BodyResult(
-                    name: name, metrics: metrics, mesh: mesh,
+                    name: name, metrics: metrics, mesh: mesh, topology: topology,
                     error: problems.isEmpty ? nil : problems.joined(separator: "; ")))
         }
         return results
@@ -84,11 +89,11 @@ struct PartBuilder<Kernel: GeometryKernel> {
         case .primitive(let primitive):
             var target: Kernel.Body?
             if let name = primitive.operation.targetBody { target = try body(named: name) }
-            let solid = try make(primitive.shape, primitive.placement)
+            let solid = try make(primitive.shape, primitive.placement, feature: feature.name)
             if let name = primitive.operation.targetBody, let target,
                 let operation = primitive.operation.booleanOperation
             {
-                let combined = try kernelCall { try kernel.boolean(operation, target, solid) }
+                let combined = try kernelCall { try kernel.boolean(operation, target, solid, feature: feature.name) }
                 store(combined, as: name)
             } else if let newBody {
                 store(solid, as: newBody)
@@ -106,7 +111,7 @@ struct PartBuilder<Kernel: GeometryKernel> {
             for name in boolean.tools { tools.append(try body(named: name)) }
             for tool in tools {
                 let current = result
-                result = try kernelCall { try kernel.boolean(boolean.operation, current, tool) }
+                result = try kernelCall { try kernel.boolean(boolean.operation, current, tool, feature: feature.name) }
             }
             store(result, as: boolean.target)
             for name in boolean.tools {
@@ -137,30 +142,34 @@ struct PartBuilder<Kernel: GeometryKernel> {
         }
     }
 
-    private func make(_ shape: PrimitiveShape, _ placement: Placement) throws(Stop) -> Kernel.Body {
+    private func make(_ shape: PrimitiveShape, _ placement: Placement, feature: String) throws(Stop) -> Kernel.Body {
         switch shape {
         case .box(let width, let depth, let height):
             let (w, d, h) = (try value(width, "width"), try value(depth, "depth"), try value(height, "height"))
             let p = try resolve(placement)
-            return try kernelCall { try kernel.box(width: w, depth: d, height: h, placement: p) }
+            return try kernelCall { try kernel.box(width: w, depth: d, height: h, placement: p, feature: feature) }
         case .cylinder(let radius, let height):
             let (r, h) = (try value(radius, "radius"), try value(height, "height"))
             let p = try resolve(placement)
-            return try kernelCall { try kernel.cylinder(radius: r, height: h, placement: p) }
+            return try kernelCall { try kernel.cylinder(radius: r, height: h, placement: p, feature: feature) }
         case .sphere(let radius):
             let r = try value(radius, "radius")
             let p = try resolve(placement)
-            return try kernelCall { try kernel.sphere(radius: r, placement: p) }
+            return try kernelCall { try kernel.sphere(radius: r, placement: p, feature: feature) }
         case .cone(let bottomRadius, let topRadius, let height):
             let (b, t, h) = (
                 try value(bottomRadius, "bottomRadius"), try value(topRadius, "topRadius"), try value(height, "height")
             )
             let p = try resolve(placement)
-            return try kernelCall { try kernel.cone(bottomRadius: b, topRadius: t, height: h, placement: p) }
+            return try kernelCall {
+                try kernel.cone(bottomRadius: b, topRadius: t, height: h, placement: p, feature: feature)
+            }
         case .torus(let majorRadius, let minorRadius):
             let (major, minor) = (try value(majorRadius, "majorRadius"), try value(minorRadius, "minorRadius"))
             let p = try resolve(placement)
-            return try kernelCall { try kernel.torus(majorRadius: major, minorRadius: minor, placement: p) }
+            return try kernelCall {
+                try kernel.torus(majorRadius: major, minorRadius: minor, placement: p, feature: feature)
+            }
         }
     }
 

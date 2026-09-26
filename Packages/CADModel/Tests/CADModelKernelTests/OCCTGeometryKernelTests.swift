@@ -47,6 +47,32 @@ struct OCCTGeometryKernelTests {
         #expect(result.triangleCount == body.mesh?.triangleCount)
     }
 
+    @Test("Body topology names faces after the features that made them")
+    func topologyNames() async throws {
+        let document = CADDocument(parts: [
+            Part(
+                name: "Plate",
+                features: [
+                    Feature(name: "Base", kind: .primitive(PrimitiveFeature(.box(width: 60, depth: 40, height: 10)))),
+                    Feature(
+                        name: "Hole",
+                        kind: .primitive(
+                            PrimitiveFeature(
+                                .cylinder(radius: 2.75, height: 10),
+                                placement: Placement(translation: Vector3(30, 20, 0)), operation: .cut("Body1")))),
+                ])
+        ])
+        let topology = try #require(try await engine.rebuild(document).bodies.first?.topology)
+        let names = Set(topology.faces.flatMap(\.names))
+
+        #expect(
+            names == ["Base.left", "Base.right", "Base.front", "Base.back", "Base.bottom", "Base.top", "Hole.side"])
+        let wall = try #require(topology.faces.first { $0.names == ["Hole.side"] })
+        #expect(wall.surface == .cylinder)
+        #expect(approx(wall.radius, 2.75))
+        #expect(topology.edges.filter { $0.curve == .circle }.count == 2)
+    }
+
     @Test("Rotations are given in degrees")
     func degrees() async throws {
         let box = Feature(
