@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "parameters": [
+    {
+      "expression": 80,
+      "name": "width"
+    },
+    {
+      "expression": 50,
+      "name": "depth"
+    },
+    {
+      "expression": 6,
+      "name": "t"
+    },
+    {
+      "expression": 10,
+      "name": "hole_d"
+    }
+  ],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": "depth",
+            "height": "t",
+            "type": "box",
+            "width": "width"
+          },
+          "name": "Plate"
+        },
+        {
+          "kind": {
+            "height": "t + 2",
+            "operation": {
+              "body": "Body1",
+              "mode": "cut"
+            },
+            "placement": {
+              "translation": {
+                "x": "width / 2",
+                "y": "depth / 2",
+                "z": -1
+              }
+            },
+            "radius": "hole_d / 2",
+            "type": "cylinder"
+          },
+          "name": "Hole"
+        },
+        {
+          "kind": {
+            "body": "Body1",
+            "distance": 1,
+            "edges": [
+              {
+                "name": "edge(Hole.side, Plate.top)"
+              }
+            ],
+            "type": "chamfer"
+          },
+          "name": "Bevel"
+        }
+      ],
+      "name": "Plate"
+    }
+  ],
+  "units": "mm"
+}
