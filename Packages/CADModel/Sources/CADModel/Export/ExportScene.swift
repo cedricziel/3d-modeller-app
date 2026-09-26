@@ -139,7 +139,8 @@ private struct Planner {
     /// The product's index, or nil when none of its bodies was built.
     @discardableResult
     mutating func addProduct(name: String, part: PartResult, bodies: [String]) -> Int? {
-        if let index = productIndex[name] { return index }
+        let identity = "\(part.id)/\(bodies.joined(separator: "/"))"
+        if let index = productIndex[identity] { return index }
         var keys: [(name: String, body: BodyKey)] = []
         for body in bodies {
             let key = BodyKey(part: part.id, body: body)
@@ -154,7 +155,7 @@ private struct Planner {
             return nil
         }
         products.append(ExportProduct(name: name, bodies: keys, color: ExportPalette.color(products.count)))
-        productIndex[name] = products.count - 1
+        productIndex[identity] = products.count - 1
         return products.count - 1
     }
 

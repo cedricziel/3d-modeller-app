@@ -84,6 +84,26 @@ struct ExportPlanTests {
         #expect(body.occurrences.isEmpty)
     }
 
+    @Test("Two parts with the same name stay two products")
+    func samePartNames() async throws {
+        let first = Part(name: "Plate", features: [box("A")])
+        let second = Part(name: "Plate", features: [box("B")])
+        let instances = [Instance(name: "One", part: first.id), Instance(name: "Two", part: second.id)]
+        let result = try await engine.rebuild(
+            CADDocument(parts: [first, second], assembly: Assembly(instances: instances)))
+
+        let assembly = try ExportPlan.scene(.document, in: result, built: built(result))
+        let parts = try ExportPlan.scene(
+            .document, in: RebuildResult(parameters: result.parameters, parts: result.parts, assembly: nil),
+            built: built(result))
+        let secondKey = BodyKey(part: second.id, body: "Body1")
+
+        #expect(assembly.products.count == 2)
+        #expect(assembly.occurrences.map(\.product) == [0, 1])
+        #expect(assembly.products[1].bodies.map(\.body) == [secondKey])
+        #expect(parts.products.count == 2)
+    }
+
     @Test("A failed instance is left out and named")
     func failedInstanceSkipped() async throws {
         let plate = Part(name: "Plate", features: [box("A")])
