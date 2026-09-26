@@ -123,4 +123,4 @@ Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorT
 
 ## License
 
-MIT
+Licensed under the [Apache License 2.0](LICENSE).
