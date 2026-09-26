@@ -28,6 +28,18 @@ struct SolidEntityTests {
         #expect(entity.name == "Bracket")
     }
 
+    @Test("Adding a solid registers an undo step named after it")
+    func createNamesUndoStep() throws {
+        let scene = SceneManager()
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        scene.undoManager = undoManager
+
+        _ = try scene.createSolid(recipe: recipe, name: "Bracket")
+
+        #expect(undoManager.undoActionName == "Add Bracket")
+    }
+
     @Test("A fillet that doesn't fit throws and leaves the scene unchanged")
     func failedFilletLeavesSceneAlone() throws {
         let scene = SceneManager()
@@ -74,7 +86,7 @@ struct SolidEntityTests {
         let entity = try scene.createSolid(recipe: recipe, name: "Bracket")
         _ = scene.deleteEntity(id: entity.id)
 
-        scene.undo()
+        scene.undoManager.undo()
 
         let restored = try #require(scene.entities.values.first { $0.name == "Bracket" })
         #expect(restored.type == .solid)
