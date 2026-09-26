@@ -1,0 +1,196 @@
+{
+  "format": 1,
+  "parameters": [
+    {
+      "expression": 80,
+      "name": "width"
+    },
+    {
+      "expression": 40,
+      "name": "depth"
+    },
+    {
+      "expression": 6,
+      "name": "t"
+    },
+    {
+      "expression": 20,
+      "name": "slot_l"
+    },
+    {
+      "expression": 8,
+      "name": "slot_w"
+    }
+  ],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": "depth",
+            "height": "t",
+            "type": "box",
+            "width": "width"
+          },
+          "name": "Plate"
+        },
+        {
+          "kind": {
+            "constraints": [
+              {
+                "name": "c1",
+                "points": [
+                  "line1.end",
+                  "arc1.start"
+                ],
+                "type": "tangentAt"
+              },
+              {
+                "name": "c2",
+                "points": [
+                  "arc1.end",
+                  "line2.start"
+                ],
+                "type": "tangentAt"
+              },
+              {
+                "name": "c3",
+                "points": [
+                  "line2.end",
+                  "arc2.start"
+                ],
+                "type": "tangentAt"
+              },
+              {
+                "name": "c4",
+                "points": [
+                  "arc2.end",
+                  "line1.start"
+                ],
+                "type": "tangentAt"
+              },
+              {
+                "entities": [
+                  "line1"
+                ],
+                "name": "c5",
+                "type": "horizontal"
+              },
+              {
+                "at": [
+                  "width / 2 - slot_l / 2",
+                  "depth / 2"
+                ],
+                "name": "c6",
+                "points": [
+                  "arc2.center"
+                ],
+                "type": "fixed"
+              },
+              {
+                "name": "c7",
+                "points": [
+                  "arc2.center",
+                  "arc1.center"
+                ],
+                "type": "distance",
+                "value": "slot_l"
+              },
+              {
+                "entities": [
+                  "arc1"
+                ],
+                "name": "c8",
+                "type": "diameter",
+                "value": "slot_w"
+              },
+              {
+                "entities": [
+                  "arc1",
+                  "arc2"
+                ],
+                "name": "c9",
+                "type": "equal"
+              }
+            ],
+            "entities": [
+              {
+                "end": [
+                  50,
+                  16
+                ],
+                "name": "line1",
+                "start": [
+                  30,
+                  16
+                ],
+                "type": "line"
+              },
+              {
+                "center": [
+                  50,
+                  20
+                ],
+                "endAngle": 90,
+                "name": "arc1",
+                "radius": 4,
+                "startAngle": -90,
+                "type": "arc"
+              },
+              {
+                "end": [
+                  30,
+                  24
+                ],
+                "name": "line2",
+                "start": [
+                  50,
+                  24
+                ],
+                "type": "line"
+              },
+              {
+                "center": [
+                  30,
+                  20
+                ],
+                "endAngle": 270,
+                "name": "arc2",
+                "radius": 4,
+                "startAngle": 90,
+                "type": "arc"
+              }
+            ],
+            "plane": {
+              "body": "Body1",
+              "face": {
+                "name": "Plate.top"
+              },
+              "offset": 0
+            },
+            "type": "sketch"
+          },
+          "name": "SlotSketch"
+        },
+        {
+          "kind": {
+            "extent": {
+              "type": "throughAll"
+            },
+            "operation": {
+              "body": "Body1",
+              "mode": "cut"
+            },
+            "regions": [],
+            "reversed": false,
+            "sketch": "SlotSketch",
+            "type": "extrude"
+          },
+          "name": "Slot"
+        }
+      ],
+      "name": "Plate"
+    }
+  ],
+  "units": "mm"
+}

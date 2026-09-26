@@ -1,0 +1,268 @@
+{
+  "format": 1,
+  "parameters": [
+    {
+      "expression": 40,
+      "name": "width"
+    },
+    {
+      "expression": 30,
+      "name": "height"
+    },
+    {
+      "expression": 8,
+      "name": "leg"
+    },
+    {
+      "expression": 25,
+      "name": "length"
+    }
+  ],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "constraints": [
+              {
+                "name": "c1",
+                "points": [
+                  "line1.end",
+                  "line2.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "name": "c2",
+                "points": [
+                  "line2.end",
+                  "line3.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "name": "c3",
+                "points": [
+                  "line3.end",
+                  "line4.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "name": "c4",
+                "points": [
+                  "line4.end",
+                  "line5.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "name": "c5",
+                "points": [
+                  "line5.end",
+                  "line6.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "name": "c6",
+                "points": [
+                  "line6.end",
+                  "line1.start"
+                ],
+                "type": "coincident"
+              },
+              {
+                "entities": [
+                  "line1"
+                ],
+                "name": "c7",
+                "type": "horizontal"
+              },
+              {
+                "entities": [
+                  "line3"
+                ],
+                "name": "c8",
+                "type": "horizontal"
+              },
+              {
+                "entities": [
+                  "line5"
+                ],
+                "name": "c9",
+                "type": "horizontal"
+              },
+              {
+                "entities": [
+                  "line2"
+                ],
+                "name": "c10",
+                "type": "vertical"
+              },
+              {
+                "entities": [
+                  "line4"
+                ],
+                "name": "c11",
+                "type": "vertical"
+              },
+              {
+                "entities": [
+                  "line6"
+                ],
+                "name": "c12",
+                "type": "vertical"
+              },
+              {
+                "at": [
+                  0,
+                  0
+                ],
+                "name": "c13",
+                "points": [
+                  "line1.start"
+                ],
+                "type": "fixed"
+              },
+              {
+                "name": "c14",
+                "points": [
+                  "line1.start",
+                  "line1.end"
+                ],
+                "type": "distance",
+                "value": "width"
+              },
+              {
+                "name": "c15",
+                "points": [
+                  "line6.start",
+                  "line6.end"
+                ],
+                "type": "distance",
+                "value": "height"
+              },
+              {
+                "name": "c16",
+                "points": [
+                  "line2.start",
+                  "line2.end"
+                ],
+                "type": "distance",
+                "value": "leg"
+              },
+              {
+                "name": "c17",
+                "points": [
+                  "line5.start",
+                  "line5.end"
+                ],
+                "type": "distance",
+                "value": "leg"
+              }
+            ],
+            "entities": [
+              {
+                "end": [
+                  40,
+                  0
+                ],
+                "name": "line1",
+                "start": [
+                  0,
+                  0
+                ],
+                "type": "line"
+              },
+              {
+                "end": [
+                  40,
+                  8
+                ],
+                "name": "line2",
+                "start": [
+                  40,
+                  0
+                ],
+                "type": "line"
+              },
+              {
+                "end": [
+                  8,
+                  8
+                ],
+                "name": "line3",
+                "start": [
+                  40,
+                  8
+                ],
+                "type": "line"
+              },
+              {
+                "end": [
+                  8,
+                  30
+                ],
+                "name": "line4",
+                "start": [
+                  8,
+                  8
+                ],
+                "type": "line"
+              },
+              {
+                "end": [
+                  0,
+                  30
+                ],
+                "name": "line5",
+                "start": [
+                  8,
+                  30
+                ],
+                "type": "line"
+              },
+              {
+                "end": [
+                  0,
+                  0
+                ],
+                "name": "line6",
+                "start": [
+                  0,
+                  30
+                ],
+                "type": "line"
+              }
+            ],
+            "plane": {
+              "base": "XY",
+              "offset": 0
+            },
+            "type": "sketch"
+          },
+          "name": "Profile"
+        },
+        {
+          "kind": {
+            "extent": {
+              "type": "distance",
+              "value": "length"
+            },
+            "operation": {
+              "mode": "newBody"
+            },
+            "regions": [],
+            "reversed": false,
+            "sketch": "Profile",
+            "type": "extrude"
+          },
+          "name": "Bar"
+        }
+      ],
+      "name": "Bracket"
+    }
+  ],
+  "units": "mm"
+}
