@@ -35,18 +35,15 @@ struct WriteReport {
         let changes = statusChanges(afterResult)
         if !changes.isEmpty {
             lines.append("Status changes elsewhere:")
-            lines += changes.prefix(Self.diffLimit).map { "  \($0)" }
-            if changes.count > Self.diffLimit {
-                lines.append("  … \(changes.count - Self.diffLimit) more status changes; call get_listing")
-            }
+            lines += Self.capped(changes, "status changes", then: "call get_listing")
         }
         if !notes.isEmpty {
             lines.append("Body references renumbered:")
-            lines += notes.map { "  \($0)" }
+            lines += Self.capped(notes, "renumbered references")
         }
         if !referenceNotes.isEmpty {
             lines.append("Geometry references updated:")
-            lines += referenceNotes.map { "  \($0)" }
+            lines += Self.capped(referenceNotes, "updated references")
         }
         lines += bodyLines(afterResult)
         lines += instanceLines(afterResult)
@@ -54,22 +51,33 @@ struct WriteReport {
         let parameters = Self.parameterChanges(before.parameters, after.parameters)
         if !parameters.isEmpty {
             lines.append("Parameters:")
-            lines += parameters.prefix(Self.diffLimit).map { "  \($0)" }
-            if parameters.count > Self.diffLimit {
-                lines.append("  … \(parameters.count - Self.diffLimit) more changed parameters; call get_listing")
-            }
+            lines += Self.capped(parameters, "changed parameters", then: "call get_listing")
         }
         let diff = Self.diff(
             DocumentListing.modelLines(before, result: beforeResult),
             DocumentListing.modelLines(after, result: afterResult))
         if !diff.isEmpty {
             lines.append("Listing changes:")
-            lines += diff.prefix(Self.diffLimit).map { "  \($0)" }
-            if diff.count > Self.diffLimit {
-                lines.append("  … \(diff.count - Self.diffLimit) more changed lines; call get_listing")
-            }
+            lines += Self.capped(diff, "changed lines", then: "call get_listing")
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The first `diffLimit` entries indented, then how many were left out.
+    static func capped(_ entries: [String], _ what: String, then hint: String? = nil) -> [String] {
+        var lines = entries.prefix(diffLimit).map { "  \($0)" }
+        if entries.count > diffLimit {
+            lines.append("  … \(entries.count - diffLimit) more \(what)" + (hint.map { "; \($0)" } ?? ""))
+        }
+        return lines
+    }
+
+    static let nameLimit = 10
+
+    /// Names separated by commas, the first `nameLimit` of them and a count of the rest.
+    static func names(_ names: [String]) -> String {
+        let shown = names.prefix(nameLimit).joined(separator: ", ")
+        return names.count > nameLimit ? "\(shown) and \(names.count - nameLimit) more" : shown
     }
 
     private func statusChanges(_ afterResult: RebuildResult) -> [String] {
@@ -100,7 +108,8 @@ struct WriteReport {
         let faulty = (afterResult.assembly?.joints ?? []).filter { !$0.status.holds && $0.id != jointFocus }
         if !faulty.isEmpty {
             lines.append("Joints:")
-            lines += faulty.prefix(Self.diffLimit).map { "  \($0.name): \($0.status)" }
+            lines += Self.capped(
+                faulty.map { "\($0.name): \($0.status)" }, "joints that do not hold", then: "call get_listing")
         }
         let moved = (afterResult.assembly?.instances ?? []).compactMap { instance -> String? in
             guard let old = beforeResult?.assembly?.instance(id: instance.id),
@@ -110,7 +119,11 @@ struct WriteReport {
             let (before, after) = (Self.pose(from), Self.pose(to))
             return before == after ? nil : "\(instance.name) \(before) → \(after)"
         }
-        if !moved.isEmpty { lines.append("Moved by joints: \(moved.joined(separator: "; "))") }
+        if !moved.isEmpty {
+            let shown = moved.prefix(Self.nameLimit).joined(separator: "; ")
+            let rest = moved.count > Self.nameLimit ? "; and \(moved.count - Self.nameLimit) more" : ""
+            lines.append("Moved by joints: \(shown)\(rest)")
+        }
         return lines
     }
 
@@ -145,12 +158,9 @@ struct WriteReport {
         let removed = oldInstances.filter { !currentIDs.contains($0.id) }.map(\.name)
         var lines: [String] = []
         if !changed.isEmpty { lines.append("Instances:") }
-        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
-        if changed.count > Self.diffLimit {
-            lines.append("  … \(changed.count - Self.diffLimit) more changed instances; call get_listing")
-        }
-        if !unchanged.isEmpty { lines.append("Unchanged instances: \(unchanged.joined(separator: ", "))") }
-        if !removed.isEmpty { lines.append("Removed instances: \(removed.joined(separator: ", "))") }
+        lines += Self.capped(changed, "changed instances", then: "call get_listing")
+        if !unchanged.isEmpty { lines.append("Unchanged instances: \(Self.names(unchanged))") }
+        if !removed.isEmpty { lines.append("Removed instances: \(Self.names(removed))") }
         return lines
     }
 
@@ -195,12 +205,9 @@ struct WriteReport {
         var lines: [String] = []
         if changed.isEmpty && unchanged.isEmpty { lines.append("Bodies: none") }
         if !changed.isEmpty { lines.append("Bodies:") }
-        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
-        if changed.count > Self.diffLimit {
-            lines.append("  … \(changed.count - Self.diffLimit) more changed bodies; call measure for their sizes")
-        }
-        if !unchanged.isEmpty { lines.append("Unchanged bodies: \(unchanged.joined(separator: ", "))") }
-        if !removed.isEmpty { lines.append("Removed bodies: \(removed.joined(separator: ", "))") }
+        lines += Self.capped(changed, "changed bodies", then: "call measure for their sizes")
+        if !unchanged.isEmpty { lines.append("Unchanged bodies: \(Self.names(unchanged))") }
+        if !removed.isEmpty { lines.append("Removed bodies: \(Self.names(removed))") }
         return lines
     }
 

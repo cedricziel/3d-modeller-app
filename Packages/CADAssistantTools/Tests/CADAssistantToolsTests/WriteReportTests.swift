@@ -99,6 +99,17 @@ struct WriteReportTests {
         #expect(result.message.contains("  … 10 more changed bodies; call measure for their sizes"))
     }
 
+    @Test("Unchanged bodies are named up to ten, then counted")
+    func unchangedNamesCapped() async throws {
+        let harness = try await loaded(blocks(40))
+
+        let result = try await harness.call("edit_feature", ["feature": "Block2", "height": 5])
+        let line = try #require(result.message.split(separator: "\n").first { $0.hasPrefix("Unchanged bodies:") })
+
+        #expect(line.hasPrefix("Unchanged bodies: Body1 (Plate), Body3 (Plate), "))
+        #expect(line.hasSuffix(", Body11 (Plate) and 29 more"))
+    }
+
     @Test("A cut in a ten-body document costs a few hundred tokens")
     func writeResultBudget() async throws {
         let harness = try await loaded(blocks(10))
