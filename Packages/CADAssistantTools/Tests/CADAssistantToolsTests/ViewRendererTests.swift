@@ -11,8 +11,11 @@ struct ViewRendererTests {
 
     /// An axis-aligned box with its own vertices per face, as the kernel tessellates.
     static func boxMesh(_ size: SIMD3<Float>, at origin: SIMD3<Float> = .zero) -> BodyMesh {
-        let corners = (0..<8).map { index in
-            origin + size * SIMD3(Float(index & 1), Float((index >> 1) & 1), Float((index >> 2) & 1))
+        let corners = (0..<8).map { (index: Int) -> SIMD3<Float> in
+            let x = Float(index & 1)
+            let y = Float((index >> 1) & 1)
+            let z = Float((index >> 2) & 1)
+            return origin + size * SIMD3<Float>(x, y, z)
         }
         let quads = [[0, 2, 6, 4], [1, 5, 7, 3], [0, 4, 5, 1], [2, 3, 7, 6], [0, 1, 3, 2], [4, 6, 7, 5]]
         var positions: [SIMD3<Float>] = []
