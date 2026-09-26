@@ -6,7 +6,13 @@ struct RGBAImage {
     init(width: Int, height: Int, fill: SIMD4<UInt8>) {
         self.width = width
         self.height = height
-        pixels = Array((0..<width * height).map { _ in [fill.x, fill.y, fill.z, fill.w] }.joined())
+        pixels = [UInt8](repeating: 0, count: width * height * 4)
+        for offset in stride(from: 0, to: pixels.count, by: 4) {
+            pixels[offset] = fill.x
+            pixels[offset + 1] = fill.y
+            pixels[offset + 2] = fill.z
+            pixels[offset + 3] = fill.w
+        }
     }
 
     func pixel(_ x: Int, _ y: Int) -> SIMD4<UInt8> {
