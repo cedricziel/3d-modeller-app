@@ -30,4 +30,18 @@ public enum Kernel {
             )
         }
     }
+
+    public static func fillet(_ solid: Solid, edges query: EdgeQuery, radius: Double) throws -> Solid {
+        guard radius > 0 else {
+            throw KernelError.invalidDimensions("radius must be greater than 0")
+        }
+        return try OCCTSerial.withLock {
+            let edges = query.edges(of: solid.shape)
+            guard !edges.isEmpty else { throw KernelError.noEdgesMatched }
+            guard let shape = solid.shape.filleted(edges: edges, radius: radius), shape.isValid else {
+                throw KernelError.operationFailed("fillet the selected edges")
+            }
+            return Solid(shape: shape)
+        }
+    }
 }
