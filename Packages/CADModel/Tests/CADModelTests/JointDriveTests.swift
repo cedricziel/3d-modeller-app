@@ -173,4 +173,21 @@ struct JointDriveTests {
         #expect(drivenResult.assembly?.instances.map(\.freedoms) == [0, 0])
         #expect(unjoinedResult.assembly?.instances.map(\.freedoms) == [nil, nil])
     }
+
+    @Test("A free hinge resting a hair below its minimum reads as the minimum, not a full turn above it")
+    func measuredAngleSnapsToMinimum() async throws {
+        let turn = simd_double3x3(simd_quatd(angle: -1e-12, axis: SIMD3(0, 0, 1)))
+        let pivot = SIMD3<Double>(5, 10, 30)
+        let turned = RigidTransform(rotation: turn, translation: pivot - turn * SIMD3(5, 10, 0))
+        let solver = FakeAssemblySolver { assembly in
+            var solution = FakeAssemblySolver.unchanged(assembly)
+            solution.placements[assembly.joints[0].bodyB] = turned
+            return solution
+        }
+        let result = try await rebuild(document(.revolute, limits: JointLimits(min: 0, max: 110)), solver)
+        let value = try #require(result.assembly?.joints.first?.value)
+
+        #expect(abs(value) < 1e-6)
+        #expect(result.assembly?.joints.first?.isOutsideLimits == false)
+    }
 }

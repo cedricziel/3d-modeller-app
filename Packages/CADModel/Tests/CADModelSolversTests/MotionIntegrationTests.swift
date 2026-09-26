@@ -78,7 +78,8 @@ struct MotionIntegrationTests {
         let hinge = try #require(result.assembly?.joints.first)
 
         #expect(hinge.status == .ok)
-        #expect(hinge.value?.isFinite == true)
+        let value = try #require(hinge.value)
+        #expect((0...110).contains(value), "\(value)")
         #expect(!hinge.driven)
         #expect(hinge.freedoms == 1)
         #expect(result.assembly?.instance(named: "Lid")?.freedoms == 1)

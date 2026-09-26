@@ -82,9 +82,11 @@ public struct JointDrive: Sendable, Equatable {
         case .angle:
             let x = b.rotation.columns.0
             var degrees = atan2(simd_dot(x, a.rotation.columns.1), simd_dot(x, a.rotation.columns.0)) * 180 / .pi
+            // Solver noise can leave a joint resting at a limit a hair outside it; that must not read as a full turn.
+            let slack = 1e-6
             if let minimum {
-                degrees -= ((degrees - minimum) / 360).rounded(.down) * 360
-            } else if degrees <= -180 {
+                degrees -= ((degrees - minimum + slack) / 360).rounded(.down) * 360
+            } else if degrees <= -180 + slack {
                 degrees += 360
             }
             return degrees
