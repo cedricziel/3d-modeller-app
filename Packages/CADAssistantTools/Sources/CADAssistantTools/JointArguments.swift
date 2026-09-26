@@ -84,6 +84,48 @@ enum JointArguments {
     ]
 }
 
+extension JointArguments {
+    static let limitsDescription =
+        "The range move_joint may drive the joint through: degrees for a revolute, mm for a slider or cylindrical."
+
+    static let limitsSchema: [String: JSONValue] = [
+        "type": "object",
+        "properties": ["min": .object(ToolSchemas.scalar), "max": .object(ToolSchemas.scalar)],
+        "additionalProperties": false,
+    ]
+
+    /// `{min?, max?}`; an empty object means no limits.
+    static func limits(_ object: [String: JSONValue]) throws(ToolError) -> JointLimits? {
+        let arguments = try Arguments(object, allowed: ["min", "max"])
+        let (min, max) = (try arguments.scalar("min"), try arguments.scalar("max"))
+        return min == nil && max == nil ? nil : JointLimits(min: min, max: max)
+    }
+
+    /// Refuses a value or limits the rebuild would fail the joint for.
+    static func checkDrive(_ joint: Joint, in document: CADDocument) throws(ToolError) {
+        if let problem = JointDrive.evaluate(joint, parameters: ParameterTable(document.parameters)).problem {
+            throw ToolError("\(joint.name): \(problem)")
+        }
+    }
+
+    /// Drops a value and limits that were meant for another motion than the joint's kind now has; says what it
+    /// dropped.
+    static func dropMismatchedDrive(_ joint: inout Joint, from old: JointKind) -> String? {
+        guard old.motion != joint.kind.motion else { return nil }
+        let what = [joint.value.map { _ in "value" }, joint.limits.map { _ in "limits" }].compactMap { $0 }
+        guard !what.isEmpty else { return nil }
+        joint.value = nil
+        joint.limits = nil
+        let unit =
+            switch old.motion {
+            case .angle: "they were in degrees"
+            case .travel: "they were in mm"
+            case nil: "a \(old.rawValue) joint has no motion"
+            }
+        return "dropped its \(what.joined(separator: " and ")) (\(unit))"
+    }
+}
+
 extension CADDocument {
     func jointIndex(named name: String) throws(ToolError) -> Int {
         guard let index = joints.firstIndex(where: { $0.name == name }) else {

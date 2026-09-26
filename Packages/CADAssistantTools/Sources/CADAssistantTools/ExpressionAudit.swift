@@ -142,6 +142,6 @@ extension Joint {
         let limits = [("limits.min", limits?.min), ("limits.max", limits?.max)].compactMap { field, scalar in
             scalar.map { (field, $0) }
         }
-        return offsets + limits
+        return offsets + limits + (value.map { [("value", $0)] } ?? [])
     }
 }
