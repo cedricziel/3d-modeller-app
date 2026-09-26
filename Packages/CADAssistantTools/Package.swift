@@ -10,7 +10,7 @@ let package = Package(
     products: [
         .library(name: "CADAssistantTools", targets: ["CADAssistantTools"]),
         .library(name: "CADBench", targets: ["CADBench"]),
-        .executable(name: "cadbench", targets: ["cadbench"]),
+        .executable(name: "cadbench", targets: ["CADBenchCLI"]),
     ],
     dependencies: [
         .package(path: "../SwiftUIAssistant"),
@@ -33,7 +33,7 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "cadbench",
+            name: "CADBenchCLI",
             dependencies: [
                 "CADBench",
                 .product(name: "SwiftUIAssistant", package: "SwiftUIAssistant"),
