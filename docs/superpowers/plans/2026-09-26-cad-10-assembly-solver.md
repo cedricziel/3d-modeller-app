@@ -125,6 +125,35 @@ A spike measured these behaviours:
 
   Cost if wrong: none.
 
+- **Ruling (execution): the protocol reuses `CADModel`'s `RigidTransform`** for placements and markers instead of a new `SolverRigid` type. Cost if wrong: none.
+- **Ruling (execution): `InstanceResult` gains `movedByJoints`** instead of a second transform. The listing's `→ solved` and the report's "Moved by joints" use it. Cost if wrong: none.
+- **Ruling (execution): in hand-edited files, the model also fails "another joint is already named 'X'" and "both sides are on X".** The tools refuse both. Cost if wrong: none.
+- **Ruling (execution): measured outcomes.**
+  - A conflicting pair of fixed joints gives `[conflicting, redundant]`, with the lid at the second joint.
+  - A revolute plus a cylindrical joint from a coincident start gives `[satisfied, redundant]`.
+  - A 20-link revolute chain solves in 0.11 s in a debug build.
+  - The solver's stdout is fully muted.
+
+  Tests pin these. Cost if wrong: a vendor update that regroups redundancy fails the tests loudly.
+- **Ruling (execution): commits are grouped by file.**
+  - Frame resolution and solving are one commit, because the resolver has no caller without the solve.
+  - The tool-side reference maintenance (delete_instance, rename_feature, audit) is in the tools commit.
+  - The solver parameter for the bench is its own commit.
+
+  Cost if wrong: coarser history.
+- **Ruling (execution): the viewport needed no change.** Instance bodies already carry the solved placement, and an app test pins that the app session draws the lid where the joint puts it. Cost if wrong: none.
+- **Ruling (execution): `slider-on-rail`'s wrong solution is `cylindricalInsteadOfSlider`.** It is caught by the joints check's kinds. Cost if wrong: none.
+- **Ruling (review): joint references are resolved on the instance at the part's own placement (`InstanceResult.unmoved(partBodies:)`), both in the rebuild and in the tools' check.** Resolving on the moved instance made a filter such as `normal -Z` pick a different face when the starting guess was rotated. Cost if wrong: none.
+
+## Deferred after the final review
+
+- A joint between two grounded instances fails as "not satisfied…" or "conflicts…" without saying that both are grounded.
+- "Conflicting" is decided across the whole assembly: one redundant constraint anywhere turns every unsatisfied joint into "conflicts with other joints", which drops its distance and angle.
+- Joints stay ok when the kernel re-transform of the instance they moved then fails.
+- When the first attempt throws and the second ties it without throwing, the exception text is dropped.
+- An instance body reference inside a joint side is not renumbered when bodies renumber (by ruling).
+- Not checked: leaks across repeated OndselSolver solves, and whether `runPreDrag`'s initialisation loop can spin on some input.
+
 ## Review Focus
 
 1. **Two joints that conflict** (a lid fixed flush on top and also fixed 5 mm higher). Expected: one or both fail "conflicts with other joints" or "not satisfied", nothing crashes, instances stay finite, and the listing shows it. Pinned in Task 2 (`conflictingFixedJoints`) and Task 4 (`conflictingJointsReported`).
