@@ -78,4 +78,24 @@ struct AssistantEditingTests {
         #expect(session.document == document.model)
         #expect(session.document.parameters.isEmpty)
     }
+
+    @Test("The app's session solves sketches, so an extruded sketch becomes a body")
+    func appSessionSolvesSketches() async throws {
+        let session = CADSession.forApp(document: CADDocument())
+        let sketch = try await AddSketchTool(session: session).execute(arguments: [
+            "plane": "XY",
+            "entities": [["type": "circle", "center": [0, 0], "radius": 5]],
+            "constraints": [
+                ["type": "fixed", "points": ["circle1.center"], "at": [0, 0]],
+                ["type": "radius", "entities": ["circle1"], "value": 5],
+            ],
+        ])
+        #expect(sketch.message.contains("fully constrained"), "\(sketch.message)")
+        let extrude = try await AddFeatureTool(session: session).execute(arguments: [
+            "type": "extrude", "sketch": "Sketch1", "distance": 2,
+        ])
+        #expect(extrude.success)
+        let volume = try #require(session.result?.bodies.first?.metrics?.volume)
+        #expect(abs(volume - Double.pi * 50) < 1e-6)
+    }
 }

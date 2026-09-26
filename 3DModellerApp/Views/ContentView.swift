@@ -16,7 +16,7 @@ struct ContentView: View {
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
-        _session = State(wrappedValue: CADSession(document: document.model, kernel: OCCTGeometryKernel()))
+        _session = State(wrappedValue: CADSession.forApp(document: document.model))
     }
 
     var body: some View {
@@ -40,6 +40,7 @@ struct ContentView: View {
             InspectorView(
                 feature: selection.flatMap(document.model.feature(id:)),
                 featureResult: selection.flatMap { session.result?.feature(id: $0) },
+                sketchResult: selection.flatMap { session.result?.sketch(id: $0) },
                 assistant: assistant
             )
             .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
@@ -132,6 +133,7 @@ struct ToolPicker: View {
 struct InspectorView: View {
     let feature: Feature?
     let featureResult: FeatureResult?
+    let sketchResult: SketchResult?
     let assistant: Assistant?
     @EnvironmentObject private var appModel: AppModel
 
@@ -157,7 +159,7 @@ struct InspectorView: View {
 
             switch appModel.inspectorTab {
             case .properties:
-                FeatureInspectorView(feature: feature, result: featureResult)
+                FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
             case .assistant:
                 if let assistant {
                     AssistantView(assistant: assistant)
