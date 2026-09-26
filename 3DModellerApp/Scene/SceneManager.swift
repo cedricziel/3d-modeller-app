@@ -16,6 +16,9 @@ final class SceneManager: ObservableObject {
     /// Scene statistics
     @Published private(set) var statistics: SceneStatistics = SceneStatistics()
 
+    /// Bumped on every edit, since entities are mutated in place and `entities` alone doesn't publish those
+    @Published private(set) var revision = 0
+
     // MARK: - RealityKit
 
     /// The root entity for the scene
@@ -131,19 +134,21 @@ final class SceneManager: ObservableObject {
         // Create material
         var material = SimpleMaterial()
         #if os(macOS)
-        material.color = .init(tint: NSColor(
-            red: CGFloat(color.r),
-            green: CGFloat(color.g),
-            blue: CGFloat(color.b),
-            alpha: CGFloat(color.a)
-        ))
+            material.color = .init(
+                tint: NSColor(
+                    red: CGFloat(color.r),
+                    green: CGFloat(color.g),
+                    blue: CGFloat(color.b),
+                    alpha: CGFloat(color.a)
+                ))
         #else
-        material.color = .init(tint: UIColor(
-            red: CGFloat(color.r),
-            green: CGFloat(color.g),
-            blue: CGFloat(color.b),
-            alpha: CGFloat(color.a)
-        ))
+            material.color = .init(
+                tint: UIColor(
+                    red: CGFloat(color.r),
+                    green: CGFloat(color.g),
+                    blue: CGFloat(color.b),
+                    alpha: CGFloat(color.a)
+                ))
         #endif
 
         // Create model entity
@@ -164,7 +169,7 @@ final class SceneManager: ObservableObject {
         )
 
         entities[id] = cadEntity
-        updateStatistics()
+        sceneDidChange()
 
         return cadEntity
     }
@@ -182,7 +187,7 @@ final class SceneManager: ObservableObject {
             selectedEntityId = nil
         }
 
-        updateStatistics()
+        sceneDidChange()
         return true
     }
 
@@ -212,19 +217,23 @@ final class SceneManager: ObservableObject {
         if let rot = rotation {
             // Convert Euler angles (degrees) to quaternion
             let radians = rot * (Float.pi / 180)
-            cadEntity.entity.orientation = simd_quatf(
-                angle: radians.x, axis: [1, 0, 0]
-            ) * simd_quatf(
-                angle: radians.y, axis: [0, 1, 0]
-            ) * simd_quatf(
-                angle: radians.z, axis: [0, 0, 1]
-            )
+            cadEntity.entity.orientation =
+                simd_quatf(
+                    angle: radians.x, axis: [1, 0, 0]
+                )
+                * simd_quatf(
+                    angle: radians.y, axis: [0, 1, 0]
+                )
+                * simd_quatf(
+                    angle: radians.z, axis: [0, 0, 1]
+                )
         }
 
         if let scl = scale {
             cadEntity.entity.scale = scl
         }
 
+        sceneDidChange()
         return true
     }
 
@@ -249,7 +258,8 @@ final class SceneManager: ObservableObject {
         roughness: Float? = nil
     ) -> Bool {
         guard let cadEntity = entities[id],
-              let modelEntity = cadEntity.entity as? ModelEntity else {
+            let modelEntity = cadEntity.entity as? ModelEntity
+        else {
             return false
         }
 
@@ -259,19 +269,21 @@ final class SceneManager: ObservableObject {
 
         if let color = color {
             #if os(macOS)
-            material.color = .init(tint: NSColor(
-                red: CGFloat(color.r),
-                green: CGFloat(color.g),
-                blue: CGFloat(color.b),
-                alpha: CGFloat(color.a)
-            ))
+                material.color = .init(
+                    tint: NSColor(
+                        red: CGFloat(color.r),
+                        green: CGFloat(color.g),
+                        blue: CGFloat(color.b),
+                        alpha: CGFloat(color.a)
+                    ))
             #else
-            material.color = .init(tint: UIColor(
-                red: CGFloat(color.r),
-                green: CGFloat(color.g),
-                blue: CGFloat(color.b),
-                alpha: CGFloat(color.a)
-            ))
+                material.color = .init(
+                    tint: UIColor(
+                        red: CGFloat(color.r),
+                        green: CGFloat(color.g),
+                        blue: CGFloat(color.b),
+                        alpha: CGFloat(color.a)
+                    ))
             #endif
             cadEntity.material.color = color
         }
@@ -287,6 +299,7 @@ final class SceneManager: ObservableObject {
         }
 
         modelEntity.model?.materials = [material]
+        sceneDidChange()
         return true
     }
 
@@ -344,7 +357,8 @@ final class SceneManager: ObservableObject {
 
     // MARK: - Statistics
 
-    private func updateStatistics() {
+    private func sceneDidChange() {
+        revision += 1
         statistics = SceneStatistics(
             entityCount: entities.count,
             triangleCount: calculateTriangleCount(),
@@ -373,7 +387,7 @@ final class SceneManager: ObservableObject {
         for entity in entities.values {
             switch entity.type {
             case .box: count += 12
-            case .sphere: count += 960 // Approximation
+            case .sphere: count += 960  // Approximation
             case .cylinder: count += 100
             case .cone: count += 50
             case .plane: count += 2
@@ -431,7 +445,7 @@ final class SceneManager: ObservableObject {
             entities[id] = cadEntity
         }
 
-        updateStatistics()
+        sceneDidChange()
     }
 
     // MARK: - Serialization
@@ -445,7 +459,7 @@ final class SceneManager: ObservableObject {
                 type: entity.type,
                 transform: TransformData(
                     position: entity.entity.position,
-                    rotation: .zero, // TODO: Extract Euler from quaternion
+                    rotation: .zero,  // TODO: Extract Euler from quaternion
                     scale: entity.entity.scale
                 ),
                 material: entity.material

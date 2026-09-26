@@ -76,7 +76,7 @@ struct ContentView: View {
             setupAssistant()
             syncDocumentToScene()
         }
-        .onChange(of: sceneManager.statistics.entityCount) { _, _ in
+        .onChange(of: sceneManager.revision) { _, _ in
             syncSceneToDocument()
         }
     }
@@ -97,7 +97,7 @@ struct ContentView: View {
             QuerySceneTool(sceneManager: sceneManager),
             FetchTool(),
             CalculatorTool(),
-            TimeTool()
+            TimeTool(),
         ]
 
         let contextProvider: @Sendable () -> any AssistantContext = { [sceneManager] in
