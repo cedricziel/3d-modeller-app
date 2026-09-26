@@ -13,8 +13,9 @@ An AI-first 3D modeling application for macOS where users interact primarily thr
 
 ## Requirements
 
-- macOS 15.0+
-- Xcode 16.0+
+- macOS 26.0+
+- Xcode 26+ (Swift 6)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - An Anthropic API key (for Claude integration)
 
 ## Getting Started
@@ -34,8 +35,21 @@ Then build and run with ⌘R.
 ### Build with Swift Package Manager
 
 ```bash
-swift build
-swift run 3DModellerApp
+xcrun swift build
+xcrun swift run 3DModellerApp
+```
+
+Use `xcrun swift`, not a bare `swift`, so the toolchain matches the active Xcode SDK.
+
+### Run Tests
+
+```bash
+# App tests
+xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
+
+# Package tests
+(cd Packages/SwiftUIAssistant && xcrun swift test)
+(cd Packages/SwiftUIAssistantTools && xcrun swift test)
 ```
 
 ### Configure API Key
@@ -62,16 +76,18 @@ The assistant has access to these tools:
 - `duplicate_entity` - Copy objects
 - `delete_entity` - Remove objects
 - `query_scene` - List and filter scene contents
+- `fetch`, `calculator`, `time` - General-purpose helpers from `SwiftUIAssistantTools`
 
 ## Architecture
 
 ```
 ├── Packages/
-│   └── SwiftUIAssistant/     # Reusable AI assistant library
-│       ├── Core/             # Assistant orchestration
-│       ├── Providers/        # LLM backends (Claude)
-│       ├── Tools/            # Tool protocol & registry
-│       └── Views/            # Chat UI components
+│   ├── SwiftUIAssistant/     # Reusable AI assistant library
+│   │   ├── Core/             # Assistant orchestration
+│   │   ├── Providers/        # LLM backends (Claude)
+│   │   ├── Tools/            # Tool protocol & registry
+│   │   └── Views/            # Chat UI components
+│   └── SwiftUIAssistantTools/ # Common tools (fetch, calculator, time)
 │
 └── 3DModellerApp/            # Main application
     ├── App/                  # Entry point, global state
@@ -88,6 +104,12 @@ A standalone Swift package that can be reused to add AI assistant capabilities t
 - `LLMProvider` - Pluggable AI backend interface
 - `AssistantTool` - Define tools the AI can execute
 - `AssistantContext` - Provide app state to the AI
+
+`ClaudeProvider` defaults to Claude Opus 5.5 (`claude-opus-5-5`) at `medium` effort. Pass `model:` and `effort:` to change them.
+
+### SwiftUIAssistantTools
+
+Ready-made `AssistantTool`s any host app can register: `FetchTool`, `CalculatorTool`, `TimeTool`.
 
 ### Technology Stack
 
