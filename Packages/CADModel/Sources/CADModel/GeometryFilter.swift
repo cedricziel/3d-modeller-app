@@ -22,11 +22,12 @@ public struct GeometryFilter: Sendable, Equatable {
     static func usage(_ kind: GeometryKind) -> String {
         switch kind {
         case .faces:
-            "Face filters: normal +Z (or -Z, or Z for either), parallel X, perpendicular Y, "
+            "Face filters: normal +Z (planar faces facing +Z; Z for either way), parallel Z (planar faces whose "
+                + "plane contains Z, such as side walls), perpendicular Z (same as normal Z), "
                 + "type plane|cylinder|cone|sphere|torus|other, circular [r=2.75], farthest +X; combine with 'and'."
         case .edges:
-            "Edge filters: parallel Z, perpendicular X, type line|circle|other, circular [r=2.75], farthest +X, "
-                + "on <face name>; combine with 'and'."
+            "Edge filters: parallel Z (straight edges along Z), perpendicular Z, type line|circle|other, "
+                + "circular [r=2.75], farthest +X, on <face name>; combine with 'and'. Filters skip seam edges."
         }
     }
 

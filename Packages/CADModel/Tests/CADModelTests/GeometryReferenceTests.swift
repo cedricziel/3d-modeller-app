@@ -17,6 +17,23 @@ private func drilledBox() -> BodyTopology {
         EdgeDescriptor(
             faces: [top, 6], curve: .circle, length: 4 * .pi, start: SIMD3(7, 5, 10), end: SIMD3(7, 5, 10),
             midpoint: SIMD3(3, 5, 10), center: SIMD3(5, 5, 10), axis: SIMD3(0, 0, 1), radius: 2))
+    topology.edges.append(
+        EdgeDescriptor(
+            faces: [6], curve: .line, length: 10, start: SIMD3(7, 5, 0), end: SIMD3(7, 5, 10),
+            midpoint: SIMD3(7, 5, 5), direction: SIMD3(0, 0, 1)))
+    return topology
+}
+
+/// Boxes B and C whose overlapping top is one face carrying both names, with B's and C's own parts beside it.
+private func mergedTops() -> BodyTopology {
+    var topology = BodyTopology.box("B", size: SIMD3(10, 10, 10))
+    let top = topology.faces.firstIndex { $0.names == ["B.top"] }!
+    topology.faces[top].centroid = SIMD3(2, 5, 10)
+    topology.faces.append(
+        FaceDescriptor(
+            names: ["B.top", "C.top"], surface: .plane, centroid: SIMD3(6, 5, 10), area: 1, normal: SIMD3(0, 0, 1)))
+    topology.faces.append(
+        FaceDescriptor(names: ["C.top"], surface: .plane, centroid: SIMD3(12, 5, 10), area: 1, normal: SIMD3(0, 0, 1)))
     return topology
 }
 
@@ -56,7 +73,8 @@ struct TopologyNamesTests {
 
         #expect(names.faces == ["B.left", "B.right", "B.front", "B.back", "B.bottom", "B.top", "H.side"])
         #expect(names.edges.contains("edge(B.front, B.top)"))
-        #expect(names.edges.last == "edge(B.top, H.side)")
+        #expect(names.edges.contains("edge(B.top, H.side)"))
+        #expect(names.edges.last == "edge(H.side)")
         #expect(Set(names.edges).count == names.edges.count)
     }
 
@@ -89,6 +107,13 @@ struct GeometryReferenceTests {
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(GeometryReference.self, from: Data(#"{"name":"a","filter":"b"}"#.utf8))
         }
+    }
+
+    @Test("A filter reports the parameter expressions it uses")
+    func expressions() {
+        #expect(GeometryReference.filter("parallel Z and circular r = d / 2").expressions == ["d / 2"])
+        #expect(GeometryReference.filter("circular").expressions.isEmpty)
+        #expect(GeometryReference.name("circular r=d").expressions.isEmpty)
     }
 
     @Test("Renaming a feature rewrites its prefix only where it names that feature")
@@ -135,6 +160,36 @@ struct GeometryResolverTests {
                 == "'B.top' matches 2 faces; name one of them: B.top[1] (plane at (8, 5, 10)); B.top[0] (plane at (2, 5, 10))"
         )
         #expect(try resolve(["B.top[0]"], .faces, in: slottedBox()) == ["B.top[0]"])
+    }
+
+    @Test("A name that other faces also carry is ambiguous, even when it is one face's display name")
+    func mergedFaceAmbiguous() throws {
+        let names = TopologyNames(mergedTops())
+
+        #expect(names.faces.suffix(2) == ["B.top[1]", "C.top"])
+        #expect(error { _ = try resolve(["C.top"], .faces, in: mergedTops()) }.hasPrefix("'C.top' matches 2 faces"))
+        #expect(error { _ = try resolve(["B.top"], .faces, in: mergedTops()) }.hasPrefix("'B.top' matches 2 faces"))
+        #expect(try resolve(["B.top[1]"], .faces, in: mergedTops()) == ["B.top[1]"])
+    }
+
+    @Test("A piece index on an edge name in either face order names the same edge")
+    func reversedEdgePiece() throws {
+        var topology = BodyTopology.box("B", size: SIMD3(10, 10, 10))
+        let edge = topology.edges.firstIndex { Set($0.faces) == [2, 5] }!
+        var copy = topology.edges[edge]
+        copy.midpoint.x += 20
+        topology.edges.append(copy)
+
+        #expect(try resolve(["edge(B.top, B.front)[1]"], .edges, in: topology) == ["edge(B.front, B.top)[1]"])
+        #expect(
+            error { _ = try resolve(["edge(B.top, B.front)"], .edges, in: topology) }.hasPrefix(
+                "'edge(B.top, B.front)' matches 2 edges"))
+    }
+
+    @Test("Filters skip seam edges; a name still reaches one")
+    func seams() throws {
+        #expect(try resolve(["parallel Z"], .edges, in: drilledBox()).count == 4)
+        #expect(try resolve(["edge(H.side)"], .edges, in: drilledBox()) == ["edge(H.side)"])
     }
 
     @Test("Edge filters select lines by direction, circles by radius, and combine left to right")

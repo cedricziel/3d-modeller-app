@@ -41,6 +41,54 @@ struct NamingIntegrationTests {
         #expect(names.isSuperset(of: ["Round.face[0]", "Round.face[1]", "Hole.side", "Plate.top"]))
     }
 
+    @Test("An edge filter on a drilled plate leaves out the hole's seam")
+    func filterSkipsSeam() async throws {
+        let part = try await rebuild([
+            Self.plate, Self.hole,
+            Feature(
+                name: "Round", kind: .fillet(FilletFeature(body: "Body1", edges: [.filter("parallel Z")], radius: 3))),
+        ])
+
+        #expect(part.features[2].status == .ok)
+        let corners = 4 * 9 * (1 - Double.pi / 4) * 10
+        #expect(approx(part.bodies.first?.metrics?.volume, 60 * 40 * 10 - .pi * 25 * 10 - corners))
+    }
+
+    @Test("Filleting the hole's seam by name fails instead of leaving it sharp")
+    func seamByNameFails() async throws {
+        let part = try await rebuild([
+            Self.plate, Self.hole,
+            Feature(
+                name: "Round",
+                kind: .fillet(
+                    FilletFeature(
+                        body: "Body1", edges: [.name("edge(Plate.front, Plate.top)"), .name("edge(Hole.side)")],
+                        radius: 1))),
+        ])
+
+        guard case .failed(.kernel(let message)) = part.features[2].status else {
+            Issue.record("expected a kernel failure, got \(part.features[2].status)")
+            return
+        }
+        #expect(message.contains("leave out seams"))
+    }
+
+    @Test("A shell the geometry cannot take fails; the rest still builds")
+    func shellTooThick() async throws {
+        let part = try await rebuild([
+            Self.plate,
+            Feature(
+                name: "Hollow", kind: .shell(ShellFeature(body: "Body1", faces: [.name("Plate.top")], thickness: 25))),
+            Feature(name: "Other", kind: .primitive(PrimitiveFeature(.sphere(radius: 1)))),
+        ])
+
+        guard case .failed(.kernel) = part.features[1].status else {
+            Issue.record("expected a kernel failure, got \(part.features[1].status)")
+            return
+        }
+        #expect(part.features[2].status == .ok)
+    }
+
     @Test("Chamfering the hole's top edge by name")
     func chamferHoleByName() async throws {
         let part = try await rebuild([

@@ -28,14 +28,16 @@ public enum GeometryResolver {
         return selected.sorted()
     }
 
-    /// Every face or edge the filter keeps; all of them when there is no filter.
+    /// Every face or edge the filter keeps; all of them when there is no filter. Filters never pick seam edges
+    /// (an edge with the same face on both sides), which no fillet or chamfer can take; a name still can.
     public static func select(
         _ kind: GeometryKind, filter: String?, in topology: BodyTopology, names: TopologyNames,
         parameters: ParameterTable
     ) throws(ReferenceError) -> [Int] {
         let all = Array(0..<topology.count(kind))
         guard let filter, !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return all }
-        return try GeometryFilter(parsing: filter, kind: kind).select(all, in: topology, names: names) {
+        let candidates = kind == .edges ? all.filter { topology.edges[$0].faces.count == 2 } : all
+        return try GeometryFilter(parsing: filter, kind: kind).select(candidates, in: topology, names: names) {
             (expression) throws(ReferenceError) -> Double in
             do {
                 return try parameters.evaluate(.expression(expression))
@@ -45,17 +47,19 @@ public enum GeometryResolver {
         }
     }
 
+    /// A name must match exactly one face or edge. Every face that carries the name counts, not only the one whose
+    /// display name it is, so a face merged from two inputs makes the other input's name ambiguous.
     static func resolveName(
         _ text: String, kind: GeometryKind, in topology: BodyTopology, names: TopologyNames
     ) throws(ReferenceError) -> Int {
-        if let exact = names.names(kind).firstIndex(of: text) { return exact }
-        let matches: [Int]
-        var piece: Int?
+        let exact = names.names(kind).firstIndex(of: text)
+        var matches: [Int]
         switch kind {
         case .faces:
             matches = faces(named: text, in: topology, names: names)
         case .edges:
             var body = Substring(text)
+            var piece: Int?
             if body.hasSuffix("]"), let open = body.lastIndex(of: "["),
                 let index = Int(body[open...].dropFirst().dropLast()),
                 body[..<open].hasSuffix(")")
@@ -64,6 +68,7 @@ public enum GeometryResolver {
                 body = body[..<open]
             }
             guard body.hasPrefix("edge("), body.hasSuffix(")") else {
+                if let exact { return exact }
                 throw ReferenceError(
                     "'\(text)' is not an edge name; edges are named by their faces, like edge(Box1.front, Box1.top). "
                         + "Edges of this body: \(list(.edges, Array(topology.edges.indices), topology, names))")
@@ -71,6 +76,11 @@ public enum GeometryResolver {
             let parts = splitTopLevel(body.dropFirst(5).dropLast())
             guard (1...2).contains(parts.count) else {
                 throw ReferenceError("'\(text)' names \(parts.count) faces; an edge lies between one or two faces.")
+            }
+            if let piece {
+                if let exact { return exact }
+                let canonical = "\(TopologyNames.edgeName(faces: parts))[\(piece)]"
+                if let index = names.edges.firstIndex(of: canonical) { return index }
             }
             var sets: [Set<Int>] = []
             for part in parts {
@@ -89,14 +99,10 @@ public enum GeometryResolver {
                 return (sets[0].contains(faces[0]) && sets[1].contains(faces[1]))
                     || (sets[0].contains(faces[1]) && sets[1].contains(faces[0]))
             }
+            if piece != nil { matches = [] }
         }
-        if let piece {
-            let ordered = TopologyNames.ordered(matches, centres: matches.isEmpty ? [] : allCentres(kind, topology))
-            if ordered.indices.contains(piece) { return ordered[piece] }
-        } else if matches.count == 1 {
-            return matches[0]
-        }
-        if matches.count > 1, piece == nil {
+        if matches.count == 1 { return matches[0] }
+        if matches.count > 1 {
             throw ReferenceError(
                 "'\(text)' matches \(matches.count) \(kind.rawValue); name one of them: "
                     + list(kind, matches, topology, names))
@@ -106,14 +112,12 @@ public enum GeometryResolver {
                 + list(kind, Array(0..<topology.count(kind)), topology, names))
     }
 
-    /// Faces whose display name is `text`, or that carry `text` among their names.
+    /// Faces that carry `text` among their names, or else the face whose display name it is (a piece such as
+    /// `Box1.top[1]`).
     static func faces(named text: String, in topology: BodyTopology, names: TopologyNames) -> [Int] {
-        if let exact = names.faces.firstIndex(of: text) { return [exact] }
-        return topology.faces.indices.filter { topology.faces[$0].names.contains(text) }
-    }
-
-    private static func allCentres(_ kind: GeometryKind, _ topology: BodyTopology) -> [SIMD3<Double>] {
-        (0..<topology.count(kind)).map { topology.centre(kind, $0) }
+        let carriers = topology.faces.indices.filter { topology.faces[$0].names.contains(text) }
+        if carriers.isEmpty, let exact = names.faces.firstIndex(of: text) { return [exact] }
+        return carriers
     }
 
     private static func splitTopLevel(_ text: Substring) -> [String] {
