@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-${{ matrix.package }}-${{ hashFiles('**/Package.resolved') }}
           restore-keys: swiftpm-${{ runner.os }}-
       - run: xcodebuild -version
       - name: Test ${{ matrix.package }}
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          key: swiftpm-${{ runner.os }}-app-${{ hashFiles('**/Package.resolved') }}
           restore-keys: swiftpm-${{ runner.os }}-
       - run: xcodebuild -version
       - name: Test app
