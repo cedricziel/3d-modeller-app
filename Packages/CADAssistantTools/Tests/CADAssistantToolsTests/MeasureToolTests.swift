@@ -46,10 +46,13 @@ struct MeasureToolTests {
         let face = try await measure(harness, "size", ["body": "Body1", "face": "Base.top"])
         let edge = try await measure(harness, "size", ["body": "Body1", "edge": "edge(Base.front, Base.top)"])
 
-        #expect(face.message.hasPrefix("Base.top (Body1): plane, area 2400 mm², centre (30, 20, 10), normal (0, 0, 1)"))
+        #expect(
+            face.message.hasPrefix(
+                "Base.top of Body1 (Plate): plane, area 2400 mm², centre (30, 20, 10), normal (0, 0, 1)"))
         #expect(face.message.contains(", bounds "))
         #expect(
-            edge.message == "edge(Base.front, Base.top) (Body1): line, length 60 mm, from (0, 0, 10) to (60, 0, 10)")
+            edge.message
+                == "edge(Base.front, Base.top) of Body1 (Plate): line, length 60 mm, from (0, 0, 10) to (60, 0, 10)")
     }
 
     @Test("Angles between face normals, between edges, and between an edge and a face")
@@ -64,13 +67,18 @@ struct MeasureToolTests {
             ["body": "Body1", "edge": "edge(Base.left, Base.top)"])
         let mixed = try await measure(harness, "angle", ["body": "Body1", "edge": "edge(Base.front, Base.top)"], top)
 
-        #expect(faces.message == "Angle between the normals of Base.top (Body1) and Base.front (Body1): 90°")
+        #expect(
+            faces.message
+                == "Angle between the normals of Base.top of Body1 (Plate) and Base.front of Body1 (Plate): 90°")
         #expect(opposite.message.hasSuffix(": 180°"))
         #expect(
             edges.message
-                == "Angle between edge(Base.front, Base.top) (Body1) and edge(Base.left, Base.top) (Body1): 90°")
+                == "Angle between edge(Base.front, Base.top) of Body1 (Plate) and edge(Base.left, Base.top) of Body1 (Plate): 90°"
+        )
         #expect(
-            mixed.message == "Angle between edge(Base.front, Base.top) (Body1) and the plane of Base.top (Body1): 0°")
+            mixed.message
+                == "Angle between edge(Base.front, Base.top) of Body1 (Plate) and the plane of Base.top of Body1 (Plate): 0°"
+        )
     }
 
     @Test("Distance gives the gap and the closest points")
@@ -130,6 +138,20 @@ struct MeasureToolTests {
                 == "'kind' is distance, angle, size or interference, not 'volume'.")
     }
 
+    @Test("Parts sharing a name cannot be told apart, so measuring them is refused")
+    func duplicatePartNames() async throws {
+        let harness = Harness(
+            CADDocument(parts: [
+                Part(name: "P", features: [Fixtures.box("A", 1, 1, 1)]),
+                Part(name: "P", features: [Fixtures.box("B", 2, 2, 2)]),
+            ]))
+        try await harness.session.rebuild()
+
+        #expect(
+            try await harness.refused("measure", ["kind": "size", "a": ["part": "P", "body": "Body1"]])
+                == "Several parts are named P; rename one before measuring.")
+    }
+
     @Test("A reference that matches several faces is refused with the matches")
     func ambiguousOperand() async throws {
         let message = try await harness().refused(
@@ -149,7 +171,7 @@ struct MeasureToolTests {
         #expect(
             try await harness.refused(
                 "measure", ["kind": "angle", "a": ["body": "Body2", "face": "Pin.side"], "b": top])
-                == "Pin.side (Body2) is a cylinder face; angle takes planar faces and straight edges.")
+                == "Pin.side of Body2 (Plate) is a cylinder face; angle takes planar faces and straight edges.")
         #expect(
             try await harness.refused("measure", ["kind": "angle", "a": ["point": [0, 0, 0]], "b": top])
                 == "point (0, 0, 0) is a point; angle takes planar faces and straight edges.")
@@ -208,11 +230,14 @@ struct MeasureToolTests {
             "b": ["body": "Body1", "face": "Plate.top"],
         ])
 
-        #expect(wall.message.hasPrefix("Distance 27.25 mm between Hole.side (Body1) and Plate.left (Body1)"))
+        #expect(
+            wall.message.hasPrefix(
+                "Distance 27.25 mm between Hole.side of Body1 (Plate) and Plate.left of Body1 (Plate)"))
         #expect(overlap.message == "Body2 (Plate) and Body3 (Plate) overlap by 500 mm³")
         #expect(apart.message == "Body2 (Plate) and Body4 (Plate) do not overlap; clearance 90 mm")
         #expect(
             rim.message
-                == "edge(Hole.side, Plate.top) (Body1) is a circle edge; angle takes planar faces and straight edges.")
+                == "edge(Hole.side, Plate.top) of Body1 (Plate) is a circle edge; angle takes planar faces and straight edges."
+        )
     }
 }

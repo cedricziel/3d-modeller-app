@@ -52,7 +52,10 @@ extension CADSession {
         let partIndex = try document.partIndex(named: try arguments.string("part"))
         let partID = document.parts[partIndex].id
         guard let part = result.parts.first(where: { $0.id == partID }) else {
-            throw ToolError("The model could not be rebuilt; call get_listing to see the statuses.")
+            throw ToolError("Part \(document.parts[partIndex].name) has no rebuilt bodies yet.")
+        }
+        guard result.parts.count(where: { $0.name == part.name }) == 1 else {
+            throw ToolError("Several parts are named \(part.name); rename one before measuring.")
         }
         guard let body = part.bodies.first(where: { $0.name == bodyName }) else {
             let bodies = part.bodies.map(\.name).joined(separator: ", ")
@@ -98,7 +101,7 @@ extension CADSession {
                 "'\(name)': '\(reference)' matches \(matches.count) \(kind.rawValue) of \(key): \(shown)\(more). "
                     + "Measure one of them.")
         }
-        return (matches[0], topology, "\(names[matches[0]]) (\(key.body))")
+        return (matches[0], topology, "\(names[matches[0]]) of \(key)")
     }
 
     private func point(_ value: JSONValue, _ name: String, _ parameters: ParameterTable) throws(ToolError)
