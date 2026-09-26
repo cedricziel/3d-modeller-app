@@ -20,6 +20,9 @@ public struct ToolParameter: Sendable, Equatable {
     /// Default value if not provided
     public let defaultValue: JSONValue?
 
+    /// A JSON Schema that replaces the one generated from `type` and `enumValues`
+    public let schema: [String: JSONValue]?
+
     /// The data type of the parameter
     public enum ParameterType: String, Sendable, Equatable {
         case string
@@ -36,7 +39,8 @@ public struct ToolParameter: Sendable, Equatable {
         description: String,
         required: Bool = false,
         enumValues: [String]? = nil,
-        defaultValue: JSONValue? = nil
+        defaultValue: JSONValue? = nil,
+        schema: [String: JSONValue]? = nil
     ) {
         self.name = name
         self.type = type
@@ -44,15 +48,21 @@ public struct ToolParameter: Sendable, Equatable {
         self.required = required
         self.enumValues = enumValues
         self.defaultValue = defaultValue
+        self.schema = schema
     }
 
     // MARK: - Schema Generation
 
     /// Generate a JSON Schema representation for this parameter
     public func toJSONSchema() -> [String: JSONValue] {
+        if var schema {
+            schema["description"] = .string(description)
+            return schema
+        }
+
         var schema: [String: JSONValue] = [
             "type": .string(type.rawValue),
-            "description": .string(description)
+            "description": .string(description),
         ]
 
         if let enumValues = enumValues {
@@ -73,7 +83,9 @@ public extension ToolParameter {
 
     /// Create an optional string parameter
     static func optionalString(_ name: String, description: String, defaultValue: String? = nil) -> ToolParameter {
-        ToolParameter(name: name, type: .string, description: description, required: false, defaultValue: defaultValue.map { .string($0) })
+        ToolParameter(
+            name: name, type: .string, description: description, required: false,
+            defaultValue: defaultValue.map { .string($0) })
     }
 
     /// Create a required number parameter
@@ -83,7 +95,9 @@ public extension ToolParameter {
 
     /// Create an optional number parameter
     static func optionalNumber(_ name: String, description: String, defaultValue: Double? = nil) -> ToolParameter {
-        ToolParameter(name: name, type: .number, description: description, required: false, defaultValue: defaultValue.map { .number($0) })
+        ToolParameter(
+            name: name, type: .number, description: description, required: false,
+            defaultValue: defaultValue.map { .number($0) })
     }
 
     /// Create a required boolean parameter
@@ -91,8 +105,17 @@ public extension ToolParameter {
         ToolParameter(name: name, type: .boolean, description: description, required: true)
     }
 
+    /// Create a parameter described by its own JSON Schema, for unions, nested objects and arrays
+    static func custom(
+        _ name: String, description: String, required: Bool = false, schema: [String: JSONValue]
+    ) -> ToolParameter {
+        ToolParameter(name: name, type: .object, description: description, required: required, schema: schema)
+    }
+
     /// Create an enum parameter with allowed values
-    static func enumParameter(_ name: String, description: String, values: [String], required: Bool = true) -> ToolParameter {
+    static func enumParameter(_ name: String, description: String, values: [String], required: Bool = true)
+        -> ToolParameter
+    {
         ToolParameter(name: name, type: .string, description: description, required: required, enumValues: values)
     }
 }
