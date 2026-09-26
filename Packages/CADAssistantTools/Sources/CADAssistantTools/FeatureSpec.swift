@@ -210,7 +210,11 @@ struct FeatureSpec: Equatable {
                 "A \(type) needs '\(referenceKey)', a non-empty list of \(referenceKey == "faces" ? "face" : "edge") "
                     + "names or filters; call find_geometry to see them.")
         }
-        guard let value = dimensions[size] else { throw ToolError("A \(type) needs '\(size)'.") }
+        // Naming the type (on add, or when an edit changes it) needs the size too, so a cylinder turned into a
+        // fillet does not quietly keep the cylinder's radius.
+        guard let value = given.type != nil ? given.dimensions[size] : dimensions[size] else {
+            throw ToolError("A \(type) needs '\(size)'.")
+        }
         return switch type {
         case "fillet": .fillet(FilletFeature(body: body, edges: references, radius: value))
         case "chamfer": .chamfer(ChamferFeature(body: body, edges: references, distance: value))
