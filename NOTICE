@@ -13,8 +13,8 @@ This product includes PlaneGCS, the geometric constraint solver of FreeCAD
 Public License version 2.1 or later. Its source and licence text are in
 Packages/CADSolvers/Sources/PlaneGCS.
 
-This product includes a subset of the Eigen 3.4.1 headers (https://eigen.tuxfamily.org,
-https://gitlab.com/libeigen/eigen), licensed under the Mozilla Public License 2.0.
+This product includes a subset of the Eigen 3.4.1 headers
+(https://gitlab.com/libeigen/eigen), licensed under the Mozilla Public License 2.0.
 Two of the included files carry other licences: MKL_support.h (BSD, Intel
 Corporation) and BFloat16.h (Apache License 2.0, The TensorFlow Authors). The
 licence texts are in Packages/CADSolvers/Sources/PlaneGCS/LICENSES.
