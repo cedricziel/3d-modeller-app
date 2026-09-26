@@ -64,4 +64,19 @@ struct CreateSolidToolTests {
         #expect(!result.success)
         #expect(result.message.contains("greater than 0"))
     }
+
+    @Test("A non-numeric fillet radius is reported instead of silently ignored")
+    func nonNumericFillet() async throws {
+        let scene = SceneManager()
+        let tool = CreateSolidTool(sceneManager: scene)
+
+        let result = try await tool.execute(arguments: [
+            "width": .number(0.4), "height": .number(0.2), "depth": .number(0.1),
+            "fillet_radius": .string("0.02"),
+        ])
+
+        #expect(!result.success)
+        #expect(result.message.contains("fillet_radius"))
+        #expect(scene.entities.isEmpty)
+    }
 }

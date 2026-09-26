@@ -33,16 +33,18 @@ struct CreateSolidTool: AssistantTool, @unchecked Sendable {
     }
 
     func execute(arguments: [String: JSONValue]) async throws -> ToolExecutionResult {
-        let dimensions = ["width", "height", "depth"]
-        let missing = dimensions.filter { arguments[$0]?.doubleValue == nil }
-        guard missing.isEmpty,
+        var invalid = ["width", "height", "depth"].filter { arguments[$0]?.doubleValue == nil }
+        if let fillet = arguments["fillet_radius"], fillet != .null, fillet.doubleValue == nil {
+            invalid.append("fillet_radius")
+        }
+        guard invalid.isEmpty,
             let width = arguments["width"]?.doubleValue,
             let height = arguments["height"]?.doubleValue,
             let depth = arguments["depth"]?.doubleValue
         else {
             return ToolExecutionResult(
                 success: false,
-                message: "Missing or non-numeric: \(missing.joined(separator: ", "))",
+                message: "Missing or non-numeric: \(invalid.joined(separator: ", "))",
                 data: nil
             )
         }
