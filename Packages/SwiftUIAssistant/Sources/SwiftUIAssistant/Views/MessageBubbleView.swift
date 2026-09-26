@@ -17,13 +17,14 @@ public struct MessageBubbleView: View {
             }
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
-                // Message content with markdown rendering
-                Text(formattedContent)
-                    .foregroundStyle(textColor)
-                    .textSelection(.enabled)
-                    .padding(theme.bubblePadding)
-                    .background(backgroundColor)
-                    .clipShape(RoundedRectangle(cornerRadius: theme.bubbleCornerRadius))
+                if showsTextBubble {
+                    Text(formattedContent)
+                        .foregroundStyle(textColor)
+                        .textSelection(.enabled)
+                        .padding(theme.bubblePadding)
+                        .background(backgroundColor)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.bubbleCornerRadius))
+                }
 
                 // Tool calls indicator
                 if let toolCalls = message.toolCalls, !toolCalls.isEmpty {
@@ -40,6 +41,10 @@ public struct MessageBubbleView: View {
                 Spacer(minLength: 60)
             }
         }
+    }
+
+    var showsTextBubble: Bool {
+        !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var backgroundColor: Color {
