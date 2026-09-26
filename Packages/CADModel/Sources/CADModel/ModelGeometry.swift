@@ -41,6 +41,7 @@ public struct ModelGeometry: Sendable {
     private let measureDistance: @Sendable (MeasureTarget, MeasureTarget) throws(MeasureError) -> DistanceMeasurement
     private let measureBounds: @Sendable (MeasureTarget) throws(MeasureError) -> Bounds
     private let measureInterference: @Sendable (BodyKey, BodyKey) throws(MeasureError) -> Double
+    let exporter: @Sendable (ExportRequest) throws(ExportError) -> ExportSummary
 
     public static let empty = ModelGeometry(kernel: NoKernel(), bodies: [:])
 
@@ -49,6 +50,8 @@ public struct ModelGeometry: Sendable {
         measureDistance = { (a, b) throws(MeasureError) in try measurer.distance(a, b) }
         measureBounds = { (target) throws(MeasureError) in try measurer.bounds(of: target) }
         measureInterference = { (a, b) throws(MeasureError) in try measurer.interference(a, b) }
+        let exporter = ModelExporter(kernel: kernel, bodies: bodies)
+        self.exporter = { (request) throws(ExportError) in try exporter.export(request) }
     }
 
     public func distance(_ a: MeasureTarget, _ b: MeasureTarget) throws(MeasureError) -> DistanceMeasurement {
