@@ -98,7 +98,7 @@ extension CADSession {
         let notes: [String]
         do throws(ToolError) {
             focus = try change(&after)
-            notes = []
+            notes = try BodyReferenceRepair.apply(from: before, to: &after)
             try ExpressionAudit.check(before: before, after: after)
         } catch {
             return .failure(error.description)
