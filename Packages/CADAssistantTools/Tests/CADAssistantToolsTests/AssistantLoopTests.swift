@@ -147,4 +147,9 @@ struct AssistantLoopTests {
         #expect(prompt.contains("flip: true when the two axes point the same way"))
         #expect(!prompt.contains("use flip if the axes point opposite ways"))
     }
+
+    @Test("The prompt asks for several parameters in one set_parameter call")
+    func promptBatchesParameters() {
+        #expect(CADAssistantPrompt.system.contains("set several parameters in one set_parameter call"))
+    }
 }
