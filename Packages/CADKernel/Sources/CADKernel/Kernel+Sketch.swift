@@ -8,22 +8,15 @@ extension Kernel {
         guard from.isFinite, to.isFinite, from != to else {
             throw KernelError.invalidDimensions("the extrusion needs two different, finite offsets")
         }
-        return try OCCTSerial.withLock {
-            let faces = try regionFaces(profile.regions, on: profile.plane.offset(by: from))
-            let direction = (to - from) * profile.plane.normal
-            let solids = try faces.map { face in
-                guard let solid = face.extruded(by: direction) else {
-                    throw KernelError.operationFailed("extrude the profile")
-                }
-                return solid
-            }
-            let shape = try combined(solids, "extrude the profile")
-            let normal = profile.plane.normal
-            let sweep = ProfileNaming.Sweep(
-                move: { point, fraction in point + (from + fraction * (to - from)) * normal }, normal: { _ in normal },
-                hasCaps: true)
-            let names = ProfileNaming.names(of: shape, profile: profile, sweep: sweep, feature: feature)
-            return Solid(shape: shape, faceNames: names)
+        let normal = profile.plane.normal
+        let sweep = ProfileNaming.Sweep(
+            move: { point, fraction in point + (from + fraction * (to - from)) * normal }, normal: { _ in normal },
+            hasCaps: true)
+        return try sweepRegions(
+            profile, on: profile.plane.offset(by: from), sweep: sweep, feature: feature,
+            operation: "extrude the profile"
+        ) { face in
+            face.extruded(by: (to - from) * normal)
         }
     }
 
@@ -42,25 +35,18 @@ extension Kernel {
         }
         let axis = simd_normalize(axisDirection)
         let full = angle >= 2 * .pi - 1e-12
-        return try OCCTSerial.withLock {
-            let faces = try regionFaces(profile.regions, on: profile.plane)
-            let solids = try faces.map { face in
-                let swept =
-                    full
-                    ? face.revolved(axisOrigin: axisOrigin, axisDirection: axis)
-                    : face.revolved(axisOrigin: axisOrigin, axisDirection: axis, angle: angle)
-                guard let swept else { throw KernelError.operationFailed("revolve the profile") }
-                return swept
-            }
-            let shape = try combined(solids, "revolve the profile")
-            let normal = profile.plane.normal
-            let sweep = ProfileNaming.Sweep(
-                move: { point, fraction in
-                    axisOrigin + simd_quatd(angle: fraction * angle, axis: axis).act(point - axisOrigin)
-                },
-                normal: { fraction in simd_quatd(angle: fraction * angle, axis: axis).act(normal) }, hasCaps: !full)
-            let names = ProfileNaming.names(of: shape, profile: profile, sweep: sweep, feature: feature)
-            return Solid(shape: shape, faceNames: names)
+        let normal = profile.plane.normal
+        let sweep = ProfileNaming.Sweep(
+            move: { point, fraction in
+                axisOrigin + simd_quatd(angle: fraction * angle, axis: axis).act(point - axisOrigin)
+            },
+            normal: { fraction in simd_quatd(angle: fraction * angle, axis: axis).act(normal) }, hasCaps: !full)
+        return try sweepRegions(
+            profile, on: profile.plane, sweep: sweep, feature: feature, operation: "revolve the profile"
+        ) { face in
+            full
+                ? face.revolved(axisOrigin: axisOrigin, axisDirection: axis)
+                : face.revolved(axisOrigin: axisOrigin, axisDirection: axis, angle: angle)
         }
     }
 
@@ -97,12 +83,27 @@ extension Kernel {
         return joined
     }
 
-    private static func combined(_ solids: [Shape], _ operation: String) throws -> Shape {
-        guard let shape = solids.count == 1 ? solids[0] : Shape.compound(solids), shape.isValid,
-            let volume = shape.volume, volume > 0
-        else {
-            throw KernelError.operationFailed(operation)
+    /// Sweeps each region on its own, names its faces, and fuses the pieces, so loops that cross or touch give
+    /// one solid rather than overlapping ones.
+    private static func sweepRegions(
+        _ profile: Profile, on plane: ProfilePlane, sweep: ProfileNaming.Sweep, feature: String, operation: String,
+        _ make: (Shape) -> Shape?
+    ) throws -> Solid {
+        return try OCCTSerial.withLock {
+            let faces = try regionFaces(profile.regions, on: plane)
+            var pieces: [Solid] = []
+            for (region, face) in zip(profile.regions, faces) {
+                guard let shape = make(face), shape.isValid, let volume = shape.volume, volume > 0 else {
+                    throw KernelError.operationFailed(operation)
+                }
+                let names = ProfileNaming.names(
+                    of: shape, profile: Profile(plane: profile.plane, regions: [region]), sweep: sweep,
+                    feature: feature)
+                pieces.append(Solid(shape: shape, faceNames: names))
+            }
+            var result = pieces[0]
+            for piece in pieces.dropFirst() { result = try boolean(.union, result, piece, feature: feature) }
+            return result
         }
-        return shape
     }
 }
