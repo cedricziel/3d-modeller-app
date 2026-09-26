@@ -6,14 +6,39 @@ import Testing
 @testable import CADAssistantTools
 
 /// Holds every box build until released, so a test can overlap two rebuilds.
+/// `pass()` blocks a cooperative thread, so tests wait for it with `waitUntilEntered()` rather than
+/// polling with `Task.sleep`, whose wake-up needs a free thread from the same pool.
 final class Gate: Sendable {
-    private let state = Mutex((entered: 0, open: false))
+    private let state = Mutex((entered: 0, open: false, waiters: [CheckedContinuation<Void, Never>]()))
 
     var entered: Int { state.withLock { $0.entered } }
 
     func pass() {
-        state.withLock { $0.entered += 1 }
-        while !state.withLock({ $0.open }) { Thread.sleep(forTimeInterval: 0.001) }
+        let waiters = state.withLock { state in
+            state.entered += 1
+            defer { state.waiters = [] }
+            return state.waiters
+        }
+        waiters.forEach { $0.resume() }
+        let deadline = Date().addingTimeInterval(10)
+        while !state.withLock({ $0.open }) {
+            if Date() > deadline {
+                Issue.record("The gate was never opened")
+                return
+            }
+            Thread.sleep(forTimeInterval: 0.001)
+        }
+    }
+
+    func waitUntilEntered() async {
+        await withCheckedContinuation { continuation in
+            let entered = state.withLock { state in
+                if state.entered > 0 { return true }
+                state.waiters.append(continuation)
+                return false
+            }
+            if entered { continuation.resume() }
+        }
     }
 
     func open() { state.withLock { $0.open = true } }
@@ -26,7 +51,7 @@ final class Counter: Sendable {
 }
 
 @MainActor
-@Suite("CAD session")
+@Suite("CAD session", .serialized)
 struct CADSessionTests {
     private func sphereDocument(_ name: String) -> CADDocument {
         CADDocument(parts: [
@@ -87,7 +112,7 @@ struct CADSessionTests {
         let gate = Gate()
         let session = CADSession(document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }))
         let slow = Task { await session.load(Fixtures.plate()) }
-        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+        await gate.waitUntilEntered()
 
         let newer = sphereDocument("Ball")
         await session.load(newer)
@@ -115,7 +140,7 @@ struct CADSessionTests {
         let plate = Fixtures.plate()
         let session = CADSession(document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }))
         let first = Task { await session.load(plate) }
-        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+        await gate.waitUntilEntered()
 
         first.cancel()
         let second = Task { await session.load(plate) }
@@ -139,10 +164,10 @@ struct CADSessionTests {
                 gate.pass()
             }))
         let load = Task { await session.load(plate) }
-        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+        await gate.waitUntilEntered()
 
         let current = Task { await session.currentResult() }
-        try await Task.sleep(for: .milliseconds(20))
+        for _ in 0..<10 { await Task.yield() }
         gate.open()
         await load.value
         let result = await current.value
@@ -170,7 +195,7 @@ struct CADSessionTests {
         let plate = Fixtures.plate()
         let session = CADSession(document: plate, kernel: FakeKernel(onBox: { gate.pass() }))
         let write = Task { await session.setParameter(["name": "depth", "expression": 41]) }
-        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+        await gate.waitUntilEntered()
 
         var fixed = plate
         fixed.parts[0].features[3].kind = .primitive(
