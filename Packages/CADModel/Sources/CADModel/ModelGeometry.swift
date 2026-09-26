@@ -1,15 +1,24 @@
+import Foundation
 import simd
 
-public struct BodyKey: Sendable, Hashable, CustomStringConvertible {
-    public var part: String
+/// A built body: a part's own body, or one of an instance's bodies in assembly coordinates.
+public struct BodyKey: Sendable, Hashable {
+    public enum Owner: Sendable, Hashable {
+        case part(UUID)
+        case instance(UUID)
+    }
+
+    public var owner: Owner
     public var body: String
 
-    public init(part: String, body: String) {
-        self.part = part
+    public init(owner: Owner, body: String) {
+        self.owner = owner
         self.body = body
     }
 
-    public var description: String { "\(body) (\(part))" }
+    public init(part: UUID, body: String) {
+        self.init(owner: .part(part), body: body)
+    }
 }
 
 public enum MeasureTarget: Sendable, Equatable {
@@ -89,7 +98,7 @@ private struct Measurer<Kernel: GeometryKernel>: Sendable {
     }
 
     private func body(_ key: BodyKey) throws(MeasureError) -> Kernel.Body {
-        guard let body = bodies[key] else { throw MeasureError("\(key) was not built") }
+        guard let body = bodies[key] else { throw MeasureError("\(key.body) was not built") }
         return body
     }
 

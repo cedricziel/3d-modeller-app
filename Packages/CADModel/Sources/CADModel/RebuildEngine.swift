@@ -37,7 +37,7 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
                     id: part.id, name: part.name, features: features, bodies: try builder.bodyResults(),
                     sketches: builder.sketchResults))
             for (name, body) in builder.builtBodies {
-                bodies[BodyKey(part: part.name, body: name)] = body
+                bodies[BodyKey(part: part.id, body: name)] = body
             }
         }
         try Task.checkCancellation()

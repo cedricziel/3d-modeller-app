@@ -54,25 +54,23 @@ extension CADSession {
         guard let part = result.parts.first(where: { $0.id == partID }) else {
             throw ToolError("Part \(document.parts[partIndex].name) has no rebuilt bodies yet.")
         }
-        guard result.parts.count(where: { $0.name == part.name }) == 1 else {
-            throw ToolError("Several parts are named \(part.name); rename one before measuring.")
-        }
         guard let body = part.bodies.first(where: { $0.name == bodyName }) else {
             let bodies = part.bodies.map(\.name).joined(separator: ", ")
             throw ToolError(
                 "Part \(part.name) has no body named '\(bodyName)'. Bodies: \(bodies.isEmpty ? "none" : bodies).")
         }
-        let key = BodyKey(part: part.name, body: bodyName)
+        let key = BodyKey(part: partID, body: bodyName)
+        let bodyLabel = "\(bodyName) (\(part.name))"
         let face = try arguments.string("face")
         let edge = try arguments.string("edge")
         switch (face, edge) {
         case (nil, nil):
-            return MeasureOperand(element: .body(key, body), label: key.description)
+            return MeasureOperand(element: .body(key, body), label: bodyLabel)
         case (let face?, nil):
-            let (index, topology, label) = try element(face, .faces, of: body, key, result.parameters, name)
+            let (index, topology, label) = try element(face, .faces, of: body, bodyLabel, result.parameters, name)
             return MeasureOperand(element: .face(key, index, topology.faces[index]), label: label)
         case (nil, let edge?):
-            let (index, topology, label) = try element(edge, .edges, of: body, key, result.parameters, name)
+            let (index, topology, label) = try element(edge, .edges, of: body, bodyLabel, result.parameters, name)
             return MeasureOperand(element: .edge(key, index, topology.edges[index]), label: label)
         case (_?, _?):
             throw ToolError("'\(name)' names a face and an edge; measure one of them.")
@@ -80,7 +78,7 @@ extension CADSession {
     }
 
     private func element(
-        _ reference: String, _ kind: GeometryKind, of body: BodyResult, _ key: BodyKey, _ parameters: ParameterTable,
+        _ reference: String, _ kind: GeometryKind, of body: BodyResult, _ key: String, _ parameters: ParameterTable,
         _ name: String
     ) throws(ToolError) -> (Int, BodyTopology, String) {
         guard let topology = body.topology else {
