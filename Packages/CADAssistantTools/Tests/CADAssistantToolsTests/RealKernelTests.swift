@@ -29,7 +29,7 @@ struct RealKernelTests {
 
         #expect(hole.success)
         #expect(hole.message.contains("Hole: ok"))
-        #expect(hole.message.contains("Body1 (Plate): valid closed solid, volume 23762.4"))
+        #expect(hole.message.contains("Body1 (Plate): valid closed solid, 7 faces, 15 edges, volume 23762.4"))
         #expect(hole.message.contains("bounds (0, 0, 0) to (60, 40, 10)"))
         let volume = try #require(session.result?.bodies.first?.metrics?.volume)
         #expect(abs(volume - (24000 - Double.pi * 2.75 * 2.75 * 10)) < 0.01)
@@ -49,6 +49,6 @@ struct RealKernelTests {
         #expect(result.success)
         #expect(result.message.contains("Box2: failed:"))
         #expect(session.document.parts[0].features.count == 2)
-        #expect(result.message.contains("Body1 (P): valid closed solid, volume 1000 mm³"))
+        #expect(result.message.contains("Unchanged bodies: Body1 (P)"))
     }
 }

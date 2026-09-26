@@ -22,7 +22,7 @@ struct AddFeatureToolTests {
                 Added Base to part Plate
                 Base: ok
                 Bodies:
-                  Body1 (Plate): valid closed solid, volume 24000 mm³, bounds (0, 0, 0) to (60, 40, 10)
+                  Body1 (Plate): valid closed solid, 6 faces, 12 edges, volume 24000 mm³, bounds (0, 0, 0) to (60, 40, 10)
                 Listing changes:
                   - (no features)
                   + Base  box width×depth×t at origin → Body1  ok
@@ -50,7 +50,7 @@ struct AddFeatureToolTests {
                         .cylinder(radius: "hole_r", height: "t"),
                         placement: Placement(translation: Vector3("width / 2", 20, 0)), operation: .cut("Body1"))))
         #expect(result.message.contains("Hole: ok"))
-        #expect(result.message.contains("Body1 (Plate): valid closed solid, volume 23773.125 mm³"))
+        #expect(result.message.contains("Body1 (Plate): valid closed solid, 6 faces, 12 edges, volume 23773.125 mm³"))
     }
 
     @Test("Default names count up per type, and translations may be given as [x, y, z]")
