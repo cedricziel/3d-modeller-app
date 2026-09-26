@@ -23,7 +23,7 @@ public enum DocumentListing {
                 lines.append("  \(feature.name)  \(summary)  \(status)")
             }
         }
-        return lines
+        return lines + AssemblyListing.lines(document, result: result)
     }
 
     static func parametersLine(_ parameters: [Parameter]) -> String {
@@ -105,7 +105,7 @@ public enum DocumentListing {
         return "rotated \(Format.operand(placement.rotationDegrees))° about \(Format.vector(placement.rotationAxis))"
     }
 
-    private static func location(_ placement: Placement) -> String {
+    static func location(_ placement: Placement) -> String {
         let position = isOrigin(placement.translation) ? "at origin" : "at \(Format.vector(placement.translation))"
         return [position, rotation(placement)].compactMap(\.self).joined(separator: " ")
     }
