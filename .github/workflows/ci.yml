@@ -25,6 +25,9 @@ jobs:
       - name: Test CADKernel
         working-directory: Packages/CADKernel
         run: xcrun swift test
+      - name: Test CADModel
+        working-directory: Packages/CADModel
+        run: xcrun swift test
       - name: Test app
         run: >
           xcodebuild test
