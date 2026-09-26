@@ -248,6 +248,8 @@ struct SketchEdit {
     var changesPlane = false
     var added: [SketchEntity] = []
     var updated: [SketchEntity] = []
+    /// Per updated entity, whether the caller gave 'construction'.
+    var constructionGiven: [Bool] = []
     var removed: [String] = []
     var addedConstraints: [SketchConstraint] = []
     var removedConstraints: [String] = []
@@ -257,6 +259,9 @@ struct SketchEdit {
         changesPlane = arguments.has("plane") || arguments.has("offset") || arguments.has("body")
         added = try SketchArguments.list(arguments, "add_entities", SketchArguments.entity) ?? []
         updated = try SketchArguments.list(arguments, "update_entities", SketchArguments.entity) ?? []
+        constructionGiven = (try arguments.array("update_entities") ?? []).map { value in
+            value.objectValue?["construction"].map { !$0.isNull } ?? false
+        }
         removed = try arguments.strings("remove_entities", "entity names") ?? []
         addedConstraints = try SketchArguments.list(arguments, "add_constraints", SketchArguments.constraint) ?? []
         removedConstraints = try arguments.strings("remove_constraints", "constraint names") ?? []
@@ -291,6 +296,7 @@ struct SketchEdit {
             sketch.entities.remove(at: index)
             let using = sketch.constraints.filter { $0.uses(name) }.map(\.name)
             sketch.constraints.removeAll { $0.uses(name) }
+            sketch.retiredNames += [name] + using
             notes.append("removed \(name)" + (using.isEmpty ? "" : " with \(using.joined(separator: ", "))"))
         }
         for name in removedConstraints {
@@ -298,25 +304,34 @@ struct SketchEdit {
                 throw ToolError("\(Self.noConstraint(name, sketch))")
             }
             sketch.constraints.remove(at: index)
+            sketch.retiredNames.append(name)
             notes.append("removed \(name)")
         }
-        for entity in updated {
+        for (entity, givesConstruction) in zip(updated, constructionGiven) {
             guard let index = sketch.entities.firstIndex(where: { $0.name == entity.name }), !entity.name.isEmpty
             else {
                 throw ToolError(
-                    entity.name.isEmpty ? "Each of 'update_entities' needs 'name'." : Self.noEntity(entity.name, sketch)
-                )
+                    entity.name.isEmpty
+                        ? "Each of 'update_entities' needs 'name'." : Self.noEntity(entity.name, sketch))
             }
-            sketch.entities[index] = entity
+            let old = sketch.entities[index]
+            guard old.geometry.typeName == entity.geometry.typeName else {
+                throw ToolError(
+                    "update_entities cannot change \(entity.name) from a \(old.geometry.typeName) to a "
+                        + "\(entity.geometry.typeName); remove it and add a new entity instead.")
+            }
+            var replacement = entity
+            if !givesConstruction { replacement.construction = old.construction }
+            sketch.entities[index] = replacement
         }
         var newEntities = added
-        SketchArguments.name(&newEntities, existing: sketch.entities)
+        SketchArguments.name(&newEntities, existing: sketch.entities, retired: sketch.retiredNames)
         for entity in newEntities where sketch.entities.contains(where: { $0.name == entity.name }) {
             throw ToolError("The sketch already has an entity named '\(entity.name)'.")
         }
         sketch.entities += newEntities
         var newConstraints = addedConstraints
-        SketchArguments.name(&newConstraints, existing: sketch.constraints)
+        SketchArguments.name(&newConstraints, existing: sketch.constraints, retired: sketch.retiredNames)
         for constraint in newConstraints where sketch.constraints.contains(where: { $0.name == constraint.name }) {
             throw ToolError("The sketch already has a constraint named '\(constraint.name)'.")
         }

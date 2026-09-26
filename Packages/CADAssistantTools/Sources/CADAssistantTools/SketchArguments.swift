@@ -104,8 +104,8 @@ enum SketchArguments {
     }
 
     /// Gives every unnamed entity `<type><n>` and every unnamed constraint `c<n>`, counting on from the highest.
-    static func name(_ entities: inout [SketchEntity], existing: [SketchEntity]) {
-        var taken = existing.map(\.name) + entities.map(\.name)
+    static func name(_ entities: inout [SketchEntity], existing: [SketchEntity], retired: [String] = []) {
+        var taken = existing.map(\.name) + entities.map(\.name) + retired
         for index in entities.indices where entities[index].name.isEmpty {
             let name = next(entities[index].geometry.typeName, taken)
             entities[index].name = name
@@ -113,8 +113,8 @@ enum SketchArguments {
         }
     }
 
-    static func name(_ constraints: inout [SketchConstraint], existing: [SketchConstraint]) {
-        var taken = existing.map(\.name) + constraints.map(\.name)
+    static func name(_ constraints: inout [SketchConstraint], existing: [SketchConstraint], retired: [String] = []) {
+        var taken = existing.map(\.name) + constraints.map(\.name) + retired
         for index in constraints.indices where constraints[index].name.isEmpty {
             let name = next("c", taken)
             constraints[index].name = name
