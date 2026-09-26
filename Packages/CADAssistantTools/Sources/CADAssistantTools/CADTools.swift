@@ -8,6 +8,9 @@ public enum CADTools {
             SetParameterTool(session: session),
             AddFeatureTool(session: session),
             EditFeatureTool(session: session),
+            DeleteFeatureTool(session: session),
+            RenameFeatureTool(session: session),
+            SuppressFeatureTool(session: session),
         ]
     }
 }
