@@ -44,4 +44,13 @@ public enum Kernel {
             return Solid(shape: shape)
         }
     }
+
+    public static func tessellate(_ solid: Solid, tolerance: Double = 0.001) throws -> KernelMesh {
+        try OCCTSerial.withLock {
+            guard let mesh = solid.shape.mesh(linearDeflection: tolerance, angularDeflection: 0.5) else {
+                throw KernelError.operationFailed("tessellate the solid")
+            }
+            return KernelMesh(positions: mesh.vertices, indices: mesh.indices)
+        }
+    }
 }
