@@ -26,6 +26,7 @@ let package = Package(
         ),
         .target(name: "CPlaneGCS", dependencies: ["PlaneGCS"], cxxSettings: planeGCSSettings),
         .target(name: "CADSolvers", dependencies: ["CPlaneGCS"]),
+        .testTarget(name: "CADSolversTests", dependencies: ["CADSolvers"]),
     ],
     cxxLanguageStandard: .cxx2b
 )
