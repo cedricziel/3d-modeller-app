@@ -33,6 +33,8 @@ public struct RunRecord: Sendable {
     public let listing: String
     public let document: CADDocument
     public let transcript: [TranscriptEntry]
+    /// Pictures of the final document.
+    public let renders: [RenderedView]
 
     public var passed: Bool { grade.passed }
 }
@@ -68,6 +70,7 @@ public struct BenchRunner<Kernel: GeometryKernel> {
         let document = session.document
         _ = await session.currentResult()
         let grade = await Grader(kernel: kernel).grade(task, document: document)
+        let renders = await session.renderViews().views
         let usage = await provider.usage
         let messages = assistant.messages
         return RunRecord(
@@ -78,7 +81,7 @@ public struct BenchRunner<Kernel: GeometryKernel> {
             costUSD: Pricing.cost(
                 model: settings.model, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens),
             seconds: seconds, listing: session.listing, document: document,
-            transcript: messages.map(TranscriptEntry.init))
+            transcript: messages.map(TranscriptEntry.init), renders: renders)
     }
 
     /// Races the conversation against the timeout. A provider that ignores cancellation is left behind rather

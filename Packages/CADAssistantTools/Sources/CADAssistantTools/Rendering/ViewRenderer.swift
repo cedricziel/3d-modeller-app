@@ -17,6 +17,12 @@ public struct RenderedView: Sendable, Equatable {
     public let view: ViewDirection
     public let png: Data
     public let millimetresPerPixel: Double
+
+    public init(view: ViewDirection, png: Data, millimetresPerPixel: Double) {
+        self.view = view
+        self.png = png
+        self.millimetresPerPixel = millimetresPerPixel
+    }
 }
 
 /// Draws tessellated bodies with flat shading and feature lines in software, so it works without a window, GPU or
