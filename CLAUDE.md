@@ -37,6 +37,7 @@ xcrun swift build
 # Run package tests
 cd Packages/SwiftUIAssistant && xcrun swift test
 cd Packages/SwiftUIAssistantTools && xcrun swift test
+cd Packages/CADKernel && xcrun swift test
 
 # Run a single test
 xcrun swift test --filter SwiftUIAssistantTests.AssistantTests/testSendMessage
@@ -59,6 +60,8 @@ This is an AI-first 3D modeling macOS app where users interact primarily through
 - SwiftUI views: `AssistantPanel`, `AssistantView`, `MessageBubbleView`, etc.
 
 **SwiftUIAssistantTools** (`Packages/SwiftUIAssistantTools/`) - Common `AssistantTool`s: `FetchTool`, `CalculatorTool`, `TimeTool`
+
+**CADKernel** (`Packages/CADKernel/`) - The only code that imports OCCTSwift/Open CASCADE (pinned to OCCTSwift `3.0.0`, arm64 only). Exposes `Kernel.extrudeRectangle`, `Kernel.fillet`, `Kernel.tessellate`, `Kernel.metrics` over opaque `Solid` values and returns plain `KernelMesh` triangles (Z-up; the app converts to Y-up in `KernelMesh.meshDescriptor`).
 
 **3DModellerApp** - The main application consuming SwiftUIAssistant:
 
