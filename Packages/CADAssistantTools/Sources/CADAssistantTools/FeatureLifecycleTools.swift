@@ -117,6 +117,8 @@ extension CADSession {
                     )
                 }
             }
+            notes += document.renameJointReferences(
+                part: document.parts[location.part].id, from: feature.name, to: newName)
             return WriteFocus(
                 actionName: "Rename \(feature.name) to \(newName)", summary: "Renamed \(feature.name) to \(newName)",
                 feature: feature.id, referenceNotes: notes)

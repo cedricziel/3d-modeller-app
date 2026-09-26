@@ -38,10 +38,14 @@ struct AssemblyBuilder<Kernel: GeometryKernel> {
     }
 
     private func place(_ instance: Instance) throws(Failure) -> Placed {
+        try place(instance, at: try resolve(instance.placement))
+    }
+
+    /// The instance's bodies moved by `placement` instead of its document placement.
+    func place(_ instance: Instance, at placement: ResolvedPlacement) throws(Failure) -> Placed {
         guard let part = parts.first(where: { $0.id == instance.part }) else {
             throw Failure(reason: "its part no longer exists")
         }
-        let placement = try resolve(instance.placement)
         let built = partBodies[part.id] ?? []
         guard !built.isEmpty else { throw Failure(reason: "part \(part.name) has no bodies") }
         var selected = built

@@ -81,6 +81,10 @@ public struct RebuildResult: Sendable, Equatable {
         (assembly?.instances ?? []).count { $0.status != .ok }
     }
 
+    public var failedJointCount: Int {
+        (assembly?.joints ?? []).count { !$0.status.holds }
+    }
+
     public func feature(id: UUID) -> FeatureResult? {
         parts.lazy.flatMap(\.features).first { $0.id == id }
     }

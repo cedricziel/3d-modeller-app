@@ -11,6 +11,7 @@ enum WrongSolution: String, CaseIterable, Sendable {
     case filletTooSmall, cornersCutAway, chamferOnBottom, boxOpenAtBottom, boxCutInsteadOfShelled
     case lProfileTooThick, cupBottomTooThin, slotTooWide, heightEditedInSketch
     case topPlateSunk, platesAsBodies, legTooLong, movedByEditingPart, movedSpacer
+    case pinPlacedWithoutJoint, pinThroughTop, lidFloating, lidUpsideDown, cylindricalInsteadOfSlider
 
     var task: String {
         switch self {
@@ -33,6 +34,9 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .topPlateSunk, .platesAsBodies: "stacked-plates"
         case .legTooLong: "table-legs"
         case .movedByEditingPart, .movedSpacer: "move-instance"
+        case .pinPlacedWithoutJoint, .pinThroughTop: "pin-in-hole"
+        case .lidFloating, .lidUpsideDown: "lid-on-box"
+        case .cylindricalInsteadOfSlider: "slider-on-rail"
         }
     }
 
@@ -53,6 +57,9 @@ enum WrongSolution: String, CaseIterable, Sendable {
         case .topPlateSunk, .legTooLong: "no interference"
         case .platesAsBodies: "instance count"
         case .movedByEditingPart, .movedSpacer: "unchanged"
+        case .pinPlacedWithoutJoint, .lidFloating, .cylindricalInsteadOfSlider: "joints"
+        case .pinThroughTop: "position"
+        case .lidUpsideDown: "no interference"
         }
     }
 
@@ -146,6 +153,16 @@ enum WrongSolution: String, CaseIterable, Sendable {
             return document
         case .movedSpacer:
             return reference.moving("Spacer", to: Vector3(20, 10, 15))
+        case .pinPlacedWithoutJoint:
+            return reference.withoutJoints().moving("Pin", to: Vector3(20, 20, 0))
+        case .pinThroughTop:
+            return reference.editingJoint("Hinge") { $0.a.edge = .name("edge(Hole.side, Plate.top)") }
+        case .lidFloating:
+            return reference.withoutJoints().moving("Lid", to: Vector3(0, 0, 31))
+        case .lidUpsideDown:
+            return reference.editingJoint("Seat") { $0.flip = true }
+        case .cylindricalInsteadOfSlider:
+            return reference.editingJoint("Guide") { $0.kind = .cylindrical }
         }
     }
 }
@@ -173,6 +190,20 @@ extension CADDocument {
         var copy = self
         for index in copy.instances.indices where copy.instances[index].name == instance {
             copy.assembly?.instances[index].placement.translation = translation
+        }
+        return copy
+    }
+
+    func withoutJoints() -> CADDocument {
+        var copy = self
+        copy.assembly?.joints = []
+        return copy
+    }
+
+    func editingJoint(_ name: String, _ change: (inout Joint) -> Void) -> CADDocument {
+        var copy = self
+        for index in copy.joints.indices where copy.joints[index].name == name {
+            change(&copy.assembly!.joints[index])
         }
         return copy
     }
@@ -231,11 +262,13 @@ extension FeatureKind {
 @Suite("Seed tasks")
 struct TaskGradingTests {
     static let ids = [
-        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "move-instance",
-        "open-box", "plate-hole", "plate-move-hole", "plate-second-hole", "plate-thickness", "profile-height",
-        "revolved-cup", "rounded-plate", "slotted-plate", "stacked-plates", "table-legs", "washer",
+        "block-pocket", "chamfered-hole", "flanged-shaft", "hemisphere", "l-bracket", "l-profile", "lid-on-box",
+        "move-instance", "open-box", "pin-in-hole", "plate-hole", "plate-move-hole", "plate-second-hole",
+        "plate-thickness", "profile-height", "revolved-cup", "rounded-plate", "slider-on-rail", "slotted-plate",
+        "stacked-plates", "table-legs", "washer",
     ]
-    let grader = Grader(kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver())
+    let grader = Grader(
+        kernel: OCCTGeometryKernel(), sketchSolver: PlaneGCSSketchSolver(), assemblySolver: OndselAssemblySolver())
 
     @Test("Every task directory loads")
     func allLoad() throws {

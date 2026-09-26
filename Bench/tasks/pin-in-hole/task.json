@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "equals": 2,
+      "type": "instanceCount"
+    },
+    {
+      "kinds": [
+        "revolute"
+      ],
+      "type": "jointsSatisfied"
+    },
+    {
+      "instance": "Pin",
+      "relativeTo": "Base",
+      "translation": [
+        20,
+        20,
+        0
+      ],
+      "type": "instancePosition"
+    },
+    {
+      "instance": "Pin",
+      "max": [
+        25,
+        25,
+        30
+      ],
+      "min": [
+        15,
+        15,
+        0
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "build",
+  "prompt": "Build a pin that turns in a plate. Make a part Plate: a 40 \u00d7 40 \u00d7 10 mm plate (X \u00d7 Y \u00d7 Z) with one corner at its origin and a through hole of diameter 11 mm at its centre, along Z. Make a part Pin: a cylinder of diameter 10 mm and length 30 mm standing on its origin, along +Z. Place the plate as instance Base, grounded, and the pin as instance Pin. Join them with a revolute joint so the pin stands upright in the hole, on the hole's axis, with its bottom flush with the bottom of the plate, and can turn about its axis. Use a joint, not a hand-computed placement."
+}

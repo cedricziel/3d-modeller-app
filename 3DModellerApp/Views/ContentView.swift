@@ -52,6 +52,8 @@ struct ContentView: View {
         .inspector(isPresented: $appModel.showInspector) {
             InspectorView(
                 instance: selection.flatMap { id in document.model.instances.first { $0.id == id } },
+                joint: selection.flatMap { id in document.model.joints.first { $0.id == id } },
+                jointResult: selection.flatMap { session.result?.assembly?.joint(id: $0) },
                 model: document.model,
                 instanceResult: selection.flatMap { session.result?.assembly?.instance(id: $0) },
                 feature: selection.flatMap(document.model.feature(id:)),
@@ -162,6 +164,8 @@ struct ToolPicker: View {
 @MainActor
 struct InspectorView: View {
     let instance: Instance?
+    let joint: Joint?
+    let jointResult: JointResult?
     let model: CADDocument
     let instanceResult: InstanceResult?
     let feature: Feature?
@@ -195,6 +199,8 @@ struct InspectorView: View {
                 if let instance {
                     InstanceInspectorView(
                         instance: instance, partName: model.part(id: instance.part)?.name, result: instanceResult)
+                } else if let joint {
+                    JointInspectorView(joint: joint, model: model, result: jointResult)
                 } else {
                     FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
                 }

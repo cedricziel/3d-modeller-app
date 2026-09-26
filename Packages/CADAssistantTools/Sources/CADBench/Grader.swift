@@ -28,16 +28,24 @@ public struct Grade: Sendable, Codable, Equatable {
 public struct Grader<Kernel: GeometryKernel>: Sendable {
     public let kernel: Kernel
     public let sketchSolver: (any SketchSolving)?
+    public let assemblySolver: (any AssemblySolving)?
 
-    public init(kernel: Kernel, sketchSolver: (any SketchSolving)? = nil) {
+    public init(
+        kernel: Kernel, sketchSolver: (any SketchSolving)? = nil, assemblySolver: (any AssemblySolving)? = nil
+    ) {
         self.kernel = kernel
         self.sketchSolver = sketchSolver
+        self.assemblySolver = assemblySolver
+    }
+
+    private var engine: RebuildEngine<Kernel> {
+        RebuildEngine(kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver)
     }
 
     public func grade(_ task: BenchTask, document: CADDocument) async -> Grade {
         let model: RebuiltModel
         do {
-            model = try await RebuildEngine(kernel: kernel, sketchSolver: sketchSolver).build(document)
+            model = try await engine.build(document)
         } catch {
             return Grade(
                 outcomes: task.checks.map {
@@ -89,6 +97,10 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
             return Self.compare(selected.flatMap(\.bodies), min: min, max: max, size: size, tolerance: tolerance)
         case .noInterference:
             return interference(result, model.geometry)
+        case .jointsSatisfied(let minimum, let kinds):
+            return Self.joints(document, result, minimum: minimum, kinds: kinds)
+        case .instancePosition(let name, let relativeTo, let expected, let tolerance):
+            return Self.position(result, name, relativeTo: relativeTo, expected: expected, tolerance: tolerance)
         case .volume(let selector, let expected, let tolerance):
             let bodies: [BodyResult]
             switch select(selector, in: result) {
@@ -121,11 +133,11 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
             } catch {
                 return (false, "overlap could not be computed: \(error)")
             }
-        case .unchangedExcept(let features, let parameters, let instances, let allowNewFeatures):
+        case .unchangedExcept(let features, let parameters, let instances, let joints, let allowNewFeatures):
             guard let seed = task.seed else { return (false, "the task has no seed") }
             let differences = DocumentComparison.differences(
                 from: seed, to: document, features: Set(features), parameters: Set(parameters),
-                instances: Set(instances), allowNewFeatures: allowNewFeatures)
+                instances: Set(instances), joints: Set(joints), allowNewFeatures: allowNewFeatures)
             return (differences.isEmpty, differences.isEmpty ? "unchanged" : differences.joined(separator: "; "))
         }
     }
@@ -148,8 +160,56 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
         for instance in result.assembly?.instances ?? [] where instance.status != .ok {
             problems.append("instance \(instance.name): \(instance.status)")
         }
+        for joint in result.assembly?.joints ?? [] where !joint.status.holds {
+            problems.append("joint \(joint.name): \(joint.status)")
+        }
         if result.bodies.isEmpty { problems.append("no bodies") }
         return (problems.isEmpty, problems.isEmpty ? "ok" : problems.joined(separator: "; "))
+    }
+
+    private static func joints(_ document: CADDocument, _ result: RebuildResult, minimum: Int, kinds: [JointKind])
+        -> (Bool, String)
+    {
+        let joints = document.joints
+        guard !joints.isEmpty else { return (false, "no joints") }
+        let failed = joints.compactMap { joint -> String? in
+            let status = result.assembly?.joint(id: joint.id)?.status ?? .failed("not built")
+            return status.holds ? nil : "\(joint.name): \(status)"
+        }
+        guard failed.isEmpty else { return (false, failed.joined(separator: "; ")) }
+        let present = joints.map(\.kind)
+        var problems: [String] = []
+        if joints.count < minimum { problems.append("fewer than \(minimum)") }
+        problems += kinds.filter { !present.contains($0) }.map { "no \($0.rawValue) joint" }
+        let counted =
+            "\(joints.count) joint\(joints.count == 1 ? "" : "s") (\(present.map(\.rawValue).joined(separator: ", ")))"
+        return (problems.isEmpty, ([counted] + problems).joined(separator: "; "))
+    }
+
+    private static func position(
+        _ result: RebuildResult, _ name: String, relativeTo: String?, expected: SIMD3<Double>, tolerance: Double
+    ) -> (Bool, String) {
+        func origin(_ name: String) -> Result<SIMD3<Double>, SelectionProblem> {
+            guard let instance = result.assembly?.instance(named: name) else {
+                let names = (result.assembly?.instances ?? []).map(\.name).joined(separator: ", ")
+                return .failure(
+                    SelectionProblem(
+                        message: "no instance named \(name) (instances: \(names.isEmpty ? "none" : names))"))
+            }
+            guard let transform = instance.transform else {
+                return .failure(SelectionProblem(message: "instance \(name): \(instance.status)"))
+            }
+            return .success(transform.translation)
+        }
+        let position: SIMD3<Double>
+        switch (origin(name), relativeTo.map(origin)) {
+        case (.failure(let problem), _), (_, .failure(let problem)?): return (false, problem.message)
+        case (.success(let own), .success(let other)?): position = own - other
+        case (.success(let own), nil): position = own
+        }
+        let delta = position - expected
+        let passed = abs(delta.x) <= tolerance && abs(delta.y) <= tolerance && abs(delta.z) <= tolerance
+        return (passed, "\(name) is at \(BenchFormat.vector(position)) from \(relativeTo ?? "the origin")")
     }
 
     private static func problem(with body: BodyResult) -> String? {
@@ -254,7 +314,6 @@ public struct Grader<Kernel: GeometryKernel>: Sendable {
     /// Intersection over union by inclusion–exclusion, because an empty intersection is a kernel error. When the
     /// reference has instances, the placed instances are compared instead of the parts.
     private func overlap(_ document: CADDocument, _ reference: CADDocument) async throws -> Overlap? {
-        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
         let assembled = !reference.instances.isEmpty
         let candidate = try await (assembled ? engine.instanceSolids(of: document) : engine.solids(of: document))
             .map(\.body)

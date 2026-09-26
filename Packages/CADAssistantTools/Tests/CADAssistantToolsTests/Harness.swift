@@ -13,9 +13,11 @@ final class Harness {
     init(
         _ document: CADDocument = CADDocument(parts: [Part(name: "Plate")]),
         kernel: any GeometryKernel = FakeKernel(),
-        sketchSolver: any SketchSolving = FakeSketchSolver()
+        sketchSolver: any SketchSolving = FakeSketchSolver(),
+        assemblySolver: any AssemblySolving = FakeAssemblySolver()
     ) {
-        session = CADSession(document: document, kernel: kernel, sketchSolver: sketchSolver)
+        session = CADSession(
+            document: document, kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver)
         session.onCommit = { [unowned self] _, action in commits.append(action) }
     }
 

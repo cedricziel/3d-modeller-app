@@ -139,4 +139,12 @@ struct AssistantLoopTests {
         #expect(prompt.contains("fully constrained"))
         #expect(prompt.contains("Extrude1.side[Sketch1.line3]"))
     }
+
+    @Test("The prompt teaches mating, and that aligned axes need flip")
+    func promptJoints() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("add_joint") || prompt.contains("Joints (mating)"))
+        #expect(prompt.contains("flip: true when the two axes point the same way"))
+        #expect(!prompt.contains("use flip if the axes point opposite ways"))
+    }
 }

@@ -31,6 +31,15 @@ public struct InstanceElement: Sendable, Equatable {
 }
 
 public extension InstanceResult {
+    /// The instance with its bodies where the part builds them, so a filter such as `normal -Z` means the same
+    /// face whatever the placement. Joints resolve their references on this.
+    func unmoved(partBodies: [BodyResult]) -> InstanceResult {
+        let own = bodies.compactMap { body in partBodies.first { $0.name == body.name } }
+        return InstanceResult(
+            id: id, name: name, part: part, status: status, transform: status == .ok ? .identity : nil, bodies: own,
+            names: names, movedByJoints: false)
+    }
+
     /// The one face or edge the reference picks among the instance's bodies, or in `body` alone.
     func element(
         _ reference: GeometryReference, _ kind: GeometryKind, body: String?, parameters: ParameterTable

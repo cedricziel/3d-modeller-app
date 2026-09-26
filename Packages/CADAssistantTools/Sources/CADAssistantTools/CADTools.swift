@@ -23,6 +23,9 @@ public enum CADTools {
             AddInstanceTool(session: session),
             EditInstanceTool(session: session),
             DeleteInstanceTool(session: session),
+            AddJointTool(session: session),
+            EditJointTool(session: session),
+            DeleteJointTool(session: session),
         ]
     }
 }

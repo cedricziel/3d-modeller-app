@@ -8,6 +8,7 @@ struct WriteReport {
     var summary: String
     var focus: UUID?
     var instanceFocus: UUID?
+    var jointFocus: UUID?
     var notes: [String] = []
     var referenceNotes: [String] = []
     var before: CADDocument
@@ -27,6 +28,9 @@ struct WriteReport {
         if let instanceFocus, let instance = afterResult.assembly?.instance(id: instanceFocus) {
             lines.append("\(instance.name): \(instance.status)")
         }
+        if let jointFocus, let joint = afterResult.assembly?.joint(id: jointFocus) {
+            lines.append("\(joint.name): \(joint.status)")
+        }
         let changes = statusChanges(afterResult)
         if !changes.isEmpty {
             lines.append("Status changes elsewhere:")
@@ -45,6 +49,7 @@ struct WriteReport {
         }
         lines += bodyLines(afterResult)
         lines += instanceLines(afterResult)
+        lines += jointLines(afterResult)
         let diff = Self.diff(
             DocumentListing.lines(before, result: beforeResult), DocumentListing.lines(after, result: afterResult))
         if !diff.isEmpty {
@@ -70,7 +75,42 @@ struct WriteReport {
             else { return nil }
             return "\(instance.name): \(old.status) → \(instance.status)"
         }
-        return features + instances
+        let joints = (afterResult.assembly?.joints ?? []).compactMap { joint -> String? in
+            guard joint.id != jointFocus, let old = beforeResult.assembly?.joint(id: joint.id),
+                old.status != joint.status
+            else { return nil }
+            return "\(joint.name): \(old.status) → \(joint.status)"
+        }
+        return features + instances + joints
+    }
+
+    /// Joints that do not hold, and the instances whose solved position changed.
+    private func jointLines(_ afterResult: RebuildResult) -> [String] {
+        var lines: [String] = []
+        let faulty = (afterResult.assembly?.joints ?? []).filter { !$0.status.holds && $0.id != jointFocus }
+        if !faulty.isEmpty {
+            lines.append("Joints:")
+            lines += faulty.prefix(Self.diffLimit).map { "  \($0.name): \($0.status)" }
+        }
+        let moved = (afterResult.assembly?.instances ?? []).compactMap { instance -> String? in
+            guard let old = beforeResult?.assembly?.instance(id: instance.id),
+                old.movedByJoints || instance.movedByJoints,
+                let from = old.transform, let to = instance.transform
+            else { return nil }
+            let (before, after) = (Self.pose(from), Self.pose(to))
+            return before == after ? nil : "\(instance.name) \(before) → \(after)"
+        }
+        if !moved.isEmpty { lines.append("Moved by joints: \(moved.joined(separator: "; "))") }
+        return lines
+    }
+
+    /// Where a transform puts the part's origin, and its turn when it has one.
+    static func pose(_ transform: RigidTransform) -> String {
+        let resolved = transform.resolvedPlacement
+        let position = Format.point(resolved.translation)
+        guard Format.number(resolved.rotationDegrees) != "0" else { return position }
+        return
+            "\(position) rotated \(Format.number(resolved.rotationDegrees))° about \(Format.point(resolved.rotationAxis))"
     }
 
     /// Changed or faulty instances in full with their bounds; the others by name.
@@ -215,6 +255,7 @@ struct WriteFocus {
     var feature: UUID?
     var referenceNotes: [String] = []
     var instance: UUID?
+    var joint: UUID?
 }
 
 extension CADSession {
@@ -238,7 +279,8 @@ extension CADSession {
         guard after != before else { return .success("\(focus.summary). Nothing changed.") }
         let afterResult = await apply(after, actionName: focus.actionName)
         let report = WriteReport(
-            summary: focus.summary, focus: focus.feature, instanceFocus: focus.instance, notes: notes,
+            summary: focus.summary, focus: focus.feature, instanceFocus: focus.instance, jointFocus: focus.joint,
+            notes: notes,
             referenceNotes: focus.referenceNotes,
             before: before,
             beforeResult: beforeResult, after: after, afterResult: afterResult)

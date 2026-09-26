@@ -8,6 +8,12 @@ let planeGCSSettings: [CXXSetting] = [
     .define("_LIBCPP_DISABLE_DEPRECATION_WARNINGS"),
 ]
 
+/// OndselSolver files that compile through `NarrowingWrappers.cpp`; see `Sources/OndselSolver/VENDORED.md`.
+let ondselWrapped = [
+    "AbsConstraint.cpp", "AtPointConstraintIqcJqc.cpp", "DirectionCosineConstraintIqcJqc.cpp",
+    "TranslationConstraintIqcJqc.cpp", "SymbolicParser.cpp",
+]
+
 let package = Package(
     name: "CADSolvers",
     platforms: [
@@ -25,7 +31,14 @@ let package = Package(
             cxxSettings: planeGCSSettings
         ),
         .target(name: "CPlaneGCS", dependencies: ["PlaneGCS"], cxxSettings: planeGCSSettings),
-        .target(name: "CADSolvers", dependencies: ["CPlaneGCS"]),
+        .target(
+            name: "OndselSolver",
+            exclude: ["VENDORED.md", "LICENSES"] + ondselWrapped.map { "include/OndselSolver/\($0)" },
+            publicHeadersPath: "include",
+            cxxSettings: [.define("NDEBUG")]
+        ),
+        .target(name: "COndselSolver", dependencies: ["OndselSolver"], cxxSettings: [.define("NDEBUG")]),
+        .target(name: "CADSolvers", dependencies: ["CPlaneGCS", "COndselSolver"]),
         .testTarget(name: "CADSolversTests", dependencies: ["CADSolvers"]),
     ],
     cxxLanguageStandard: .cxx2b

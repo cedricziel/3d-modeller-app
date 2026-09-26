@@ -27,7 +27,8 @@ struct CheckDecodingTests {
         #expect(try Bench.check(#"{"type": "referenceIoU", "threshold": 0.99}"#) == .referenceIoU(threshold: 0.99))
         #expect(
             try Bench.check(#"{"type": "unchangedExcept", "features": ["Hole"]}"#)
-                == .unchangedExcept(features: ["Hole"], parameters: [], instances: [], allowNewFeatures: false))
+                == .unchangedExcept(
+                    features: ["Hole"], parameters: [], instances: [], joints: [], allowNewFeatures: false))
         #expect(try Bench.check(#"{"type": "instanceCount", "equals": 3}"#) == .instanceCount(3))
         #expect(
             try Bench.check(#"{"type": "instanceBounds", "instance": "Top", "min": [0, 0, 15]}"#)
@@ -35,7 +36,21 @@ struct CheckDecodingTests {
         #expect(try Bench.check(#"{"type": "noInterference"}"#) == .noInterference)
         #expect(
             try Bench.check(#"{"type": "unchangedExcept", "instances": ["Top"]}"#)
-                == .unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false))
+                == .unchangedExcept(
+                    features: [], parameters: [], instances: ["Top"], joints: [], allowNewFeatures: false))
+        #expect(
+            try Bench.check(#"{"type": "unchangedExcept", "joints": ["Hinge"]}"#)
+                == .unchangedExcept(
+                    features: [], parameters: [], instances: [], joints: ["Hinge"], allowNewFeatures: false))
+        #expect(try Bench.check(#"{"type": "jointsSatisfied"}"#) == .jointsSatisfied(minimum: 1, kinds: []))
+        #expect(
+            try Bench.check(#"{"type": "jointsSatisfied", "minimum": 2, "kinds": ["revolute"]}"#)
+                == .jointsSatisfied(minimum: 2, kinds: [.revolute]))
+        #expect(
+            try Bench.check(
+                #"{"type": "instancePosition", "instance": "Pin", "relativeTo": "Base", "translation": [20, 20, 0]}"#)
+                == .instancePosition(
+                    instance: "Pin", relativeTo: "Base", translation: SIMD3(20, 20, 0), tolerance: 0.01))
     }
 
     @Test(
@@ -50,6 +65,10 @@ struct CheckDecodingTests {
             #"{"type": "overlap"}"#,
             #"{"type": "instanceBounds", "instance": "Top"}"#,
             #"{"type": "noInterference", "instances": ["A"]}"#,
+            #"{"type": "jointsSatisfied", "kinds": ["weld"]}"#,
+            #"{"type": "jointsSatisfied", "count": 1}"#,
+            #"{"type": "instancePosition", "instance": "Pin"}"#,
+            #"{"type": "instancePosition", "translation": [1, 2, 3]}"#,
         ])
     func decodingRefusals(json: String) {
         #expect(throws: (any Error).self) { try Bench.check(json) }
@@ -67,8 +86,10 @@ struct CheckDecodingTests {
             ).description == "bounding box of Body1: min (0, 0, 0), max (80, 50, 6) ±0.01 mm")
         #expect(Check.featureCount(.cylinder, min: 2, max: nil).description == "cylinder features ≥ 2")
         #expect(
-            Check.unchangedExcept(features: ["Hole"], parameters: ["t"], instances: [], allowNewFeatures: true)
-                .description
+            Check.unchangedExcept(
+                features: ["Hole"], parameters: ["t"], instances: [], joints: [], allowNewFeatures: true
+            )
+            .description
                 == "unchanged except features Hole, parameters t, new features allowed")
         #expect(Check.instanceCount(3).description == "instance count = 3")
         #expect(
@@ -79,7 +100,7 @@ struct CheckDecodingTests {
                 .description == "bounds of all instances: max (1, 2, 3) ±0.01 mm")
         #expect(Check.noInterference.description == "no interference between instances")
         #expect(
-            Check.unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false)
+            Check.unchangedExcept(features: [], parameters: [], instances: ["Top"], joints: [], allowNewFeatures: false)
                 .description == "unchanged except instances Top")
     }
 }

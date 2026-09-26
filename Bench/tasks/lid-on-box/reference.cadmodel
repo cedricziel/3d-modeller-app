@@ -1,0 +1,85 @@
+{
+  "assembly": {
+    "instances": [
+      {
+        "grounded": true,
+        "id": "B0000000-0000-4000-8000-000000000001",
+        "name": "Base",
+        "part": "A0000000-0000-4000-8000-000000000001",
+        "placement": {
+          "translation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "id": "B0000000-0000-4000-8000-000000000002",
+        "name": "Lid",
+        "part": "A0000000-0000-4000-8000-000000000002",
+        "placement": {
+          "translation": {
+            "x": 0,
+            "y": 0,
+            "z": 50
+          }
+        }
+      }
+    ],
+    "joints": [
+      {
+        "a": {
+          "face": {
+            "name": "Box.top"
+          },
+          "instance": "B0000000-0000-4000-8000-000000000001"
+        },
+        "b": {
+          "face": {
+            "name": "Lid.bottom"
+          },
+          "instance": "B0000000-0000-4000-8000-000000000002"
+        },
+        "id": "C0000000-0000-4000-8000-000000000001",
+        "kind": "fixed",
+        "name": "Seat"
+      }
+    ]
+  },
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 30,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Box"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000001",
+      "name": "Box"
+    },
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 5,
+            "type": "box",
+            "width": 60
+          },
+          "name": "Lid"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000002",
+      "name": "Lid"
+    }
+  ],
+  "units": "mm"
+}

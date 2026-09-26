@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "equals": 2,
+      "type": "instanceCount"
+    },
+    {
+      "kinds": [
+        "slider"
+      ],
+      "type": "jointsSatisfied"
+    },
+    {
+      "instance": "Slide",
+      "max": [
+        80,
+        20,
+        25
+      ],
+      "min": [
+        50,
+        0,
+        10
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "build",
+  "prompt": "Build a carriage that slides on a rail. Make a part Rail: a 200 \u00d7 20 \u00d7 10 mm bar (X \u00d7 Y \u00d7 Z) with one corner at its origin. Make a part Carriage: a 30 \u00d7 20 \u00d7 15 mm block with one corner at its origin. Place the rail as instance Track, grounded, and the carriage as instance Slide. Join them with a slider joint so the carriage sits on top of the rail, flush with its sides (the same Y range), can slide only along X without turning, and starts with its near end 50 mm from the rail's end at x = 0. Use a joint, not a hand-computed placement."
+}

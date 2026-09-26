@@ -13,6 +13,12 @@ This product includes PlaneGCS, the geometric constraint solver of FreeCAD
 Public License version 2.1 or later. Its source and licence text are in
 Packages/CADSolvers/Sources/PlaneGCS.
 
+This product includes OndselSolver, the assembly constraint solver of FreeCAD
+(https://github.com/FreeCAD/OndselSolver, commit
+4be80eef02a3486cda0d78f3ccbb308d207a9639), licensed under the GNU Lesser General
+Public License version 2.1. Its source and licence text are in
+Packages/CADSolvers/Sources/OndselSolver.
+
 This product includes a subset of the Eigen 3.4.1 headers
 (https://gitlab.com/libeigen/eigen), licensed under the Mozilla Public License 2.0.
 Some included files carry notices of the code they derive from, kept in their
