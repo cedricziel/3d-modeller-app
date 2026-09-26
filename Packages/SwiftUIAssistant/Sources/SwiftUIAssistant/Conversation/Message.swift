@@ -11,6 +11,8 @@ public struct Message: Identifiable, Sendable, Equatable {
     public let rawContent: [JSONValue]?
     /// Host state captured when a user message was sent; sent to the model but not shown
     public let context: String?
+    /// Images a tool returned, sent after `content` in a tool result
+    public let images: [ToolImage]
     public let timestamp: Date
 
     /// The role of the message sender
@@ -29,6 +31,7 @@ public struct Message: Identifiable, Sendable, Equatable {
         toolCallId: String? = nil,
         rawContent: [JSONValue]? = nil,
         context: String? = nil,
+        images: [ToolImage] = [],
         timestamp: Date = Date()
     ) {
         self.id = id
@@ -38,6 +41,7 @@ public struct Message: Identifiable, Sendable, Equatable {
         self.toolCallId = toolCallId
         self.rawContent = rawContent
         self.context = context
+        self.images = images
         self.timestamp = timestamp
     }
 
@@ -63,7 +67,7 @@ public struct Message: Identifiable, Sendable, Equatable {
     }
 
     /// Create a tool result message
-    public static func toolResult(toolCallId: String, content: String) -> Message {
-        Message(role: .toolResult, content: content, toolCallId: toolCallId)
+    public static func toolResult(toolCallId: String, content: String, images: [ToolImage] = []) -> Message {
+        Message(role: .toolResult, content: content, toolCallId: toolCallId, images: images)
     }
 }
