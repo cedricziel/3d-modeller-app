@@ -10,9 +10,11 @@ let package = Package(
     products: [
         .library(name: "CADModel", targets: ["CADModel"]),
         .library(name: "CADModelKernel", targets: ["CADModelKernel"]),
+        .library(name: "CADModelSolvers", targets: ["CADModelSolvers"]),
     ],
     dependencies: [
-        .package(path: "../CADKernel")
+        .package(path: "../CADKernel"),
+        .package(path: "../CADSolvers"),
     ],
     targets: [
         .target(name: "CADModel"),
@@ -20,7 +22,12 @@ let package = Package(
             name: "CADModelKernel",
             dependencies: ["CADModel", .product(name: "CADKernel", package: "CADKernel")]
         ),
+        .target(
+            name: "CADModelSolvers",
+            dependencies: ["CADModel", .product(name: "CADSolvers", package: "CADSolvers")]
+        ),
         .testTarget(name: "CADModelTests", dependencies: ["CADModel"]),
         .testTarget(name: "CADModelKernelTests", dependencies: ["CADModel", "CADModelKernel"]),
+        .testTarget(name: "CADModelSolversTests", dependencies: ["CADModel", "CADModelKernel", "CADModelSolvers"]),
     ]
 )
