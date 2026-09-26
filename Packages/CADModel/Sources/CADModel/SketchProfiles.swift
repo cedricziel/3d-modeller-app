@@ -251,7 +251,10 @@ private struct Graph {
 
     var openEnds: [String] {
         nodes.indices.filter { ends[$0].count == 1 }
-            .sorted { ends[$0][0].curve < ends[$1][0].curve }
+            .sorted { a, b in
+                let (x, y) = (ends[a][0], ends[b][0])
+                return (x.curve, x.isStart ? 0 : 1) < (y.curve, y.isStart ? 0 : 1)
+            }
             .map { "\(label(ends[$0][0])) \(Self.format(nodes[$0]))" }
     }
 

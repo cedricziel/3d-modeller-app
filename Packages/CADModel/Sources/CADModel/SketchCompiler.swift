@@ -1,5 +1,12 @@
 import Foundation
 
+extension SketchFeature {
+    /// Checks names, counts and values without solving; throws the error the rebuild would report.
+    public func check(parameters: ParameterTable) throws(FeatureError) {
+        _ = try SketchCompiler.compile(self, parameters: parameters)
+    }
+}
+
 /// Turns a sketch's names, expressions and degrees into a `SolverSketch`, and a solution back into entities.
 enum SketchCompiler {
     static func compile(_ sketch: SketchFeature, parameters: ParameterTable) throws(FeatureError) -> SolverSketch {
