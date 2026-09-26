@@ -64,7 +64,7 @@ struct MeshFileTests {
 
     @Test("3MF places each occurrence with its transform, in millimetres")
     func threeMF() throws {
-        let turn = simd_double3x3(simd_quatd(angle: .pi / 2, axis: SIMD3(0, 0, 1)))
+        let turn = simd_double3x3(SIMD3(0, 1, 0), SIMD3(-1, 0, 0), SIMD3(0, 0, 1))
         let scene = ExportScene(
             name: "Assembly",
             products: [ExportProduct(name: "A & B", bodies: [("Body1", triangle)], color: ExportPalette.color(0))],
@@ -86,6 +86,25 @@ struct MeshFileTests {
         #expect(simd_distance(second.bounds.min, expectedMin) < 1e-6)
         #expect(simd_distance(second.bounds.max, expectedMax) < 1e-6)
         #expect(contents.colors == ["#457AD9"])
+        let model = String(decoding: try #require(try ZipArchive.entries(of: data)["3D/3dmodel.model"]), as: UTF8.self)
+        #expect(model.contains("transform=\"0.0 1.0 0.0 -1.0 0.0 0.0 0.0 0.0 1.0 10.0 0.0 0.0\""))
+    }
+
+    @Test("3MF merges the corners the kernel repeats along shared edges, so the mesh is closed")
+    func threeMFWelds() throws {
+        let square = BodyMesh(
+            positions: [.zero, SIMD3(1, 0, 0), SIMD3(1, 1, 0), .zero, SIMD3(1, 1, 0), SIMD3(0, 1, 0)], normals: [],
+            indices: [0, 1, 2, 3, 4, 5])
+
+        let (positions, triangles) = ThreeMFWriter.welded(square)
+
+        #expect(positions.count == 4)
+        #expect(triangles.count == 2)
+    }
+
+    @Test("3MF names keep only characters XML allows")
+    func controlCharacters() {
+        #expect(ThreeMFWriter.escape("A\u{1}<B>") == "A&lt;B&gt;")
     }
 
     @Test("3MF with several bodies in a product groups them under one object")

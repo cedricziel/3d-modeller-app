@@ -108,6 +108,7 @@ struct ExportRoundTripTests {
         let instances = try #require(model.result.assembly?.instances)
 
         #expect(contents.items.count == 3)
+        #expect(contents.items.map(\.openEdgeCount) == [0, 0, 0])
         for (item, instance) in zip(contents.items, instances) {
             let metrics = try #require(instance.bodies.first?.metrics)
             #expect(

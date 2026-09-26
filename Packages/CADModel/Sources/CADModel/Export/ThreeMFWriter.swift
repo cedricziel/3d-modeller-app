@@ -77,17 +77,39 @@ public enum ThreeMFWriter {
     }
 
     private static func object(_ id: Int, name: String, material: Int, mesh: BodyMesh) -> String {
+        let (positions, triangles) = welded(mesh)
         var text = "<object id=\"\(id)\" type=\"model\" name=\"\(escape(name))\" pid=\"1\" pindex=\"\(material)\">"
         text += "<mesh><vertices>\n"
-        for p in mesh.positions {
+        for p in positions {
             text += "<vertex x=\"\(p.x)\" y=\"\(p.y)\" z=\"\(p.z)\"/>\n"
         }
         text += "</vertices><triangles>\n"
-        for start in stride(from: 0, to: mesh.triangleCount * 3, by: 3) {
-            let (a, b, c) = (mesh.indices[start], mesh.indices[start + 1], mesh.indices[start + 2])
+        for (a, b, c) in triangles {
             text += "<triangle v1=\"\(a)\" v2=\"\(b)\" v3=\"\(c)\"/>\n"
         }
         return text + "</triangles></mesh></object>\n"
+    }
+
+    /// The kernel meshes each face on its own, so the corners along shared edges are repeated; 3MF needs every
+    /// edge shared by two triangles. The repeats are the same edge nodes, so exact positions merge them.
+    static func welded(_ mesh: BodyMesh) -> (positions: [SIMD3<Float>], triangles: [(Int, Int, Int)]) {
+        var index: [SIMD3<Float>: Int] = [:]
+        var positions: [SIMD3<Float>] = []
+        let remap = mesh.positions.map { position in
+            if let known = index[position] { return known }
+            index[position] = positions.count
+            positions.append(position)
+            return positions.count - 1
+        }
+        var triangles: [(Int, Int, Int)] = []
+        for start in stride(from: 0, to: mesh.triangleCount * 3, by: 3) {
+            let (a, b, c) = (
+                remap[Int(mesh.indices[start])], remap[Int(mesh.indices[start + 1])],
+                remap[Int(mesh.indices[start + 2])]
+            )
+            if a != b, b != c, a != c { triangles.append((a, b, c)) }
+        }
+        return (positions, triangles)
     }
 
     /// 3MF multiplies row vectors, so each rotation column comes first, then the translation.
@@ -104,7 +126,8 @@ public enum ThreeMFWriter {
     }
 
     static func escape(_ text: String) -> String {
-        text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+        let allowed = String(text.unicodeScalars.filter { $0.value >= 0x20 || $0 == "\t" || $0 == "\n" || $0 == "\r" })
+        return allowed.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\"", with: "&quot;")
     }
 }
