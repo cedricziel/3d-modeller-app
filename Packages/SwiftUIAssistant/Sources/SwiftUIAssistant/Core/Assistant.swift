@@ -22,6 +22,10 @@ public final class Assistant: ObservableObject {
     private let contextProvider: @Sendable () -> any AssistantContext
     private let configuration: AssistantConfiguration
 
+    /// Built on the first request and reused until the history is cleared, because
+    /// models that replay thinking reject a system prompt that changes mid-conversation
+    private var conversationSystemPrompt: String?
+
     // MARK: - Initialization
 
     /// Create a new assistant
@@ -64,6 +68,7 @@ public final class Assistant: ObservableObject {
     /// Clear the conversation history
     public func clearHistory() {
         messages.removeAll()
+        conversationSystemPrompt = nil
         currentError = nil
     }
 
@@ -80,8 +85,10 @@ public final class Assistant: ObservableObject {
         while rounds < configuration.maxToolExecutionRounds {
             rounds += 1
 
-            let context = contextProvider()
-            let systemPrompt = configuration.buildSystemPrompt(context: context)
+            let systemPrompt =
+                conversationSystemPrompt
+                ?? configuration.buildSystemPrompt(context: contextProvider())
+            conversationSystemPrompt = systemPrompt
 
             let response = try await provider.sendMessage(
                 messages.last?.content ?? "",
