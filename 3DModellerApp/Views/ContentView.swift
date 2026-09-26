@@ -13,6 +13,8 @@ struct ContentView: View {
     @State private var selection: UUID?
     @State private var assistant: Assistant?
     @State private var refusal: String?
+    /// The content the user chose; nil follows the document.
+    @State private var chosenContent: ViewportContent?
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
@@ -30,7 +32,18 @@ struct ContentView: View {
             )
             .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
         } detail: {
-            Viewport3DView(result: session.result)
+            Viewport3DView(result: session.result, content: viewportContent)
+                .overlay(alignment: .top) {
+                    if !document.model.instances.isEmpty {
+                        Picker("Show", selection: viewportContentBinding) {
+                            ForEach(ViewportContent.allCases) { Text($0.label).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .fixedSize()
+                        .padding()
+                    }
+                }
                 .overlay(alignment: .bottom) {
                     ModelStatisticsView(result: session.result)
                         .padding()
@@ -38,6 +51,9 @@ struct ContentView: View {
         }
         .inspector(isPresented: $appModel.showInspector) {
             InspectorView(
+                instance: selection.flatMap { id in document.model.instances.first { $0.id == id } },
+                model: document.model,
+                instanceResult: selection.flatMap { session.result?.assembly?.instance(id: $0) },
                 feature: selection.flatMap(document.model.feature(id:)),
                 featureResult: selection.flatMap { session.result?.feature(id: $0) },
                 sketchResult: selection.flatMap { session.result?.sketch(id: $0) },
@@ -65,6 +81,11 @@ struct ContentView: View {
         .task(id: document.model) {
             await session.load(document.model)
         }
+        .onChange(of: selection) { _, selection in
+            if let content = ViewportContent.following(selection: selection, in: document.model) {
+                chosenContent = content
+            }
+        }
         .onChange(of: undoManager, initial: true) { _, undoManager in
             document.connect(session, undoManager: undoManager)
         }
@@ -76,6 +97,15 @@ struct ContentView: View {
         } message: { message in
             Text(message)
         }
+    }
+
+    private var viewportContent: ViewportContent {
+        guard !document.model.instances.isEmpty else { return .parts }
+        return chosenContent ?? ViewportContent.automatic(for: document.model)
+    }
+
+    private var viewportContentBinding: Binding<ViewportContent> {
+        Binding(get: { viewportContent }, set: { chosenContent = $0 })
     }
 
     // MARK: - Edits
@@ -131,6 +161,9 @@ struct ToolPicker: View {
 
 @MainActor
 struct InspectorView: View {
+    let instance: Instance?
+    let model: CADDocument
+    let instanceResult: InstanceResult?
     let feature: Feature?
     let featureResult: FeatureResult?
     let sketchResult: SketchResult?
@@ -159,7 +192,12 @@ struct InspectorView: View {
 
             switch appModel.inspectorTab {
             case .properties:
-                FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
+                if let instance {
+                    InstanceInspectorView(
+                        instance: instance, partName: model.part(id: instance.part)?.name, result: instanceResult)
+                } else {
+                    FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
+                }
             case .assistant:
                 if let assistant {
                     AssistantView(assistant: assistant)
