@@ -69,6 +69,12 @@ public enum DocumentListing {
                 + arrow
         case .shell(let shell):
             return "shell \(shell.body) open at \(references(shell.faces)) t=\(Format.operand(shell.thickness))" + arrow
+        case .sketch:
+            return "sketch"
+        case .extrude(let extrude):
+            return "extrude \(extrude.sketch)" + arrow
+        case .revolve(let revolve):
+            return "revolve \(revolve.sketch)" + arrow
         }
     }
 

@@ -70,6 +70,9 @@ struct FeatureSpec: Equatable {
         case .shell(let shell):
             (type, body, faces) = ("shell", shell.body, shell.faces)
             dimensions = ["thickness": shell.thickness]
+        case .sketch: type = "sketch"
+        case .extrude: type = "extrude"
+        case .revolve: type = "revolve"
         }
     }
 

@@ -145,6 +145,8 @@ struct PartBuilder<Kernel: GeometryKernel> {
                 try kernelCall {
                     try kernel.shell(original, faces: faces, thickness: thickness, feature: feature.name)
                 }, as: shell.body)
+        case .sketch, .extrude, .revolve:
+            throw .failed(.kernel("not built yet"))
         }
     }
 

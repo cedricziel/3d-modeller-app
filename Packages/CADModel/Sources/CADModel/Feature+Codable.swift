@@ -2,10 +2,11 @@ extension FeatureKind: Codable {
     private enum CodingKeys: String, CodingKey {
         case type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius
         case placement, operation, target, tools, body, edges, faces, distance, thickness
+        case plane, entities, constraints, sketch, regions, extent, reversed, axis, angle
     }
 
     private enum KindName: String, Codable {
-        case box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell
+        case box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell, sketch, extrude, revolve
     }
 
     public init(from decoder: any Decoder) throws {
@@ -47,6 +48,27 @@ extension FeatureKind: Codable {
                     body: try container.decode(String.self, forKey: .body),
                     faces: try container.decode([GeometryReference].self, forKey: .faces),
                     thickness: try scalar(.thickness)))
+            return
+        case .sketch:
+            self = .sketch(try SketchFeature(from: decoder))
+            return
+        case .extrude:
+            self = .extrude(
+                ExtrudeFeature(
+                    sketch: try container.decode(String.self, forKey: .sketch),
+                    regions: try container.decodeIfPresent([String].self, forKey: .regions) ?? [],
+                    extent: try container.decode(ExtrudeExtent.self, forKey: .extent),
+                    reversed: try container.decodeIfPresent(Bool.self, forKey: .reversed) ?? false,
+                    operation: try container.decodeIfPresent(SolidOperation.self, forKey: .operation) ?? .newBody))
+            return
+        case .revolve:
+            self = .revolve(
+                RevolveFeature(
+                    sketch: try container.decode(String.self, forKey: .sketch),
+                    regions: try container.decodeIfPresent([String].self, forKey: .regions) ?? [],
+                    axis: try container.decode(RevolveAxis.self, forKey: .axis),
+                    angle: try container.decodeIfPresent(Scalar.self, forKey: .angle) ?? 360,
+                    operation: try container.decodeIfPresent(SolidOperation.self, forKey: .operation) ?? .newBody))
             return
         case .box:
             shape = .box(width: try scalar(.width), depth: try scalar(.depth), height: try scalar(.height))
@@ -95,6 +117,23 @@ extension FeatureKind: Codable {
             try container.encode(shell.body, forKey: .body)
             try container.encode(shell.faces, forKey: .faces)
             try container.encode(shell.thickness, forKey: .thickness)
+        case .sketch(let sketch):
+            try container.encode(KindName.sketch, forKey: .type)
+            try sketch.encode(to: encoder)
+        case .extrude(let extrude):
+            try container.encode(KindName.extrude, forKey: .type)
+            try container.encode(extrude.sketch, forKey: .sketch)
+            try container.encode(extrude.regions, forKey: .regions)
+            try container.encode(extrude.extent, forKey: .extent)
+            try container.encode(extrude.reversed, forKey: .reversed)
+            try container.encode(extrude.operation, forKey: .operation)
+        case .revolve(let revolve):
+            try container.encode(KindName.revolve, forKey: .type)
+            try container.encode(revolve.sketch, forKey: .sketch)
+            try container.encode(revolve.regions, forKey: .regions)
+            try container.encode(revolve.axis, forKey: .axis)
+            try container.encode(revolve.angle, forKey: .angle)
+            try container.encode(revolve.operation, forKey: .operation)
         case .primitive(let primitive):
             try container.encode(primitive.placement, forKey: .placement)
             try container.encode(primitive.operation, forKey: .operation)
