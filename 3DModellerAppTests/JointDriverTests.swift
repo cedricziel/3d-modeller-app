@@ -146,6 +146,24 @@ struct JointDriverTests {
         #expect(driver.previewed == nil)
     }
 
+    @Test("Clearing during an animation stops it and drops what it showed")
+    func clearDuringAnimation() async {
+        let gate = BuildGate()
+        gate.open()
+        let driver = driver(gate)
+        let hinge = hinged.joints[0].id
+        let document = hinged
+
+        let running = Task { await driver.animate(hinge, in: document, over: 0...90, rate: 1) }
+        await waitForBuilds(gate, count: 2)
+        driver.clear()
+        await running.value
+
+        #expect(!driver.isAnimating)
+        #expect(driver.preview == nil)
+        #expect(driver.previewed == nil)
+    }
+
     @Test("The slider runs through the limits, or a full turn for a hinge without them; animate likewise")
     func ranges() {
         let id = UUID()

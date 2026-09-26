@@ -87,7 +87,7 @@ struct ContentView: View {
         }
         .task(id: document.model) {
             await session.load(document.model)
-            if !driver.isAnimating { driver.clear() }
+            driver.clear()
         }
         .onChange(of: selection) { _, selection in
             driver.clear()
