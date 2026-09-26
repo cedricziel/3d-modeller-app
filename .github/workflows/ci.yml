@@ -9,32 +9,47 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  test:
+  package:
+    name: ${{ matrix.package }}
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - SwiftUIAssistant
+          - SwiftUIAssistantTools
+          - CADKernel
+          - CADModel
+          - CADAssistantTools
+          - CADSolvers
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: swiftpm-${{ runner.os }}-
       - run: xcodebuild -version
-      - name: Test SwiftUIAssistant
-        working-directory: Packages/SwiftUIAssistant
+      - name: Test ${{ matrix.package }}
+        working-directory: Packages/${{ matrix.package }}
         run: xcrun swift test
-      - name: Test SwiftUIAssistantTools
-        working-directory: Packages/SwiftUIAssistantTools
-        run: xcrun swift test
-      - name: Test CADKernel
-        working-directory: Packages/CADKernel
-        run: xcrun swift test
-      - name: Test CADModel
-        working-directory: Packages/CADModel
-        run: xcrun swift test
-      - name: Test CADAssistantTools and CADBench
-        working-directory: Packages/CADAssistantTools
-        run: xcrun swift test
-      - name: Test CADSolvers
-        working-directory: Packages/CADSolvers
-        run: xcrun swift test
+
+  app:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: swiftpm-${{ runner.os }}-
+      - run: xcodebuild -version
       - name: Test app
         run: >
           xcodebuild test
@@ -42,3 +57,12 @@ jobs:
           -scheme 3DModellerApp
           -destination 'platform=macOS'
           CODE_SIGNING_ALLOWED=NO
+
+  test:
+    if: always()
+    needs: [package, app]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All tests passed
+        run: |
+          [ "${{ needs.package.result }}" = success ] && [ "${{ needs.app.result }}" = success ]
