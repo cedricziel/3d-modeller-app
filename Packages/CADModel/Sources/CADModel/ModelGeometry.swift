@@ -130,6 +130,13 @@ private struct NoKernel: GeometryKernel {
     func fillet(_ body: Never, edges: [Int], radius: Double, feature: String) throws -> Never {}
     func chamfer(_ body: Never, edges: [Int], distance: Double, feature: String) throws -> Never {}
     func shell(_ body: Never, faces: [Int], thickness: Double, feature: String) throws -> Never {}
+    func extrude(_ profile: SketchProfile, from: Double, to: Double, feature: String) throws -> Never {
+        throw unavailable
+    }
+    func revolve(
+        _ profile: SketchProfile, axisOrigin: SIMD3<Double>, axisDirection: SIMD3<Double>, angleDegrees: Double,
+        feature: String
+    ) throws -> Never { throw unavailable }
     func topology(of body: Never) throws -> BodyTopology {}
     func metrics(of body: Never) throws -> BodyMetrics {}
     func mesh(of body: Never) throws -> BodyMesh {}
