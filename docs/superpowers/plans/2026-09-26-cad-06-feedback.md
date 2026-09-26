@@ -21,7 +21,7 @@
 
 ## Rulings
 
-- **Ruling: a pure-Swift software rasteriser renders the views, not RealityKit or Metal.** It z-buffers the tessellated body meshes with flat two-sided Lambert shading and draws feature lines (mesh edges on a silhouette, a crease above 35°, or an open border), then encodes PNG with ImageIO. It needs no window server, GPU or Metal device, so it runs the same in the app, `cadbench` and `swift test` on CI runners. Cost if wrong: the pictures look plainer than a RealityKit render (no anti-aliasing, no shadows).
+- **Ruling: a pure-Swift software rasteriser renders the views, not RealityKit or Metal.** It z-buffers the tessellated body meshes with flat two-sided Lambert shading and draws feature lines (mesh edges on a crease above 35° or an open border), then encodes PNG with ImageIO. It needs no window server, GPU or Metal device, so it runs the same in the app, `cadbench` and `swift test` on CI runners. Cost if wrong: the pictures look plainer than a RealityKit render (no anti-aliasing, no shadows).
 - **Ruling: four separate 512×512 PNGs, each after a text caption, not one tiled image.** Captions carry the view name, the viewing direction and the scale (mm per pixel), which a tiled image would need drawn text for. Four 512² images cost about as many tokens as one 1024² tile (≈350 each). The tool takes an optional `views` subset to spend less. Cost if wrong: four content blocks instead of one per call.
 - **Ruling: each view is framed on its own.** The projected bounding box of all rendered bodies fills the image with a 6 % margin, square pixels; the caption states mm per pixel. Cost if wrong: views are not at the same scale, which the captions make explicit.
 - **Ruling: views follow the model's axes, Z up.** `top` looks down −Z (+X right, +Y up), `front` looks along +Y at the −Y face (+X right, +Z up), `right` looks along −X at the +X face (+Y right, +Z up), `iso` looks from (+1, −1, +1) (Z up). Cost if wrong: none; captions name the directions.
@@ -32,7 +32,14 @@
 - **Ruling: `measure` kinds are `distance`, `angle`, `size` and `interference`.** `distance` is the kernel's minimum distance with the closest points (0 when touching or overlapping). `angle` takes planar faces (normal) and straight edges (direction): face–face is the angle between the outward normals (0–180°), edge–edge the angle between the lines (0–90°), face–edge the angle between the edge and the plane (0–90°). `size` of a body gives volume, surface area, bounds and extent, face and edge counts; of a face its type, area, centroid, normal or radius and bounds; of an edge its type, length, ends or radius. `interference` of two bodies gives the intersection volume, and the clearance when they do not overlap. Cost if wrong: extensions are additive.
 - **Ruling: interference is `vol(a) + vol(b) − vol(a ∪ b)` through the existing `boolean`, clamped to 0 below 1e−6 of the smaller volume,** as the grader already does; no new kernel call. Cost if wrong: cancellation error on very large bodies (relative 1e−9).
 - **Ruling: the rebuild keeps the kernel bodies for measuring.** `RebuildEngine.build(_:)` returns `RebuiltModel { result, geometry }`; `CADSession` stores the geometry beside the result, so `measure` never replays. Cost if wrong: the session holds OCCT shapes of the latest rebuild in memory.
-- **Ruling: write results list bodies that are new, changed or have problems in full; unchanged valid bodies share one `Unchanged: …` line; body lines gain `N faces, M edges`; listing changes stop after 30 lines with `… N more; call get_listing`.** Cost if wrong: the model must remember an unchanged body's numbers from earlier results or call `measure`.
+- **Ruling: write results list bodies that are new, changed or have problems in full; unchanged valid bodies share one `Unchanged bodies: …` line and removed ones a `Removed bodies: …` line; body lines gain `N faces, M edges`; body lines, status changes and listing changes each stop after 30 lines.** Cost if wrong: the model must remember an unchanged body's numbers from earlier results or call `measure`.
+
+- **Ruling (execution): feature lines are border and crease edges only, no silhouettes.** OCCT's per-face triangulations do not share a winding, so front/back facing is unreliable; creases use the unsigned angle, which misses folds sharper than 145° (knife edges). Cost if wrong: very sharp wedges lose their outline; shading still shows them.
+- **Ruling (execution): a body is "unchanged" only when its line is identical, no feature that builds, changes or reads it changed, and none of those features' numeric fields changed value through a parameter.** The reviewer showed a moved hole keeps volume and bounds. Cost if wrong: a few more bodies are listed in full.
+- **Ruling (execution): `measure` and `render_views` compute in `@concurrent` functions** after reading the session on the main actor. Cost if wrong: none.
+- **Ruling (execution): interference checks the clearance first** and runs the union only when the bodies touch; the overlap cut-off is 1e−5 of the smaller volume. Cost if wrong: a real overlap below 1e−5 relative reads as touching.
+- **Ruling (execution): parts sharing a name are refused by `measure`**, since `ModelGeometry` keys bodies by part name. Face and edge labels read `Plate.top of Body1 (Plate)`. Cost if wrong: none until `add_part` (PR 9) must keep part names unique.
+- **Measured (execution): a cut in a ten-body document returns 382 characters (≈100 tokens)**; before this layer the same result listed all ten bodies (≈1,450 characters).
 
 ## Review Focus
 
@@ -194,6 +201,14 @@ extension CADSession { public func renderViews(_ views: [ViewDirection] = ViewDi
 ### Task 8: App build, final review
 
 App build and tests with derived data in the scratchpad; fresh `opus` reviewer over `git merge-base cad/05-naming HEAD..HEAD`; one fix pass for Critical/Important findings; clean `swift test` of every changed package in the scratchpad.
+
+## Deferred after the final review
+
+- Old images stay in the conversation and are re-sent on every request; drop images from all but the latest render results when sessions get long.
+- A rerun into an existing `run-N` folder leaves `view-*.png` files of an earlier run that rendered more views.
+- `ModelGeometry.distance` and `OCCTGeometryKernel.distance` both handle point–point; the kernel returns a degenerate box as a point's bounds while `size` refuses points first.
+- The app's chat does not show tool-result images yet.
+- `ModelGeometry` should key bodies by part id once parts can be added (PR 9).
 
 ## Self-review
 
