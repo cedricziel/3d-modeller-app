@@ -33,6 +33,9 @@ extension FeatureKind {
         case .primitive(let primitive): primitive.operation.targetBody.map { [$0] } ?? []
         case .boolean(let boolean): [boolean.target] + boolean.tools
         case .transform(let transform): [transform.body]
+        case .fillet(let fillet): [fillet.body]
+        case .chamfer(let chamfer): [chamfer.body]
+        case .shell(let shell): [shell.body]
         }
     }
 
@@ -53,6 +56,15 @@ extension FeatureKind {
         case .transform(var transform):
             transform.body = rename(transform.body)
             self = .transform(transform)
+        case .fillet(var fillet):
+            fillet.body = rename(fillet.body)
+            self = .fillet(fillet)
+        case .chamfer(var chamfer):
+            chamfer.body = rename(chamfer.body)
+            self = .chamfer(chamfer)
+        case .shell(var shell):
+            shell.body = rename(shell.body)
+            self = .shell(shell)
         }
     }
 }

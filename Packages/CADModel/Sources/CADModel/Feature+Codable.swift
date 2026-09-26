@@ -1,11 +1,11 @@
 extension FeatureKind: Codable {
     private enum CodingKeys: String, CodingKey {
         case type, width, depth, height, radius, bottomRadius, topRadius, majorRadius, minorRadius
-        case placement, operation, target, tools, body
+        case placement, operation, target, tools, body, edges, faces, distance, thickness
     }
 
     private enum KindName: String, Codable {
-        case box, cylinder, sphere, cone, torus, boolean, transform
+        case box, cylinder, sphere, cone, torus, boolean, transform, fillet, chamfer, shell
     }
 
     public init(from decoder: any Decoder) throws {
@@ -27,6 +27,26 @@ extension FeatureKind: Codable {
                     body: try container.decode(String.self, forKey: .body),
                     placement: try container.decodeIfPresent(Placement.self, forKey: .placement) ?? .identity
                 ))
+            return
+        case .fillet:
+            self = .fillet(
+                FilletFeature(
+                    body: try container.decode(String.self, forKey: .body),
+                    edges: try container.decode([GeometryReference].self, forKey: .edges), radius: try scalar(.radius)))
+            return
+        case .chamfer:
+            self = .chamfer(
+                ChamferFeature(
+                    body: try container.decode(String.self, forKey: .body),
+                    edges: try container.decode([GeometryReference].self, forKey: .edges),
+                    distance: try scalar(.distance)))
+            return
+        case .shell:
+            self = .shell(
+                ShellFeature(
+                    body: try container.decode(String.self, forKey: .body),
+                    faces: try container.decode([GeometryReference].self, forKey: .faces),
+                    thickness: try scalar(.thickness)))
             return
         case .box:
             shape = .box(width: try scalar(.width), depth: try scalar(.depth), height: try scalar(.height))
@@ -60,6 +80,21 @@ extension FeatureKind: Codable {
             try container.encode(KindName.transform, forKey: .type)
             try container.encode(transform.body, forKey: .body)
             try container.encode(transform.placement, forKey: .placement)
+        case .fillet(let fillet):
+            try container.encode(KindName.fillet, forKey: .type)
+            try container.encode(fillet.body, forKey: .body)
+            try container.encode(fillet.edges, forKey: .edges)
+            try container.encode(fillet.radius, forKey: .radius)
+        case .chamfer(let chamfer):
+            try container.encode(KindName.chamfer, forKey: .type)
+            try container.encode(chamfer.body, forKey: .body)
+            try container.encode(chamfer.edges, forKey: .edges)
+            try container.encode(chamfer.distance, forKey: .distance)
+        case .shell(let shell):
+            try container.encode(KindName.shell, forKey: .type)
+            try container.encode(shell.body, forKey: .body)
+            try container.encode(shell.faces, forKey: .faces)
+            try container.encode(shell.thickness, forKey: .thickness)
         case .primitive(let primitive):
             try container.encode(primitive.placement, forKey: .placement)
             try container.encode(primitive.operation, forKey: .operation)

@@ -122,6 +122,41 @@ struct PartBuilder<Kernel: GeometryKernel> {
             let original = try body(named: transform.body)
             let placement = try resolve(transform.placement)
             store(try kernelCall { try kernel.transform(original, by: placement) }, as: transform.body)
+        case .fillet(let fillet):
+            let original = try body(named: fillet.body)
+            let radius = try value(fillet.radius, "radius")
+            let edges = try select(fillet.edges, .edges, of: original)
+            store(
+                try kernelCall { try kernel.fillet(original, edges: edges, radius: radius, feature: feature.name) },
+                as: fillet.body)
+        case .chamfer(let chamfer):
+            let original = try body(named: chamfer.body)
+            let distance = try value(chamfer.distance, "distance")
+            let edges = try select(chamfer.edges, .edges, of: original)
+            store(
+                try kernelCall {
+                    try kernel.chamfer(original, edges: edges, distance: distance, feature: feature.name)
+                }, as: chamfer.body)
+        case .shell(let shell):
+            let original = try body(named: shell.body)
+            let thickness = try value(shell.thickness, "thickness")
+            let faces = try select(shell.faces, .faces, of: original)
+            store(
+                try kernelCall {
+                    try kernel.shell(original, faces: faces, thickness: thickness, feature: feature.name)
+                }, as: shell.body)
+        }
+    }
+
+    private func select(_ references: [GeometryReference], _ kind: GeometryKind, of body: Kernel.Body) throws(Stop)
+        -> [Int]
+    {
+        guard !references.isEmpty else { throw .failed(.reference("no \(kind.rawValue) are referenced")) }
+        let topology = try kernelCall { try kernel.topology(of: body) }
+        do {
+            return try GeometryResolver.resolve(references, kind: kind, in: topology, parameters: parameters)
+        } catch {
+            throw .failed(.reference(error.description))
         }
     }
 
