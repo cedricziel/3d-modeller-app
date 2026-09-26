@@ -8,6 +8,14 @@ struct AssembledInstances<Body: Sendable> {
     let bodies: [(instance: Instance, bodies: [(name: String, body: Body)])]
 }
 
+/// A joint that reaches the solver: its instances, its drive and its markers before the drive is folded in.
+private struct SolvedJoint {
+    let joint: Joint
+    let sides: (InstanceResult, InstanceResult)
+    let drive: JointDrive
+    let markers: (a: RigidTransform, b: RigidTransform)
+}
+
 extension AssemblyBuilder {
     func assemble(
         _ assembly: Assembly, partResults: [UUID: [BodyResult]], solver: (any AssemblySolving)?
@@ -70,8 +78,11 @@ extension AssemblyBuilder {
         var names: Set<String> = []
         var bodyIndex: [UUID: Int] = [:]
         var bodies: [SolverAssemblyBody] = []
-        var solverJoints: [(joint: Joint, sides: (InstanceResult, InstanceResult))] = []
+        var solverJoints: [SolvedJoint] = []
         var markers: [SolverAssemblyJoint] = []
+        let drives = Dictionary(
+            assembly.joints.map { ($0.id, JointDrive.evaluate($0, parameters: parameters)) },
+            uniquingKeysWith: { first, _ in first })
         func index(of instance: InstanceResult) -> Int {
             if let existing = bodyIndex[instance.id] { return existing }
             let grounded = assembly.instances.first { $0.id == instance.id }?.grounded ?? false
@@ -91,20 +102,33 @@ extension AssemblyBuilder {
                     statuses[joint.id] = .failed("both sides are on \(a.name)")
                     continue
                 }
+                let drive = drives[joint.id]!
+                let driven = drive.driven(joint.kind, markerA: markerA)
                 markers.append(
                     SolverAssemblyJoint(
-                        kind: joint.kind, bodyA: index(of: a), markerA: markerA, bodyB: index(of: b), markerB: markerB))
-                solverJoints.append((joint, (a, b)))
+                        kind: driven.kind, bodyA: index(of: a), markerA: driven.markerA, bodyB: index(of: b),
+                        markerB: markerB))
+                solverJoints.append(SolvedJoint(joint: joint, sides: (a, b), drive: drive, markers: (markerA, markerB)))
             } catch {
                 statuses[joint.id] = .failed(error.reason)
             }
         }
         var solved: [UUID: RigidTransform] = [:]
+        var values: [UUID: Double] = [:]
         if !markers.isEmpty {
             let outcome = solve(
                 SolverAssembly(bodies: bodies, joints: markers), solverJoints: solverJoints, assembly: assembly,
                 solver: solver)
-            for (position, entry) in solverJoints.enumerated() { statuses[entry.joint.id] = outcome.statuses[position] }
+            let placements = outcome.placements ?? bodies.map(\.placement)
+            for (position, entry) in solverJoints.enumerated() {
+                var status = outcome.statuses[position]
+                if let problem = entry.drive.problem { status = .failed(problem) }
+                statuses[entry.joint.id] = status
+                let a = placements[markers[position].bodyA].composed(with: entry.markers.a)
+                let b = placements[markers[position].bodyB].composed(with: entry.markers.b)
+                values[entry.joint.id] =
+                    entry.drive.isDriven && status.holds ? entry.drive.value : entry.drive.measure(a: a, b: b)
+            }
             for (id, index) in bodyIndex where !bodies[index].grounded {
                 guard let placement = outcome.placements?[index], !placement.isClose(to: bodies[index].placement)
                 else { continue }
@@ -112,13 +136,17 @@ extension AssemblyBuilder {
             }
         }
         let results = assembly.joints.map { joint in
-            JointResult(id: joint.id, name: joint.name, status: statuses[joint.id] ?? .failed("not solved"))
+            let drive = drives[joint.id]!
+            return JointResult(
+                id: joint.id, name: joint.name, status: statuses[joint.id] ?? .failed("not solved"),
+                motion: joint.kind.motion, value: values[joint.id], minimum: drive.minimum, maximum: drive.maximum,
+                driven: drive.isDriven, freedoms: joint.kind.freedoms - (drive.isDriven ? 1 : 0))
         }
         return (results, solved)
     }
 
     private func solve(
-        _ system: SolverAssembly, solverJoints: [(joint: Joint, sides: (InstanceResult, InstanceResult))],
+        _ system: SolverAssembly, solverJoints: [SolvedJoint],
         assembly: Assembly, solver: (any AssemblySolving)?
     ) -> (statuses: [JointStatus], placements: [RigidTransform]?) {
         func all(_ reason: String) -> (statuses: [JointStatus], placements: [RigidTransform]?) {

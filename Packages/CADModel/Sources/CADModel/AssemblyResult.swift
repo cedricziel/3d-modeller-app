@@ -69,11 +69,36 @@ public struct JointResult: Sendable, Equatable, Identifiable {
     public let id: UUID
     public let name: String
     public let status: JointStatus
+    /// The joint's motion; nil for kinds that have none.
+    public let motion: JointMotion?
+    /// The driven value when the joint is driven and holds, else the value measured at the solved placements.
+    public let value: Double?
+    public let minimum: Double?
+    public let maximum: Double?
+    /// Whether a value drives the joint.
+    public let driven: Bool
+    /// How many ways the joint still lets its instances move against each other.
+    public let freedoms: Int
 
-    public init(id: UUID, name: String, status: JointStatus) {
+    public init(
+        id: UUID, name: String, status: JointStatus, motion: JointMotion? = nil, value: Double? = nil,
+        minimum: Double? = nil, maximum: Double? = nil, driven: Bool = false, freedoms: Int = 0
+    ) {
         self.id = id
         self.name = name
         self.status = status
+        self.motion = motion
+        self.value = value
+        self.minimum = minimum
+        self.maximum = maximum
+        self.driven = driven
+        self.freedoms = freedoms
+    }
+
+    /// Whether a free joint rests outside its limits.
+    public var isOutsideLimits: Bool {
+        guard let value else { return false }
+        return value < (minimum ?? -.infinity) - 1e-9 || value > (maximum ?? .infinity) + 1e-9
     }
 }
 
