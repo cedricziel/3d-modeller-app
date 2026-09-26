@@ -1,0 +1,3 @@
+module OndselSolver {
+    requires cplusplus
+}
