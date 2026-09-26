@@ -1,0 +1,110 @@
+{
+  "assembly": {
+    "instances": [
+      {
+        "grounded": true,
+        "id": "B0000000-0000-4000-8000-000000000001",
+        "name": "Base",
+        "part": "A0000000-0000-4000-8000-000000000001",
+        "placement": {
+          "translation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "id": "B0000000-0000-4000-8000-000000000002",
+        "name": "Pin",
+        "part": "A0000000-0000-4000-8000-000000000002",
+        "placement": {
+          "translation": {
+            "x": 20,
+            "y": 20,
+            "z": 40
+          }
+        }
+      }
+    ],
+    "joints": [
+      {
+        "a": {
+          "edge": {
+            "name": "edge(Hole.side, Plate.bottom)"
+          },
+          "face": {
+            "name": "Hole.side"
+          },
+          "instance": "B0000000-0000-4000-8000-000000000001"
+        },
+        "b": {
+          "edge": {
+            "name": "edge(Pin.side, Pin.bottom)"
+          },
+          "face": {
+            "name": "Pin.side"
+          },
+          "instance": "B0000000-0000-4000-8000-000000000002"
+        },
+        "flip": true,
+        "id": "C0000000-0000-4000-8000-000000000001",
+        "kind": "revolute",
+        "name": "Hinge"
+      }
+    ]
+  },
+  "format": 1,
+  "parameters": [],
+  "parts": [
+    {
+      "features": [
+        {
+          "kind": {
+            "depth": 40,
+            "height": 10,
+            "type": "box",
+            "width": 40
+          },
+          "name": "Plate"
+        },
+        {
+          "kind": {
+            "height": 12,
+            "operation": {
+              "body": "Body1",
+              "mode": "cut"
+            },
+            "placement": {
+              "translation": {
+                "x": 20,
+                "y": 20,
+                "z": -1
+              }
+            },
+            "radius": 5.5,
+            "type": "cylinder"
+          },
+          "name": "Hole"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000001",
+      "name": "Plate"
+    },
+    {
+      "features": [
+        {
+          "kind": {
+            "height": 30,
+            "radius": 5,
+            "type": "cylinder"
+          },
+          "name": "Pin"
+        }
+      ],
+      "id": "A0000000-0000-4000-8000-000000000002",
+      "name": "Pin"
+    }
+  ],
+  "units": "mm"
+}

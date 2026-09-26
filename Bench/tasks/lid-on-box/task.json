@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "equals": 2,
+      "type": "instanceCount"
+    },
+    {
+      "type": "jointsSatisfied"
+    },
+    {
+      "instance": "Lid",
+      "max": [
+        60,
+        40,
+        35
+      ],
+      "min": [
+        0,
+        0,
+        30
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "build",
+  "prompt": "Put a lid on a box. Make a part Box: a 60 \u00d7 40 \u00d7 30 mm block (X \u00d7 Y \u00d7 Z) with one corner at its origin. Make a part Lid: a 60 \u00d7 40 \u00d7 5 mm plate with one corner at its origin. Place the box as instance Base, grounded, and the lid as instance Lid, and mate the lid's bottom face flush on the box's top face with a joint so the lid covers the box exactly. Use a joint, not a hand-computed placement."
+}
