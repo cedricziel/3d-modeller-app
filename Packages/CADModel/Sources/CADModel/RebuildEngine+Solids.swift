@@ -16,17 +16,12 @@ extension RebuildEngine {
         }
     }
 
-    /// Each placed instance's moved bodies, in assembly order; instances that fail to place are left out.
+    /// Each placed instance's bodies where the joints put them, in assembly order; instances that fail to place are
+    /// left out.
     @concurrent
     public func instanceSolids(of document: CADDocument) async throws -> [BuiltBody<Kernel.Body>] {
-        guard let assembly = document.assembly else { return [] }
-        let built = try partBodies(of: document)
-        let builder = AssemblyBuilder(
-            kernel: kernel, parameters: ParameterTable(document.parameters), parts: document.parts,
-            partBodies: Dictionary(built.map { ($0.part.id, $0.bodies) }, uniquingKeysWith: { first, _ in first }))
-        return try builder.place(assembly).flatMap { instance, outcome in
-            guard case .success(let placed) = outcome else { return [BuiltBody<Kernel.Body>]() }
-            return placed.bodies.map { BuiltBody(part: instance.name, name: $0.name, body: $0.body) }
+        try await assemble(document).instances.flatMap { instance, bodies in
+            bodies.map { BuiltBody(part: instance.name, name: $0.name, body: $0.body) }
         }
     }
 

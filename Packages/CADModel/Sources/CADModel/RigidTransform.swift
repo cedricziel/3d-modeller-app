@@ -74,3 +74,25 @@ public extension BodyMesh {
         )
     }
 }
+
+extension RigidTransform {
+    /// `local` expressed in the coordinates this transform maps into.
+    public func composed(with local: RigidTransform) -> RigidTransform {
+        RigidTransform(rotation: rotation * local.rotation, translation: point(local.translation))
+    }
+
+    /// The same move as a rotation of `rotationDegrees` about `rotationAxis`, then the translation.
+    public var resolvedPlacement: ResolvedPlacement {
+        let quaternion = simd_quatd(rotation)
+        let degrees = quaternion.angle * 180 / .pi
+        let axis = quaternion.axis
+        guard abs(degrees) > 1e-12, simd_length(axis) > 0.5 else { return ResolvedPlacement(translation: translation) }
+        return ResolvedPlacement(translation: translation, rotationAxis: axis, rotationDegrees: degrees)
+    }
+
+    /// Whether the two transforms move points by no more than `tolerance` apart within a unit of the origin.
+    func isClose(to other: RigidTransform, tolerance: Double = 1e-9) -> Bool {
+        let columns = [0, 1, 2].map { simd_length(rotation[$0] - other.rotation[$0]) }
+        return simd_length(translation - other.translation) <= tolerance && (columns.max() ?? 0) <= tolerance
+    }
+}
