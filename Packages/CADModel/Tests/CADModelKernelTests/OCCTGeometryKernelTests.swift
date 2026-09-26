@@ -133,7 +133,8 @@ struct OCCTGeometryKernelTests {
              ]}]}
             """
         let model = try await engine.build(try CADDocument(json: Data(json.utf8)))
-        let key = { (name: String) in BodyKey(part: "P", body: name) }
+        let part = model.result.parts[0].id
+        let key = { (name: String) in BodyKey(part: part, body: name) }
         let topology = try #require(model.result.bodies.first?.topology)
         let hole = try #require(topology.faces.firstIndex { $0.names.contains("Hole.side") })
         let left = try #require(topology.faces.firstIndex { $0.names.contains("Plate.left") })

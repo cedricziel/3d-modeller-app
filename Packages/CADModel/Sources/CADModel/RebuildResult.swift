@@ -68,11 +68,17 @@ public struct PartResult: Sendable, Equatable, Identifiable {
 public struct RebuildResult: Sendable, Equatable {
     public let parameters: ParameterTable
     public let parts: [PartResult]
+    /// The placed instances; nil when the document has no assembly.
+    public let assembly: AssemblyResult?
 
     public var bodies: [BodyResult] { parts.flatMap(\.bodies) }
     public var triangleCount: Int { bodies.reduce(0) { $0 + ($1.mesh?.triangleCount ?? 0) } }
     public var failedFeatureCount: Int {
         parts.flatMap(\.features).count { if case .failed = $0.status { true } else { false } }
+    }
+
+    public var failedInstanceCount: Int {
+        (assembly?.instances ?? []).count { $0.status != .ok }
     }
 
     public func feature(id: UUID) -> FeatureResult? {

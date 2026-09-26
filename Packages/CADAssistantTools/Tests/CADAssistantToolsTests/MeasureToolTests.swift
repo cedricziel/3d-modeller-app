@@ -114,7 +114,7 @@ struct MeasureToolTests {
                 .hasPrefix("'a' must be an object such as {\"body\": \"Body1\"}") == true)
         #expect(
             try await harness.refused("measure", ["kind": "size", "a": [:]])?
-                .hasPrefix("'a' needs a 'body' or a 'point'") == true)
+                .hasPrefix("'a' needs a 'body', an 'instance' or a 'point'") == true)
         #expect(
             try await harness.refused(
                 "measure",
@@ -123,7 +123,7 @@ struct MeasureToolTests {
         #expect(
             try await harness.refused(
                 "measure", ["kind": "distance", "a": ["point": [0, 0, 0], "body": "Body1"], "b": ["body": "Body1"]])
-                == "'a' is a point, which stands alone; drop 'part', 'body', 'face' and 'edge'.")
+                == "'a' is a point, which stands alone; drop 'part', 'instance', 'body', 'face' and 'edge'.")
         #expect(
             try await harness.refused("measure", ["kind": "size", "a": ["body": "Body7"]])
                 == "Part Plate has no body named 'Body7'. Bodies: Body1, Body2.")
@@ -138,7 +138,7 @@ struct MeasureToolTests {
                 == "'kind' is distance, angle, size or interference, not 'volume'.")
     }
 
-    @Test("Parts sharing a name cannot be told apart, so measuring them is refused")
+    @Test("Parts sharing a name are measured by id: the name picks the first part, never a mix")
     func duplicatePartNames() async throws {
         let harness = Harness(
             CADDocument(parts: [
@@ -147,9 +147,10 @@ struct MeasureToolTests {
             ]))
         try await harness.session.rebuild()
 
-        #expect(
-            try await harness.refused("measure", ["kind": "size", "a": ["part": "P", "body": "Body1"]])
-                == "Several parts are named P; rename one before measuring.")
+        let result = try await harness.call(
+            "measure", ["kind": "distance", "a": ["part": "P", "body": "Body1"], "b": ["point": [5, 5, 5]]])
+
+        #expect(result.message.hasPrefix("Distance 6.928 mm between Body1 (P) and point (5, 5, 5)"))
     }
 
     @Test("A reference that matches several faces is refused with the matches")
@@ -186,7 +187,8 @@ struct MeasureToolTests {
             try await harness().refused(
                 "measure",
                 ["kind": "interference", "a": ["body": "Body1", "face": "Base.top"], "b": ["body": "Body2"]])
-                == "interference compares two bodies; give 'a' and 'b' as {\"body\": …} without a face, edge or point.")
+                == "interference compares two bodies; give 'a' and 'b' as {\"body\": …} or {\"instance\": …} "
+                + "without a face, edge or point.")
     }
 
     @Test("On the real kernel: hole-to-wall distance, overlap volume and clearance")

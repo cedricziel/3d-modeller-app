@@ -17,6 +17,12 @@ public enum CADTools {
             AddSketchTool(session: session),
             EditSketchTool(session: session),
             GetSketchTool(session: session),
+            AddPartTool(session: session),
+            RenamePartTool(session: session),
+            DeletePartTool(session: session),
+            AddInstanceTool(session: session),
+            EditInstanceTool(session: session),
+            DeleteInstanceTool(session: session),
         ]
     }
 }

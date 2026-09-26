@@ -53,7 +53,13 @@ public enum Check: Sendable, Equatable {
     case parameter(name: String, value: Double, tolerance: Double)
     case featureCount(FeatureType, min: Int?, max: Int?)
     case referenceIoU(threshold: Double)
-    case unchangedExcept(features: [String], parameters: [String], allowNewFeatures: Bool)
+    case unchangedExcept(features: [String], parameters: [String], instances: [String], allowNewFeatures: Bool)
+    case instanceCount(Int)
+    /// The bounds of one instance, or of every instance when `instance` is nil.
+    case instanceBounds(
+        instance: String?, min: SIMD3<Double>?, max: SIMD3<Double>?, size: SIMD3<Double>?, tolerance: Double)
+    /// No two instances share volume; touching is allowed.
+    case noInterference
 }
 
 extension Check: Decodable {
@@ -123,10 +129,26 @@ extension Check: Decodable {
             try allow(["threshold"])
             self = .referenceIoU(threshold: try required("threshold"))
         case "unchangedExcept":
-            try allow(["features", "parameters", "allowNewFeatures"])
+            try allow(["features", "parameters", "instances", "allowNewFeatures"])
             self = .unchangedExcept(
                 features: try optional("features") ?? [], parameters: try optional("parameters") ?? [],
+                instances: try optional("instances") ?? [],
                 allowNewFeatures: try optional("allowNewFeatures") ?? false)
+        case "instanceCount":
+            try allow(["equals"])
+            self = .instanceCount(try required("equals"))
+        case "instanceBounds":
+            try allow(["instance", "min", "max", "size", "tolerance"])
+            let (min, max, size) = (try vector("min"), try vector("max"), try vector("size"))
+            guard min != nil || max != nil || size != nil else {
+                throw fail("An instanceBounds check needs min, max or size")
+            }
+            self = .instanceBounds(
+                instance: try optional("instance"), min: min, max: max, size: size,
+                tolerance: try optional("tolerance") ?? 0.01)
+        case "noInterference":
+            try allow([])
+            self = .noInterference
         default:
             throw fail("Unknown check type '\(type)'")
         }
@@ -141,11 +163,14 @@ extension Check: CustomStringConvertible {
         case .bodyCount(let count):
             return "body count = \(count)"
         case .boundingBox(let selector, let min, let max, let size, let tolerance):
-            let parts = [
-                min.map { "min \(BenchFormat.vector($0))" }, max.map { "max \(BenchFormat.vector($0))" },
-                size.map { "size \(BenchFormat.vector($0))" },
-            ].compactMap { $0 }
-            return "bounding box of \(selector): \(parts.joined(separator: ", ")) ±\(BenchFormat.number(tolerance)) mm"
+            return "bounding box of \(selector): \(Self.bounds(min, max, size, tolerance))"
+        case .instanceCount(let count):
+            return "instance count = \(count)"
+        case .instanceBounds(let instance, let min, let max, let size, let tolerance):
+            let subject = instance.map { "instance \($0)" } ?? "all instances"
+            return "bounds of \(subject): \(Self.bounds(min, max, size, tolerance))"
+        case .noInterference:
+            return "no interference between instances"
         case .volume(let selector, let expected, let tolerance):
             return "volume of \(selector) = \(BenchFormat.number(expected)) mm³ ±\(BenchFormat.percent(tolerance))"
         case .parameter(let name, let value, _):
@@ -160,12 +185,23 @@ extension Check: CustomStringConvertible {
             }
         case .referenceIoU(let threshold):
             return "overlap with reference ≥ \(BenchFormat.number(threshold))"
-        case .unchangedExcept(let features, let parameters, let allowNewFeatures):
+        case .unchangedExcept(let features, let parameters, let instances, let allowNewFeatures):
             var parts: [String] = []
             if !features.isEmpty { parts.append("features \(features.joined(separator: ", "))") }
             if !parameters.isEmpty { parts.append("parameters \(parameters.joined(separator: ", "))") }
+            if !instances.isEmpty { parts.append("instances \(instances.joined(separator: ", "))") }
             if allowNewFeatures { parts.append("new features allowed") }
             return parts.isEmpty ? "unchanged elsewhere" : "unchanged except \(parts.joined(separator: ", "))"
         }
+    }
+
+    private static func bounds(
+        _ min: SIMD3<Double>?, _ max: SIMD3<Double>?, _ size: SIMD3<Double>?, _ tolerance: Double
+    ) -> String {
+        let parts = [
+            min.map { "min \(BenchFormat.vector($0))" }, max.map { "max \(BenchFormat.vector($0))" },
+            size.map { "size \(BenchFormat.vector($0))" },
+        ].compactMap { $0 }
+        return "\(parts.joined(separator: ", ")) ±\(BenchFormat.number(tolerance)) mm"
     }
 }

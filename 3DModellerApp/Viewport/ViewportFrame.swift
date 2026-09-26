@@ -9,8 +9,8 @@ enum ViewportFrame {
 
     static func scenePosition(_ p: SIMD3<Float>) -> SIMD3<Float> { sceneDirection(p) * metresPerMillimetre }
 
-    static func sceneBounds(of result: RebuildResult?) -> SceneBounds? {
-        let corners = (result?.bodies ?? []).compactMap(\.metrics).flatMap { metrics in
+    static func sceneBounds(of result: RebuildResult?, content: ViewportContent = .parts) -> SceneBounds? {
+        let corners = (result?.displayBodies(content) ?? []).compactMap(\.metrics).flatMap { metrics in
             [metrics.boundsMin, metrics.boundsMax].map { scenePosition(SIMD3<Float>($0)) }
         }
         guard let first = corners.first else { return nil }

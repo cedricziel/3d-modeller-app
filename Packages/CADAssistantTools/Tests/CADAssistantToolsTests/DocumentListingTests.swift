@@ -26,12 +26,15 @@ struct DocumentListingTests {
 
     @Test("Without a rebuild result features read as not built, suppressed ones as suppressed")
     func notBuilt() {
-        #expect(
-            DocumentListing.render(Fixtures.plate(), result: nil).split(separator: "\n").map(String.init)[2...4] == [
-                "  Base  box width×depth×t at origin → Body1  not built",
-                "  Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  not built",
-                "  Pin  cylinder r=2 h=5 at (0, 0, 10) rotated 90° about (1, 0, 0) → Body2  suppressed",
-            ])
+        let lines: [String] = DocumentListing.render(Fixtures.plate(), result: nil).split(separator: "\n").map(
+            String.init)
+        let expected: [String] = [
+            "  Base  box width×depth×t at origin → Body1  not built",
+            "  Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  not built",
+            "  Pin  cylinder r=2 h=5 at (0, 0, 10) rotated 90° about (1, 0, 0) → Body2  suppressed",
+        ]
+
+        #expect(Array(lines[2...4]) == expected)
     }
 
     @Test("Empty documents, empty parts and failing parameters are listed plainly")
@@ -107,5 +110,40 @@ struct DocumentListingTests {
         #expect(Format.number(-0.0001) == "0")
         #expect(Format.number(24000) == "24000")
         #expect(Format.number(-12.5) == "-12.5")
+    }
+
+    @Test("The assembly lists each instance with its part, placement and status")
+    func assembly() async throws {
+        let plate = Part(name: "Plate", features: [Fixtures.box("Box", 60, 40, 5)])
+        let document = CADDocument(
+            parameters: [Parameter(name: "gap", expression: 10)], parts: [plate],
+            assembly: Assembly(instances: [
+                Instance(name: "Base", part: plate.id, grounded: true),
+                Instance(
+                    name: "Lid", part: plate.id, body: "Body1",
+                    placement: Placement(
+                        translation: Vector3(0, 0, "gap + 5"), rotationAxis: Vector3(0, 0, 1), rotationDegrees: 90)),
+                Instance(name: "Ghost", part: UUID()),
+            ]))
+        let result = try await RebuildEngine(kernel: FakeKernel()).rebuild(document)
+        let lines = DocumentListing.render(document, result: result).split(separator: "\n").map(String.init)
+        let unbuilt = DocumentListing.render(document, result: nil).split(separator: "\n").map(String.init)
+        let expected: [String] = [
+            "assembly",
+            "  Base  Plate at origin, grounded  ok",
+            "  Lid  Plate/Body1 at (0, 0, gap + 5) rotated 90° about (0, 0, 1)  ok",
+            "  Ghost  (missing part)  failed: its part no longer exists",
+        ]
+
+        #expect(Array(lines.suffix(4)) == expected)
+        #expect(unbuilt.last == "  Ghost  (missing part)  not built")
+    }
+
+    @Test("An empty assembly says so; a document without one lists no assembly")
+    func emptyAssembly() {
+        let empty = CADDocument(parts: [Part(name: "P")], assembly: Assembly())
+
+        #expect(DocumentListing.render(empty, result: nil).hasSuffix("assembly\n  (no instances)"))
+        #expect(!DocumentListing.render(CADDocument(parts: [Part(name: "P")]), result: nil).contains("assembly"))
     }
 }

@@ -113,7 +113,7 @@ struct FeatureSpec: Equatable {
         try readSketchFields(arguments)
     }
 
-    private static func vector(_ value: JSONValue?, _ key: String) throws(ToolError) -> [String: Scalar] {
+    static func vector(_ value: JSONValue?, _ key: String) throws(ToolError) -> [String: Scalar] {
         guard let value, !value.isNull else { return [:] }
         var components: [String: Scalar] = [:]
         if let items = value.arrayValue {

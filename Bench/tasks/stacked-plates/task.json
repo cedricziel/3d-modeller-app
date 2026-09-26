@@ -1,0 +1,61 @@
+{
+  "checks": [
+    {
+      "type": "gate"
+    },
+    {
+      "equals": 3,
+      "type": "instanceCount"
+    },
+    {
+      "instance": "Top",
+      "max": [
+        60,
+        40,
+        20
+      ],
+      "min": [
+        0,
+        0,
+        15
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "instance": "Spacer",
+      "max": [
+        40,
+        30,
+        15
+      ],
+      "min": [
+        20,
+        10,
+        5
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "max": [
+        60,
+        40,
+        20
+      ],
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "type": "instanceBounds"
+    },
+    {
+      "type": "noInterference"
+    },
+    {
+      "threshold": 0.999,
+      "type": "referenceIoU"
+    }
+  ],
+  "kind": "build",
+  "prompt": "Build an assembly of two identical plates held apart by a spacer block. Make a part Plate: a 60 × 40 × 5 mm plate (X × Y × Z) with one corner at its origin. Make a part Spacer: a 20 × 20 × 10 mm block with one corner at its origin. Place them as instances: Bottom, the Plate at the origin, grounded; Spacer, the Spacer with its corner at (20, 10, 5), centred on the bottom plate; and Top, a second instance of Plate with its corner at (0, 0, 15), resting on the spacer. Model the plate once and place it twice. Nothing may overlap."
+}

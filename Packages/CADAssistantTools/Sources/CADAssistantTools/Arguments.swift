@@ -1,3 +1,4 @@
+import Foundation
 import CADModel
 import SwiftUIAssistant
 
@@ -91,6 +92,34 @@ enum Naming {
         return name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") }
     }
 
+    static func checkPartName(_ name: String, in document: CADDocument, excluding id: UUID? = nil) throws(ToolError) {
+        try checkIdentifier(name, "part")
+        if document.parts.contains(where: { $0.name == name && $0.id != id }) {
+            throw ToolError("A part named \(name) already exists.")
+        }
+    }
+
+    static func checkInstanceName(_ name: String, in document: CADDocument, excluding id: UUID? = nil)
+        throws(ToolError)
+    {
+        try checkIdentifier(name, "instance")
+        if document.instances.contains(where: { $0.name == name && $0.id != id }) {
+            throw ToolError("An instance named \(name) already exists.")
+        }
+    }
+
+    private static func checkIdentifier(_ name: String, _ kind: String) throws(ToolError) {
+        guard isIdentifier(name) else {
+            throw ToolError(
+                "'\(name)' is not a valid \(kind) name: use letters, digits and _, starting with a letter or _.")
+        }
+    }
+
+    /// `base` followed by the lowest number ≥ 1 that makes a name not in `taken`.
+    static func next(_ base: String, taken: Set<String>) -> String {
+        (1...).lazy.map { "\(base)\($0)" }.first { !taken.contains($0) }!
+    }
+
     static func checkFeatureName(_ name: String, in part: Part, excluding id: UUID? = nil) throws(ToolError) {
         guard isIdentifier(name) else {
             throw ToolError(
@@ -114,6 +143,14 @@ extension CADDocument {
         }
         guard let index = parts.firstIndex(where: { $0.name == name }) else {
             throw ToolError("No part named '\(name)'. Parts: \(names.isEmpty ? "none" : names).")
+        }
+        return index
+    }
+
+    func instanceIndex(named name: String) throws(ToolError) -> Int {
+        guard let index = instances.firstIndex(where: { $0.name == name }) else {
+            let names = instances.map(\.name).joined(separator: ", ")
+            throw ToolError("No instance named '\(name)'. Instances: \(names.isEmpty ? "none" : names).")
         }
         return index
     }

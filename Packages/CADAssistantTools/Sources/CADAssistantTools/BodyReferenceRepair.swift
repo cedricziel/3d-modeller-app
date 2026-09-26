@@ -31,10 +31,22 @@ enum BodyReferenceRepair {
                     notes.append("\(feature.name) now refers to \(renamed.joined(separator: ", "))")
                 }
             }
+            for index in after.instances.indices where after.instances[index].part == old.id {
+                let instance = after.instances[index]
+                guard let name = instance.body, let owner = owners[name] else { continue }
+                guard let newName = newNames[owner] else {
+                    let creator = old.features.first { $0.id == owner }?.name ?? "?"
+                    conflicts.append("\(instance.name) uses \(name), which \(creator) creates")
+                    continue
+                }
+                guard newName != name else { continue }
+                after.assembly?.instances[index].body = newName
+                notes.append("\(instance.name) now refers to \(newName) (was \(name))")
+            }
         }
         guard conflicts.isEmpty else {
             throw ToolError(
-                "Nothing changed, because bodies that other features use would no longer exist: "
+                "Nothing changed, because bodies that other features or instances use would no longer exist: "
                     + conflicts.joined(separator: "; ")
                     + ". Change or delete those features first, or suppress the creating feature instead.")
         }

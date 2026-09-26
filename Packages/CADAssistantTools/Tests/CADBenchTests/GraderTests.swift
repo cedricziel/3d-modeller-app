@@ -123,11 +123,76 @@ struct GraderTests {
         var edited = seed
         edited.parameters[0].expression = 30
         let result = await grade(
-            [.unchangedExcept(features: ["Hole"], parameters: [], allowNewFeatures: false)], edited, seed: seed)
+            [.unchangedExcept(features: ["Hole"], parameters: [], instances: [], allowNewFeatures: false)], edited,
+            seed: seed)
         #expect(
             result.outcomes[0]
                 == CheckOutcome(
                     check: "unchanged except features Hole", passed: false,
                     detail: "parameter w changed from 20 to 30"))
+    }
+
+    private func stacked(topAt z: Scalar, extra: [Instance] = []) -> CADDocument {
+        let plate = Part(name: "Plate", features: [box("Box", 60, 40, 5)])
+        return CADDocument(
+            parts: [plate],
+            assembly: Assembly(
+                instances: [
+                    Instance(name: "Bottom", part: plate.id, grounded: true),
+                    Instance(name: "Top", part: plate.id, placement: Placement(translation: Vector3(0, 0, z))),
+                ] + extra))
+    }
+
+    @Test("Instance count, instance bounds and interference are graded on the placed instances")
+    func instanceChecks() async {
+        let checks: [Check] = [
+            .gate, .instanceCount(2),
+            .instanceBounds(instance: "Top", min: SIMD3(0, 0, 5), max: SIMD3(60, 40, 10), size: nil, tolerance: 0.01),
+            .instanceBounds(instance: nil, min: SIMD3(0, 0, 0), max: SIMD3(60, 40, 10), size: nil, tolerance: 0.01),
+            .noInterference,
+        ]
+        let touching = await grade(checks, stacked(topAt: 5))
+        let sunk = await grade(checks, stacked(topAt: 3))
+
+        #expect(touching.passed, "\(touching.failures)")
+        #expect(sunk.outcomes.map(\.passed) == [true, true, false, false, false])
+        #expect(sunk.outcomes[4].detail == "Bottom and Top overlap by 4800 mm³")
+        #expect(touching.outcomes[4].detail == "no overlap")
+    }
+
+    @Test("A failed instance fails the gate; an unknown instance fails its bounds check")
+    func failedInstances() async {
+        var document = stacked(topAt: 5)
+        document.assembly?.instances[1].body = "Body9"
+        let result = await grade(
+            [
+                .gate,
+                .instanceBounds(instance: "Lid", min: SIMD3(0, 0, 0), max: nil, size: nil, tolerance: 0.01),
+            ], document)
+
+        #expect(result.outcomes[0].detail == "instance Top: failed: part Plate has no body named Body9; bodies: Body1")
+        #expect(result.outcomes[1].detail == "no instance named Lid (instances: Bottom, Top)")
+    }
+
+    @Test("Unchanged-elsewhere compares instances by name")
+    func unchangedInstances() async {
+        let seed = stacked(topAt: 5)
+        var moved = seed
+        moved.assembly?.instances[1].placement.translation.z = 25
+        moved.assembly?.instances[0].grounded = false
+        let result = await grade(
+            [.unchangedExcept(features: [], parameters: [], instances: ["Top"], allowNewFeatures: false)], moved,
+            seed: seed)
+
+        #expect(result.outcomes[0].detail == "instance Bottom changed")
+    }
+
+    @Test("Reference overlap compares the placed instances when the reference has an assembly")
+    func instanceOverlap() async {
+        let same = await grade([.referenceIoU(threshold: 0.999)], stacked(topAt: 5), reference: stacked(topAt: 5))
+        let moved = await grade([.referenceIoU(threshold: 0.999)], stacked(topAt: 10), reference: stacked(topAt: 5))
+
+        #expect(same.passed, "\(same.failures)")
+        #expect(!moved.passed)
     }
 }

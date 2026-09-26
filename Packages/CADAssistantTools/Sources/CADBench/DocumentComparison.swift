@@ -9,7 +9,7 @@ enum DocumentComparison {
 
     static func differences(
         from seed: CADDocument, to document: CADDocument, features exemptFeatures: Set<String>,
-        parameters exemptParameters: Set<String>, allowNewFeatures: Bool
+        parameters exemptParameters: Set<String>, instances exemptInstances: Set<String> = [], allowNewFeatures: Bool
     ) -> [String] {
         var differences: [String] = []
         let current = Dictionary(
@@ -58,6 +58,42 @@ enum DocumentComparison {
         let seedParts = Set(seed.parts.map(\.name))
         for part in document.parts where !seedParts.contains(part.name) {
             differences.append("part \(part.name) was added")
+        }
+        return differences + instanceDifferences(from: seed, to: document, exempt: exemptInstances)
+    }
+
+    private struct PlacedInstance: Equatable {
+        let part: String?
+        let body: String?
+        let placement: Placement
+        let grounded: Bool
+
+        init(_ instance: Instance, in document: CADDocument) {
+            part = document.part(id: instance.part)?.name
+            body = instance.body
+            placement = instance.placement
+            grounded = instance.grounded
+        }
+    }
+
+    /// Instances by name, with the part they place by name, so re-created parts with new ids compare equal.
+    private static func instanceDifferences(from seed: CADDocument, to document: CADDocument, exempt: Set<String>)
+        -> [String]
+    {
+        var differences: [String] = []
+        let current = Dictionary(
+            document.instances.map { ($0.name, PlacedInstance($0, in: document)) },
+            uniquingKeysWith: { first, _ in first })
+        for instance in seed.instances where !exempt.contains(instance.name) {
+            guard let edited = current[instance.name] else {
+                differences.append("instance \(instance.name) was removed")
+                continue
+            }
+            if edited != PlacedInstance(instance, in: seed) { differences.append("instance \(instance.name) changed") }
+        }
+        let seedNames = Set(seed.instances.map(\.name))
+        for instance in document.instances where !seedNames.contains(instance.name) && !exempt.contains(instance.name) {
+            differences.append("instance \(instance.name) was added")
         }
         return differences
     }
