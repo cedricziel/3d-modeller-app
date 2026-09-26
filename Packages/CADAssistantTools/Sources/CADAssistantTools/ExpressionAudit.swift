@@ -44,6 +44,18 @@ enum ExpressionAudit {
                 }
             }
         }
+        for joint in document.joints {
+            for (field, scalar) in joint.scalarFields {
+                do {
+                    _ = try table.evaluate(scalar)
+                } catch {
+                    failures.append(
+                        Failure(
+                            key: "joint \(joint.id) \(field) \(scalar)",
+                            text: "\(joint.name).\(field) = \(scalar): \(error)"))
+                }
+            }
+        }
         return failures
     }
 
@@ -115,5 +127,21 @@ extension Placement {
             ("placement.rotationAxis.y", rotationAxis.y), ("placement.rotationAxis.z", rotationAxis.z),
             ("placement.rotationDegrees", rotationDegrees),
         ]
+    }
+}
+
+extension Joint {
+    var scalarFields: [(String, Scalar)] {
+        let offsets = [("a", a), ("b", b)].flatMap { label, side in
+            side.offset.map { offset in
+                [("x", offset.x), ("y", offset.y), ("z", offset.z), ("angle", offset.angle)].map {
+                    ("\(label).offset.\($0.0)", $0.1)
+                }
+            } ?? []
+        }
+        let limits = [("limits.min", limits?.min), ("limits.max", limits?.max)].compactMap { field, scalar in
+            scalar.map { (field, $0) }
+        }
+        return offsets + limits
     }
 }

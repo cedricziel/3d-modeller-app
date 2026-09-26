@@ -142,7 +142,10 @@ extension CADSession {
             let index = try document.instanceIndex(named: try arguments.requiredString("instance"))
             let instance = document.assembly?.instances.remove(at: index)
             let name = instance?.name ?? ""
-            return WriteFocus(actionName: "Delete instance \(name)", summary: "Deleted instance \(name)")
+            let removed = document.joints.filter { $0.a.instance == instance?.id || $0.b.instance == instance?.id }
+            document.assembly?.joints.removeAll { joint in removed.contains { $0.id == joint.id } }
+            let joints = removed.isEmpty ? "" : "; removed joints \(removed.map(\.name).joined(separator: ", "))"
+            return WriteFocus(actionName: "Delete instance \(name)", summary: "Deleted instance \(name)\(joints)")
         }
     }
 }

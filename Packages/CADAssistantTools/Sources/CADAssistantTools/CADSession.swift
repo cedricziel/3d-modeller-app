@@ -27,11 +27,13 @@ public final class CADSession {
     @ObservationIgnored private var building: (document: CADDocument, task: Task<RebuiltModel, any Error>)?
     private nonisolated let snapshot: Mutex<String>
 
-    /// Without a sketch solver, sketches fail to build and the features that use them are skipped.
+    /// Without a sketch solver, sketches fail to build and the features that use them are skipped. Without an
+    /// assembly solver, every joint fails.
     public init<Kernel: GeometryKernel>(
-        document: CADDocument = CADDocument(), kernel: Kernel, sketchSolver: (any SketchSolving)? = nil
+        document: CADDocument = CADDocument(), kernel: Kernel, sketchSolver: (any SketchSolving)? = nil,
+        assemblySolver: (any AssemblySolving)? = nil
     ) {
-        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver)
+        let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver)
         build = { try await engine.build($0) }
         self.document = document
         snapshot = Mutex(DocumentListing.render(document, result: nil))

@@ -88,3 +88,34 @@ struct RealSketchTests {
         #expect(faces.message.contains("Extrude1.end  plane"))
     }
 }
+
+@MainActor
+@Suite("Joint tools on Open CASCADE and OndselSolver")
+struct RealJointTests {
+    @Test("A fixed joint through the tools puts the lid flush on the box")
+    func lidOnBox() async throws {
+        let session = CADSession(
+            document: CADDocument(parts: [Part(name: "Box"), Part(name: "Lid")]), kernel: OCCTGeometryKernel(),
+            assemblySolver: OndselAssemblySolver())
+        let tools = Dictionary(uniqueKeysWithValues: CADTools.all(session: session).map { ($0.name, $0) })
+        _ = try await tools["add_feature"]!.execute(arguments: [
+            "part": "Box", "name": "Shell", "type": "box", "width": 60, "depth": 40, "height": 30,
+        ])
+        _ = try await tools["add_feature"]!.execute(arguments: [
+            "part": "Lid", "name": "Cap", "type": "box", "width": 60, "depth": 40, "height": 5,
+        ])
+        _ = try await tools["add_instance"]!.execute(arguments: ["part": "Box", "name": "Base", "grounded": true])
+        _ = try await tools["add_instance"]!.execute(arguments: [
+            "part": "Lid", "name": "Top", "placement": ["translation": [100, 0, 80]],
+        ])
+
+        let joint = try await tools["add_joint"]!.execute(arguments: [
+            "kind": "fixed", "a": ["instance": "Base", "face": "Shell.top"],
+            "b": ["instance": "Top", "face": "Cap.bottom"],
+        ])
+
+        #expect(joint.message.contains("Fixed1: ok"), "\(joint.message)")
+        #expect(joint.message.contains("Top (Lid): ok, bounds (0, 0, 30) to (60, 40, 35)"), "\(joint.message)")
+        #expect(joint.message.contains("Moved by joints: Top (100, 0, 80) → (0, 0, 30)"), "\(joint.message)")
+    }
+}
