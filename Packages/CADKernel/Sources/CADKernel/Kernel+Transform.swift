@@ -12,7 +12,7 @@ extension Kernel {
         guard values.allSatisfy(\.isFinite) else {
             throw KernelError.invalidDimensions("placement values must be finite")
         }
-        guard simd_length(placement.axis) > 0 else {
+        guard placement.largestAxisComponent > 0 else {
             throw KernelError.invalidDimensions("rotation axis must not be zero")
         }
     }

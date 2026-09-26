@@ -44,6 +44,15 @@ struct PlacementTests {
         #expect(approx(metrics.boundsMax, SIMD3(2, 1, 1)))
     }
 
+    @Test("A huge axis still rotates without scaling the body")
+    func hugeAxis() throws {
+        let metrics = try Kernel.metrics(
+            of: Kernel.transform(block(), by: Placement(axis: SIMD3(0, 1e300, 1e300), angle: .pi)))
+
+        #expect(approx(metrics.volume, 8))
+        #expect(approx(metrics.boundsMax - metrics.boundsMin, SIMD3(2, 1, 4)))
+    }
+
     @Test("A zero rotation axis is rejected")
     func zeroAxis() throws {
         #expect(throws: KernelError.invalidDimensions("rotation axis must not be zero")) {

@@ -13,7 +13,11 @@ public struct Placement: Sendable, Hashable, Codable {
 
     public static let identity = Placement()
 
+    var largestAxisComponent: Double {
+        max(abs(axis.x), abs(axis.y), abs(axis.z))
+    }
+
     var rotation: simd_double3x3 {
-        simd_double3x3(simd_quatd(angle: angle, axis: simd_normalize(axis)))
+        simd_double3x3(simd_quatd(angle: angle, axis: simd_normalize(axis / largestAxisComponent)))
     }
 }
