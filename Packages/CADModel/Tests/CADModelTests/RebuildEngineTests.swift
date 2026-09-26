@@ -227,6 +227,15 @@ struct RebuildEngineTests {
         #expect(kernel.calls.count == 1)
     }
 
+    @Test("Cancellation during the last body's tessellation still throws")
+    func cancellationDuringTessellation() async throws {
+        let kernel = FakeKernel { call in if call == "mesh" { withUnsafeCurrentTask { $0?.cancel() } } }
+        let document = CADDocument(parts: [Part(name: "P", features: [box("A")])])
+        await #expect(throws: CancellationError.self) {
+            try await RebuildEngine(kernel: kernel).rebuild(document)
+        }
+    }
+
     @Test("Statuses describe themselves for listings")
     func statusDescriptions() {
         #expect(FeatureStatus.ok.description == "ok")

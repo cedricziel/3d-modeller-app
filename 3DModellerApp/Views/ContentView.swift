@@ -58,7 +58,7 @@ struct ContentView: View {
             setupAssistant()
         }
         .task(id: document.model) {
-            if let rebuilt = try? await Self.engine.rebuild(document.model) {
+            if let rebuilt = try? await Self.engine.rebuild(document.model), !Task.isCancelled {
                 result = rebuilt
             }
         }

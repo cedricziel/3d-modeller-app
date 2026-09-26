@@ -19,6 +19,7 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
             parts.append(
                 PartResult(id: part.id, name: part.name, features: features, bodies: try builder.bodyResults()))
         }
+        try Task.checkCancellation()
         return RebuildResult(parameters: parameters, parts: parts)
     }
 }

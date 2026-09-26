@@ -19,12 +19,19 @@ final class FakeKernel: GeometryKernel {
         self.onCall = onCall
     }
 
-    var calls: [String] { log.withLock { $0 } }
-    var callsOnMainThread: Int { mainThreadCalls.withLock { $0 } }
+    var calls: [String] {
+        log.withLock { $0 }
+    }
+
+    var callsOnMainThread: Int {
+        mainThreadCalls.withLock { $0 }
+    }
 
     private func record(_ call: String) {
         log.withLock { $0.append(call) }
-        if Thread.isMainThread { mainThreadCalls.withLock { $0 += 1 } }
+        if Thread.isMainThread {
+            mainThreadCalls.withLock { $0 += 1 }
+        }
         onCall(call)
     }
 
@@ -51,20 +58,21 @@ final class FakeKernel: GeometryKernel {
         return FakeBody(volume: 100 * radius * radius * height)
     }
 
-    func sphere(radius: Double, placement: ResolvedPlacement) throws -> FakeBody {
+    func sphere(radius: Double, placement _: ResolvedPlacement) throws -> FakeBody {
         record("sphere r\(Scalar.number(radius))")
         try Self.requirePositive(radius)
         return FakeBody(volume: 1000 * radius)
     }
 
-    func cone(bottomRadius: Double, topRadius: Double, height: Double, placement: ResolvedPlacement) throws -> FakeBody
+    func cone(bottomRadius: Double, topRadius: Double, height: Double, placement _: ResolvedPlacement) throws
+        -> FakeBody
     {
         record("cone")
         guard bottomRadius != topRadius else { throw FakeKernelError(description: "cone radii must differ") }
         return FakeBody(volume: height)
     }
 
-    func torus(majorRadius: Double, minorRadius: Double, placement: ResolvedPlacement) throws -> FakeBody {
+    func torus(majorRadius: Double, minorRadius: Double, placement _: ResolvedPlacement) throws -> FakeBody {
         record("torus")
         return FakeBody(volume: majorRadius * minorRadius)
     }
@@ -89,12 +97,15 @@ final class FakeKernel: GeometryKernel {
     func metrics(of body: FakeBody) throws -> BodyMetrics {
         BodyMetrics(
             volume: body.volume, boundsMin: .zero, boundsMax: SIMD3(1, 1, 1),
-            faceCount: 6, solidCount: 1, isValid: true, isClosed: true)
+            faceCount: 6, solidCount: 1, isValid: true, isClosed: true
+        )
     }
 
-    func mesh(of body: FakeBody) throws -> BodyMesh {
-        BodyMesh(
+    func mesh(of _: FakeBody) throws -> BodyMesh {
+        onCall("mesh")
+        return BodyMesh(
             positions: [.zero, SIMD3(1, 0, 0), SIMD3(0, 1, 0)], normals: Array(repeating: SIMD3(0, 0, 1), count: 3),
-            indices: [0, 1, 2])
+            indices: [0, 1, 2]
+        )
     }
 }
