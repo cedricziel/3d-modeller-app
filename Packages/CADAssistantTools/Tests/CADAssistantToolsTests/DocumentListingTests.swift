@@ -108,4 +108,39 @@ struct DocumentListingTests {
         #expect(Format.number(24000) == "24000")
         #expect(Format.number(-12.5) == "-12.5")
     }
+
+    @Test("The assembly lists each instance with its part, placement and status")
+    func assembly() async throws {
+        let plate = Part(name: "Plate", features: [Fixtures.box("Box", 60, 40, 5)])
+        let document = CADDocument(
+            parameters: [Parameter(name: "gap", expression: 10)], parts: [plate],
+            assembly: Assembly(instances: [
+                Instance(name: "Base", part: plate.id, grounded: true),
+                Instance(
+                    name: "Lid", part: plate.id, body: "Body1",
+                    placement: Placement(
+                        translation: Vector3(0, 0, "gap + 5"), rotationAxis: Vector3(0, 0, 1), rotationDegrees: 90)),
+                Instance(name: "Ghost", part: UUID()),
+            ]))
+        let result = try await RebuildEngine(kernel: FakeKernel()).rebuild(document)
+        let lines = DocumentListing.render(document, result: result).split(separator: "\n").map(String.init)
+        let unbuilt = DocumentListing.render(document, result: nil).split(separator: "\n").map(String.init)
+        let expected: [String] = [
+            "assembly",
+            "  Base  Plate at origin, grounded  ok",
+            "  Lid  Plate/Body1 at (0, 0, gap + 5) rotated 90° about (0, 0, 1)  ok",
+            "  Ghost  (missing part)  failed: its part no longer exists",
+        ]
+
+        #expect(Array(lines.suffix(4)) == expected)
+        #expect(unbuilt.last == "  Ghost  (missing part)  not built")
+    }
+
+    @Test("An empty assembly says so; a document without one lists no assembly")
+    func emptyAssembly() {
+        let empty = CADDocument(parts: [Part(name: "P")], assembly: Assembly())
+
+        #expect(DocumentListing.render(empty, result: nil).hasSuffix("assembly\n  (no instances)"))
+        #expect(!DocumentListing.render(CADDocument(parts: [Part(name: "P")]), result: nil).contains("assembly"))
+    }
 }
