@@ -28,6 +28,9 @@ jobs:
       - name: Test CADModel
         working-directory: Packages/CADModel
         run: xcrun swift test
+      - name: Test CADAssistantTools
+        working-directory: Packages/CADAssistantTools
+        run: xcrun swift test
       - name: Test app
         run: >
           xcodebuild test
