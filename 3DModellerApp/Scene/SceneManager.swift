@@ -183,10 +183,11 @@ final class SceneManager: ObservableObject {
     ) throws -> CADEntity {
         let mesh = try Self.buildMesh(for: recipe)
 
-        saveUndoState()
+        let name = name ?? generateName(for: .solid)
+        saveUndoState(actionName: "Add \(name)")
 
         let data = EntityData(
-            name: name ?? generateName(for: .solid),
+            name: name,
             type: .solid,
             transform: TransformData(position: position),
             material: MaterialData(color: color),
