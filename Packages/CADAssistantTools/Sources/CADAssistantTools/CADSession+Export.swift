@@ -8,7 +8,8 @@ extension CADSession {
         _ target: ExportTarget, as format: ExportFormat, to url: URL,
         tolerance: Double = ModelGeometry.defaultExportTolerance
     ) async throws(ExportError) -> ExportSummary {
-        guard let result = await currentResult(), isResultCurrent, let geometry else {
+        _ = await currentResult()
+        guard isResultCurrent, let result, let geometry else {
             throw ExportError("The model could not be rebuilt; call get_listing to see the statuses.")
         }
         return try await Self.export(geometry, target, result, format, url, tolerance)

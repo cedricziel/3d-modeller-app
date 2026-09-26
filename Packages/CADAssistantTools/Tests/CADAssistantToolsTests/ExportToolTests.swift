@@ -72,10 +72,19 @@ struct ExportToolTests {
     func pathEscapesRefused() async throws {
         let harness = harness()
 
-        for path in ["../a.stl", "/tmp/a.stl", "~/a.stl", "x/../../a.stl"] {
+        let messages: [String: String] = [
+            "../a.stl": "'../a.stl' leaves the export folder; '..' is not allowed.",
+            "x/../../a.stl": "'x/../../a.stl' leaves the export folder; '..' is not allowed.",
+            "/tmp/cadtools-a.stl":
+                "'/tmp/cadtools-a.stl' is not relative; give a path inside the export folder, e.g. \"part.stl\".",
+            "~/cadtools-a.stl":
+                "'~/cadtools-a.stl' is not relative; give a path inside the export folder, e.g. \"part.stl\".",
+        ]
+        for (path, message) in messages {
             let result = try await harness.call("export", ["format": "stl", "path": .string(path)])
-            #expect(!result.success, "\(path)")
+            #expect(result.message == message, "\(path)")
         }
+        #expect(!FileManager.default.fileExists(atPath: "/tmp/cadtools-a.stl"))
         #expect(
             !FileManager.default.fileExists(atPath: folder.deletingLastPathComponent().appending(path: "a.stl").path))
     }
@@ -102,8 +111,15 @@ struct ExportToolTests {
         let again = try await harness.call("export", ["format": "stl"])
         let replaced = try await harness.call("export", ["format": "stl", "overwrite": true])
 
+        let before = try Data(contentsOf: folder.appending(path: "model.stl"))
+        _ = try await harness.call("delete_instance", ["instance": "Pin1"])
+        let smaller = try await harness.call("export", ["format": "stl", "overwrite": true])
+        let after = try Data(contentsOf: folder.appending(path: "model.stl"))
+
         #expect(again.message == "model.stl already exists; pass overwrite: true to replace it.")
         #expect(replaced.success)
+        #expect(smaller.success, "\(smaller.message)")
+        #expect(after.count < before.count)
     }
 
     @Test("export refuses without an export folder")
