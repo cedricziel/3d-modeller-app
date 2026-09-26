@@ -17,11 +17,11 @@ extension Kernel {
                 throw KernelError.operationFailed("\(operation.rawValue) the solids")
             }
             guard result.solidCount > 0 else { throw KernelError.emptyResult }
-            return Solid(shape: result)
+            return Solid(shape: result, feature: "Boolean")
         }
     }
 
     public static func solids(of solid: Solid) -> [Solid] {
-        OCCTSerial.withLock { solid.shape.solids.map(Solid.init(shape:)) }
+        OCCTSerial.withLock { solid.shape.solids.map { Solid(shape: $0, feature: "Solid") } }
     }
 }

@@ -1,5 +1,6 @@
 import OCCTSwift
 import Testing
+
 @testable import CADKernel
 
 @Suite("Solid metrics")
@@ -19,7 +20,7 @@ struct MetricsTests {
             let block = try #require(Shape.box(width: 1, height: 1, depth: 1))
             let faces = block.subShapes(ofType: .face)
             let shell = try #require(Shape.compound(Array(faces.dropFirst()))?.sewn())
-            return Solid(shape: try #require(Shape.solidFromShells([shell])))
+            return Solid(shape: try #require(Shape.solidFromShells([shell])), feature: "Open")
         }
         let metrics = try Kernel.metrics(of: open)
 
