@@ -1,6 +1,7 @@
 import Foundation
-@testable import SwiftUIAssistant
 import Testing
+
+@testable import SwiftUIAssistant
 
 @Suite("ClaudeProvider Tests")
 struct ClaudeProviderTests {
