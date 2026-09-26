@@ -32,8 +32,10 @@
 		A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */; };
 		B0F6DBE95D03E9BDD37456B9 /* SceneDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA980DDA18639ED43150C241 /* SceneDocument.swift */; };
 		B4C08AE34276C965CF990C8D /* SceneManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B1D5C16ABB2F159D312778 /* SceneManagerTests.swift */; };
+		BFDAAF190DD1DE552AB91E27 /* CreateSolidToolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A5FA3A4877BE1F739AE562 /* CreateSolidToolTests.swift */; };
 		CF2D83332BB84B4C6AEF0787 /* SceneOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E976980A6F107762B5A70CA /* SceneOutlineView.swift */; };
 		D13CF02A24A1572A8313A23D /* SetMaterialTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC88A9275F62E0EFA4CC0E0B /* SetMaterialTool.swift */; };
+		F54DB7897B91AE4652718BE3 /* CreateSolidTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1866688A42039FF6B151709C /* CreateSolidTool.swift */; };
 		F79289D47E44C32BD88E9D9F /* QuerySceneTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4A5E8340E8E26376A83DFA /* QuerySceneTool.swift */; };
 /* End PBXBuildFile section */
 
@@ -48,7 +50,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		14A5FA3A4877BE1F739AE562 /* CreateSolidToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSolidToolTests.swift; sourceTree = "<group>"; };
 		17993460361E0DC0931AD47F /* ModellerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModellerApp.swift; sourceTree = "<group>"; };
+		1866688A42039FF6B151709C /* CreateSolidTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSolidTool.swift; sourceTree = "<group>"; };
 		1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitCameraTests.swift; sourceTree = "<group>"; };
 		24E6BB346016D6BB0545D19E /* SwiftUIAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistant; path = Packages/SwiftUIAssistant; sourceTree = SOURCE_ROOT; };
 		27E85AB49A75292FF37AB3B3 /* PropertiesInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertiesInspectorView.swift; sourceTree = "<group>"; };
@@ -143,6 +147,7 @@
 			children = (
 				EFFBB66155410ABDA8497C94 /* AppModelTests.swift */,
 				48ED8C67C4F3E10E055F0191 /* AssistantIntegrationTests.swift */,
+				14A5FA3A4877BE1F739AE562 /* CreateSolidToolTests.swift */,
 				6BFB4F77884E1CF77F2BD3A5 /* KernelMeshRealityKitTests.swift */,
 				1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */,
 				50C96EC5979230019DB46D79 /* SceneDocumentTests.swift */,
@@ -156,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				37DED0741689842B141AD2E6 /* CreatePrimitiveTool.swift */,
+				1866688A42039FF6B151709C /* CreateSolidTool.swift */,
 				963AE036BDBB748EFA641D79 /* DeleteEntityTool.swift */,
 				EBCE33A0C62401556E4A5EE0 /* DuplicateEntityTool.swift */,
 				8F4A5E8340E8E26376A83DFA /* QuerySceneTool.swift */,
@@ -300,6 +306,7 @@
 				17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */,
 				521165A128D2584BE448AA8F /* ContentView.swift in Sources */,
 				7320708B043C83252FCD0400 /* CreatePrimitiveTool.swift in Sources */,
+				F54DB7897B91AE4652718BE3 /* CreateSolidTool.swift in Sources */,
 				3421FFE62CDDE5FE33F8E869 /* DeleteEntityTool.swift in Sources */,
 				253946576D753EDA49048F17 /* DuplicateEntityTool.swift in Sources */,
 				46D5DC1B4058856C8A28FE91 /* KernelMesh+RealityKit.swift in Sources */,
@@ -324,6 +331,7 @@
 			files = (
 				40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */,
 				7723F1930A49B110243FCFD9 /* AssistantIntegrationTests.swift in Sources */,
+				BFDAAF190DD1DE552AB91E27 /* CreateSolidToolTests.swift in Sources */,
 				A609BBFC6EB03AB9AB6C9C6B /* KernelMeshRealityKitTests.swift in Sources */,
 				A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */,
 				0405EB26216E616C49062864 /* SceneDocumentTests.swift in Sources */,

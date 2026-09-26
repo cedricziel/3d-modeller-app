@@ -60,6 +60,7 @@ struct ContentView: View {
 
         let tools: [any AssistantTool] = [
             CreatePrimitiveTool(sceneManager: sceneManager),
+            CreateSolidTool(sceneManager: sceneManager),
             TransformEntityTool(sceneManager: sceneManager),
             DeleteEntityTool(sceneManager: sceneManager),
             SetMaterialTool(sceneManager: sceneManager),
