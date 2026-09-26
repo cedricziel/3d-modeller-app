@@ -19,7 +19,7 @@ public enum Kernel {
     public static func metrics(of solid: Solid) throws -> SolidMetrics {
         try OCCTSerial.withLock {
             let shape = solid.shape
-            guard let bounds = shape.boundingBox else {
+            guard let bounds = shape.boundingBoxOptimal() else {
                 throw KernelError.operationFailed("measure the solid")
             }
             let solids = shape.solids
