@@ -108,4 +108,59 @@ struct CADSessionTests {
         #expect(result?.parts.first?.features.first?.status == .ok)
         #expect(await session.currentResult() == result)
     }
+
+    @Test("A load whose caller is cancelled still finishes the rebuild the next load waits for")
+    func cancelledLoadStillBuilds() async throws {
+        let gate = Gate()
+        let plate = Fixtures.plate()
+        let session = CADSession(document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }))
+        let first = Task { await session.load(plate) }
+        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+
+        first.cancel()
+        let second = Task { await session.load(plate) }
+        gate.open()
+        await first.value
+        await second.value
+
+        #expect(session.result?.parts.first?.features.count == 6)
+        #expect(session.listing.contains("Base  box width×depth×t at origin → Body1  ok"))
+    }
+
+    @Test("Asking for the current result while its rebuild runs waits for that rebuild instead of starting another")
+    func currentResultJoinsRunningBuild() async throws {
+        let gate = Gate()
+        let boxes = Counter()
+        let plate = Fixtures.plate()
+        let session = CADSession(
+            document: CADDocument(),
+            kernel: FakeKernel(onBox: {
+                boxes.increment()
+                gate.pass()
+            }))
+        let load = Task { await session.load(plate) }
+        while gate.entered == 0 { try await Task.sleep(for: .milliseconds(1)) }
+
+        let current = Task { await session.currentResult() }
+        try await Task.sleep(for: .milliseconds(20))
+        gate.open()
+        await load.value
+        let result = await current.value
+
+        #expect(boxes.count == 1)
+        #expect(result == session.result)
+    }
+
+    @Test("Adopting a host document takes effect at once and the next load rebuilds it")
+    func adoptIsImmediate() async throws {
+        let session = CADSession(document: CADDocument(), kernel: FakeKernel())
+        let ball = sphereDocument("Ball")
+
+        session.adopt(ball)
+
+        #expect(session.document == ball)
+        #expect(session.currentListing().contains("Ball  sphere r=1 at origin → Body1  not built"))
+        await session.load(ball)
+        #expect(session.result?.parts.first?.features.map(\.name) == ["Ball"])
+    }
 }

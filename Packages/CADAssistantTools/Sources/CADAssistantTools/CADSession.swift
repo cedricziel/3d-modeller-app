@@ -19,7 +19,9 @@ public final class CADSession {
 
     @ObservationIgnored private let build: @Sendable (CADDocument) async throws -> RebuildResult
     @ObservationIgnored private var builtDocument: CADDocument?
-    @ObservationIgnored private var buildingDocument: CADDocument?
+    /// The running rebuild. Callers share it, and their own cancellation does not stop it; only a rebuild of a
+    /// newer document cancels it, so a view that disappears mid-rebuild cannot leave the document unbuilt.
+    @ObservationIgnored private var building: (document: CADDocument, task: Task<RebuildResult, any Error>)?
     private nonisolated let snapshot: Mutex<String>
 
     public init<Kernel: GeometryKernel>(document: CADDocument = CADDocument(), kernel: Kernel) {
@@ -46,9 +48,17 @@ public final class CADSession {
     @discardableResult
     public func rebuild() async throws -> RebuildResult {
         let target = document
-        buildingDocument = target
-        defer { if buildingDocument == target { buildingDocument = nil } }
-        let rebuilt = try await build(target)
+        let task: Task<RebuildResult, any Error>
+        if let building, building.document == target {
+            task = building.task
+        } else {
+            building?.task.cancel()
+            let build = build
+            task = Task { try await build(target) }
+            building = (target, task)
+        }
+        defer { if building?.task == task { building = nil } }
+        let rebuilt = try await task.value
         if document == target {
             result = rebuilt
             builtDocument = target
@@ -57,11 +67,18 @@ public final class CADSession {
         return rebuilt
     }
 
-    /// Adopts a document changed outside the tools (opened, undone, edited in the UI) and rebuilds it.
-    public func load(_ document: CADDocument) async {
-        if document == self.document, builtDocument == document || buildingDocument == document { return }
+    /// Takes over a document the host changed, at once and without rebuilding, so an edit computed right after
+    /// starts from it. Follow with `load` to rebuild.
+    public func adopt(_ document: CADDocument) {
+        guard document != self.document else { return }
         self.document = document
         publishListing()
+    }
+
+    /// Adopts a document changed outside the tools (opened, undone, edited in the UI) and rebuilds it.
+    public func load(_ document: CADDocument) async {
+        adopt(document)
+        if builtDocument == document || building?.document == document { return }
         _ = try? await rebuild()
     }
 
