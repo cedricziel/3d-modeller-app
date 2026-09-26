@@ -11,4 +11,17 @@ public struct SketchResult: Sendable, Equatable, Identifiable {
     public let state: SketchSolveState
     public let degreesOfFreedom: Int
     public let profiles: SketchProfiles
+
+    public init(
+        id: UUID, name: String, frame: SketchFrame, entities: [SketchEntity], state: SketchSolveState,
+        degreesOfFreedom: Int, profiles: SketchProfiles
+    ) {
+        self.id = id
+        self.name = name
+        self.frame = frame
+        self.entities = entities
+        self.state = state
+        self.degreesOfFreedom = degreesOfFreedom
+        self.profiles = profiles
+    }
 }
