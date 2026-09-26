@@ -250,6 +250,47 @@ struct AssistantTests {
         #expect(Set(prompts).count == 1)
     }
 
+    @Test("Each user message carries the context of its turn when configured")
+    @MainActor
+    func contextAttachedToEachMessage() async throws {
+        let provider = MockLLMProvider()
+        await provider.queueTextResponse("One")
+        await provider.queueTextResponse("Two")
+
+        let counter = ContextCounter()
+        let assistant = Assistant(
+            provider: provider,
+            tools: [],
+            contextProvider: { MockContext(description: "state \(counter.next())") },
+            configuration: AssistantConfiguration(
+                systemPromptTemplate: "Fixed prompt", attachesContextToMessages: true)
+        )
+
+        try await assistant.send("First")
+        try await assistant.send("Second")
+
+        let histories = await provider.receivedHistories
+        let prompts = await provider.receivedMessages.map(\.systemPrompt)
+        #expect(prompts == ["Fixed prompt", "Fixed prompt"])
+        let contexts = histories[1].filter { $0.role == .user }.compactMap(\.context)
+        #expect(contexts.count == 2)
+        #expect(contexts[0] != contexts[1])
+        #expect(contexts.allSatisfy { $0.hasPrefix("state ") })
+        #expect(assistant.messages[0].content == "First")
+    }
+
+    @Test("User messages carry no context by default")
+    @MainActor
+    func noContextByDefault() async throws {
+        let provider = MockLLMProvider()
+        await provider.queueTextResponse("One")
+        let assistant = Assistant(provider: provider, tools: [], contextProvider: { MockContext() })
+
+        try await assistant.send("First")
+
+        #expect(assistant.messages[0].context == nil)
+    }
+
     @Test("Clearing history starts a new system prompt")
     @MainActor
     func clearHistoryRebuildsSystemPrompt() async throws {

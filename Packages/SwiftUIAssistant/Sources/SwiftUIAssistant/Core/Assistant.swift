@@ -59,7 +59,8 @@ public final class Assistant: ObservableObject {
         defer { isProcessing = false }
 
         // Add user message
-        messages.append(Message.user(message))
+        let context = configuration.attachesContextToMessages ? contextProvider().contextDescription : nil
+        messages.append(Message.user(message, context: context))
 
         // Process response (may involve multiple tool execution rounds)
         try await processResponse()

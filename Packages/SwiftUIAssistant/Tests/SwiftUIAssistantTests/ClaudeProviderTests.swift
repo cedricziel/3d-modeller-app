@@ -78,4 +78,37 @@ struct ClaudeProviderTests {
         #expect(content[0]["signature"] as? String == "sig-1")
         #expect(content[1]["type"] as? String == "tool_use")
     }
+
+    @Test("A user message with context sends the context as a text block before the message")
+    func userContextBlock() async throws {
+        let provider = ClaudeProvider(apiKey: "test")
+        let request = try await provider.buildRequest(
+            systemPrompt: "system",
+            messages: [.user("add a hole", context: "part Plate")],
+            tools: []
+        )
+        let messages = try #require(try body(of: request)["messages"] as? [[String: Any]])
+        let content = try #require(messages[0]["content"] as? [[String: Any]])
+
+        #expect(content.count == 2)
+        #expect(content[0]["text"] as? String == "<context>\npart Plate\n</context>")
+        #expect(content[1]["text"] as? String == "add a hole")
+    }
+
+    @Test("Tool parameters with a custom schema are sent unchanged")
+    func customParameterSchema() async throws {
+        let provider = ClaudeProvider(apiKey: "test")
+        let tool = MockTool(
+            id: "t", name: "t", description: "d",
+            parameters: [.custom("width", description: "mm", required: true, schema: ["type": ["number", "string"]])]
+        )
+        let request = try await provider.buildRequest(systemPrompt: "s", messages: [.user("x")], tools: [tool])
+        let tools = try #require(try body(of: request)["tools"] as? [[String: Any]])
+        let schema = try #require(tools[0]["input_schema"] as? [String: Any])
+        let width = try #require((schema["properties"] as? [String: Any])?["width"] as? [String: Any])
+
+        #expect(width["type"] as? [String] == ["number", "string"])
+        #expect(width["description"] as? String == "mm")
+        #expect(schema["required"] as? [String] == ["width"])
+    }
 }

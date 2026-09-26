@@ -9,6 +9,9 @@ actor MockLLMProvider: LLMProvider {
     /// All messages received by this provider
     private(set) var receivedMessages: [(message: String, systemPrompt: String)] = []
 
+    /// The conversation history sent with each request
+    private(set) var receivedHistories: [[Message]] = []
+
     /// Delay before responding (for testing async behavior)
     var responseDelay: UInt64 = 0
 
@@ -24,20 +27,22 @@ actor MockLLMProvider: LLMProvider {
 
     /// Queue a simple text response
     func queueTextResponse(_ text: String) {
-        queuedResponses.append(LLMResponse(
-            content: text,
-            toolCalls: nil,
-            stopReason: .endTurn
-        ))
+        queuedResponses.append(
+            LLMResponse(
+                content: text,
+                toolCalls: nil,
+                stopReason: .endTurn
+            ))
     }
 
     /// Queue a response with tool calls
     func queueToolCallResponse(content: String?, toolCalls: [ToolCall]) {
-        queuedResponses.append(LLMResponse(
-            content: content,
-            toolCalls: toolCalls,
-            stopReason: .toolUse
-        ))
+        queuedResponses.append(
+            LLMResponse(
+                content: content,
+                toolCalls: toolCalls,
+                stopReason: .toolUse
+            ))
     }
 
     func sendMessage(
@@ -47,6 +52,7 @@ actor MockLLMProvider: LLMProvider {
         tools: [any AssistantTool]
     ) async throws -> LLMResponse {
         receivedMessages.append((message: message, systemPrompt: systemPrompt))
+        receivedHistories.append(conversationHistory)
 
         if responseDelay > 0 {
             try await Task.sleep(nanoseconds: responseDelay)
