@@ -28,29 +28,37 @@ open 3DModellerApp.xcodeproj
 # Or from command line:
 xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp build
 
-# Build via Swift Package Manager (alternative)
-swift build
+# Run app tests
+xcodebuild -project 3DModellerApp.xcodeproj -scheme 3DModellerApp test
 
-# Run SwiftUIAssistant tests
-cd Packages/SwiftUIAssistant && swift test
+# Build via Swift Package Manager (alternative)
+xcrun swift build
+
+# Run package tests
+cd Packages/SwiftUIAssistant && xcrun swift test
+cd Packages/SwiftUIAssistantTools && xcrun swift test
 
 # Run a single test
-swift test --filter SwiftUIAssistantTests.AssistantTests/testSendMessage
+xcrun swift test --filter SwiftUIAssistantTests.AssistantTests/testSendMessage
 ```
+
+Always use `xcrun swift`, not bare `swift`: the `swift` on `$PATH` may be a toolchain that doesn't match the Xcode SDK and fails or hangs.
 
 ## Architecture
 
 This is an AI-first 3D modeling macOS app where users interact primarily through a chat assistant that autonomously creates and manipulates 3D objects.
 
-### Two-Package Structure
+### Package Structure
 
 **SwiftUIAssistant** (`Packages/SwiftUIAssistant/`) - Standalone, reusable library for adding AI assistant capabilities to any SwiftUI app:
 
-- `LLMProvider` protocol - Abstraction for AI backends (Claude implemented)
+- `LLMProvider` protocol - Abstraction for AI backends (Claude implemented; `ClaudeProvider` defaults to `claude-opus-5-5`, effort `medium`)
 - `AssistantTool` protocol - Define executable tools the AI can invoke
 - `Assistant` class - Orchestrates LLM calls and tool execution loops
 - `AssistantContext` protocol - Host app provides scene state to AI
 - SwiftUI views: `AssistantPanel`, `AssistantView`, `MessageBubbleView`, etc.
+
+**SwiftUIAssistantTools** (`Packages/SwiftUIAssistantTools/`) - Common `AssistantTool`s: `FetchTool`, `CalculatorTool`, `TimeTool`
 
 **3DModellerApp** - The main application consuming SwiftUIAssistant:
 
@@ -69,6 +77,7 @@ This is an AI-first 3D modeling macOS app where users interact primarily through
 ### Important Patterns
 
 - All `SceneManager` properties are `@MainActor` isolated
+- Claude Opus 5.5 always thinks, and its thinking blocks must go back to the API unchanged. `ClaudeProvider` keeps each response's content blocks in `Message.rawContent` and replays them verbatim. Never rebuild or edit an assistant turn that has `rawContent`
 - Tool execute methods parse arguments first, then wrap scene mutations in `await MainActor.run {}`
 - `CADEntity` wraps RealityKit `Entity` with app-specific metadata
 - Scene serialization uses `EntityData`, `TransformData`, `MaterialData`, `ColorData` (all Codable)

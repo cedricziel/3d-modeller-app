@@ -19,6 +19,11 @@ public enum JSONValue: Sendable, Equatable, Hashable {
             return
         }
 
+        if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+            self = .bool(number.boolValue)
+            return
+        }
+
         switch value {
         case let string as String:
             self = .string(string)
@@ -62,27 +67,29 @@ public enum JSONValue: Sendable, Equatable, Hashable {
     /// Convert back to Any for compatibility
     public var anyValue: Any {
         switch self {
-        case .string(let value): return value
-        case .number(let value): return value
-        case .integer(let value): return value
-        case .bool(let value): return value
+        case let .string(value): return value
+        case let .number(value): return value
+        case let .integer(value): return value
+        case let .bool(value): return value
         case .null: return NSNull()
-        case .array(let values): return values.map { $0.anyValue }
-        case .object(let values): return values.mapValues { $0.anyValue }
+        case let .array(values): return values.map { $0.anyValue }
+        case let .object(values): return values.mapValues { $0.anyValue }
         }
     }
 
     /// Get as String if this is a string value
     public var stringValue: String? {
-        if case .string(let value) = self { return value }
+        if case let .string(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get as Double if this is a number value
     public var numberValue: Double? {
         switch self {
-        case .number(let value): return value
-        case .integer(let value): return Double(value)
+        case let .number(value): return value
+        case let .integer(value): return Double(value)
         default: return nil
         }
     }
@@ -95,8 +102,8 @@ public enum JSONValue: Sendable, Equatable, Hashable {
     /// Get as Float if this is a number value
     public var floatValue: Float? {
         switch self {
-        case .number(let value): return Float(value)
-        case .integer(let value): return Float(value)
+        case let .number(value): return Float(value)
+        case let .integer(value): return Float(value)
         default: return nil
         }
     }
@@ -104,33 +111,41 @@ public enum JSONValue: Sendable, Equatable, Hashable {
     /// Get as Int if this is an integer value
     public var intValue: Int? {
         switch self {
-        case .integer(let value): return value
-        case .number(let value): return Int(exactly: value)
+        case let .integer(value): return value
+        case let .number(value): return Int(exactly: value)
         default: return nil
         }
     }
 
     /// Get as Bool if this is a boolean value
     public var boolValue: Bool? {
-        if case .bool(let value) = self { return value }
+        if case let .bool(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get as array if this is an array value
     public var arrayValue: [JSONValue]? {
-        if case .array(let value) = self { return value }
+        if case let .array(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get as dictionary if this is an object value
     public var objectValue: [String: JSONValue]? {
-        if case .object(let value) = self { return value }
+        if case let .object(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Check if this is null
     public var isNull: Bool {
-        if case .null = self { return true }
+        if case .null = self {
+            return true
+        }
         return false
     }
 
@@ -145,7 +160,7 @@ public enum JSONValue: Sendable, Equatable, Hashable {
 
     /// Access array elements by index
     public subscript(index: Int) -> JSONValue? {
-        guard case .array(let array) = self, index >= 0, index < array.count else {
+        guard case let .array(array) = self, index >= 0, index < array.count else {
             return nil
         }
         return array[index]
@@ -153,7 +168,7 @@ public enum JSONValue: Sendable, Equatable, Hashable {
 
     /// Access object values by key
     public subscript(key: String) -> JSONValue? {
-        guard case .object(let object) = self else {
+        guard case let .object(object) = self else {
             return nil
         }
         return object[key]
@@ -199,7 +214,7 @@ extension JSONValue: ExpressibleByDictionaryLiteral {
 }
 
 extension JSONValue: ExpressibleByNilLiteral {
-    public init(nilLiteral: ()) {
+    public init(nilLiteral _: ()) {
         self = .null
     }
 }
@@ -238,17 +253,17 @@ extension JSONValue: Codable {
         switch self {
         case .null:
             try container.encodeNil()
-        case .bool(let value):
+        case let .bool(value):
             try container.encode(value)
-        case .integer(let value):
+        case let .integer(value):
             try container.encode(value)
-        case .number(let value):
+        case let .number(value):
             try container.encode(value)
-        case .string(let value):
+        case let .string(value):
             try container.encode(value)
-        case .array(let value):
+        case let .array(value):
             try container.encode(value)
-        case .object(let value):
+        case let .object(value):
             try container.encode(value)
         }
     }
@@ -259,13 +274,13 @@ extension JSONValue: Codable {
 extension JSONValue: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .string(let value): return "\"\(value)\""
-        case .number(let value): return String(value)
-        case .integer(let value): return String(value)
-        case .bool(let value): return String(value)
+        case let .string(value): return "\"\(value)\""
+        case let .number(value): return String(value)
+        case let .integer(value): return String(value)
+        case let .bool(value): return String(value)
         case .null: return "null"
-        case .array(let values): return "[\(values.map { $0.description }.joined(separator: ", "))]"
-        case .object(let values):
+        case let .array(values): return "[\(values.map { $0.description }.joined(separator: ", "))]"
+        case let .object(values):
             let pairs = values.map { "\"\($0.key)\": \($0.value.description)" }
             return "{\(pairs.joined(separator: ", "))}"
         }

@@ -14,12 +14,16 @@ public struct LLMResponse: Sendable {
     /// Usage statistics (optional)
     public let usage: Usage?
 
+    /// Provider-native content blocks, kept so they can be sent back unchanged
+    public let rawContent: [JSONValue]?
+
     /// Reason the LLM stopped generating
     public enum StopReason: String, Sendable {
         case endTurn = "end_turn"
         case toolUse = "tool_use"
         case maxTokens = "max_tokens"
         case stopSequence = "stop_sequence"
+        case refusal
     }
 
     /// Token usage statistics
@@ -37,12 +41,14 @@ public struct LLMResponse: Sendable {
         content: String?,
         toolCalls: [ToolCall]?,
         stopReason: StopReason,
-        usage: Usage? = nil
+        usage: Usage? = nil,
+        rawContent: [JSONValue]? = nil
     ) {
         self.content = content
         self.toolCalls = toolCalls
         self.stopReason = stopReason
         self.usage = usage
+        self.rawContent = rawContent
     }
 
     /// Whether this response contains tool calls that need execution

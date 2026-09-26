@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import RealityKit
+import Combine
 @testable import _D_Modeller
 
 @Suite("SceneManager Tests")
@@ -202,6 +203,53 @@ struct SceneManagerTests {
         #expect(entity.material.metallic == 0.8)
     }
 
+    // MARK: - Change Notification Tests
+
+    @Test("Transforming an entity publishes a change")
+    func testTransformPublishesChange() {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box)
+        var changes = 0
+        let subscription = sceneManager.objectWillChange.sink { changes += 1 }
+
+        _ = sceneManager.transformEntity(id: entity.id, position: [0, 1, 0])
+
+        #expect(changes > 0)
+        subscription.cancel()
+    }
+
+    @Test("Changing a material publishes a change")
+    func testSetMaterialPublishesChange() {
+        let sceneManager = SceneManager()
+        let entity = sceneManager.createPrimitive(type: .box)
+        var changes = 0
+        let subscription = sceneManager.objectWillChange.sink { changes += 1 }
+
+        _ = sceneManager.setMaterial(id: entity.id, metallic: 1.0)
+
+        #expect(changes > 0)
+        subscription.cancel()
+    }
+
+    @Test("Every scene edit bumps the revision")
+    func testRevisionBumpsOnEdits() {
+        let sceneManager = SceneManager()
+        let start = sceneManager.revision
+
+        let entity = sceneManager.createPrimitive(type: .box)
+        let afterCreate = sceneManager.revision
+        _ = sceneManager.transformEntity(id: entity.id, position: [0, 1, 0])
+        let afterTransform = sceneManager.revision
+        _ = sceneManager.setMaterial(id: entity.id, roughness: 0.2)
+        let afterMaterial = sceneManager.revision
+        _ = sceneManager.deleteEntity(id: entity.id)
+
+        #expect(afterCreate > start)
+        #expect(afterTransform > afterCreate)
+        #expect(afterMaterial > afterTransform)
+        #expect(sceneManager.revision > afterMaterial)
+    }
+
     // MARK: - Selection Tests
 
     @Test("Select entity by ID")
@@ -290,7 +338,7 @@ struct SceneManagerTests {
         var sceneData = SceneData()
         sceneData.entities = [
             EntityData(name: "LoadedBox", type: .box),
-            EntityData(name: "LoadedSphere", type: .sphere)
+            EntityData(name: "LoadedSphere", type: .sphere),
         ]
 
         sceneManager.loadSceneData(sceneData)

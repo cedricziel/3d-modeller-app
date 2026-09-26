@@ -3,7 +3,8 @@ import Foundation
 /// Configuration options for the Assistant
 public struct AssistantConfiguration: Sendable {
     /// The system prompt template
-    /// Use {context} as a placeholder for the context description
+    /// Use {context} as a placeholder for the context description.
+    /// It is filled in once per conversation, so it should describe stable context only.
     public var systemPromptTemplate: String
 
     /// Maximum number of tool execution rounds per message
