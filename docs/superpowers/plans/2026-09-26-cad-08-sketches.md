@@ -37,10 +37,31 @@
 - **Ruling: extrude extents.** `distance d` from the plane to d along the normal (`reversed` flips to −d); `symmetric d` from −d/2 to d/2; `throughAll` spans the target body's bounding box along the normal in both directions with 1 mm margin (needs join, cut or intersect; `reversed` ignored); `upToFace` goes from the plane to a planar face of a named body (`referenceBody`, default the target body) that is parallel to the sketch plane (angle within 1e-6), with the sign of its offset. Cost if wrong: an angled up-to face is refused rather than approximated.
 - **Ruling: revolve axes** are a line entity of the same sketch (construction or not), the global `X`, `Y` or `Z` axis through the origin, or a straight edge of a named body (`referenceBody`, default the target body). `angle` defaults to 360; it is degrees in (0, 360]. The profile goes counter-clockwise about the axis direction (line start → end). Cost if wrong: none.
 - **Ruling: face names come from geometry, not OCCT history.** OCCTSwift 3.0.0 has no history for prisms or revolutions. After building, the kernel computes the topology: planar faces lying in the start plane (extrude: offset `from`; revolve: the sketch plane, adjacent to a profile edge) are `<F>.start`, those in the end plane are `<F>.end`; every edge lying on a profile curve (midpoint on the curve within 1e-6 mm, in the start plane) names its non-cap adjacent faces `<F>.side[<Sketch>.<entity>]`; anything left is `<F>.face[k]`. Several regions give several `.start` faces, which display as `.start[0]`, `.start[1]`. Cost if wrong: a degenerate profile could leave a side face with a fallback name; tests pin rectangles, circles, arcs, holes and revolves.
-- **Ruling: several regions are extruded one by one and combined with `Shape.compound`, not fused.** Regions never share an edge (a shared edge is a branch node, refused), so the pieces are disjoint. Cost if wrong: two touching regions would stay two solids; the write result reports the solid count.
+- **Ruling: several regions are extruded one by one, named, then fused** (superseded at review; the plan first said `Shape.compound`). Loops that cross are both depth 0 and would otherwise give overlapping solids. Cost if wrong: one boolean per extra region.
 - **Ruling: the listing shows a sketch on one line** — `Sketch1  on XY: 4 lines, 1 circle; 1 region; fully constrained  ok` — and `get_sketch` (new read tool, also returned by `add_sketch`/`edit_sketch`) shows the frame, every entity with solved coordinates and every constraint. Cost if wrong: one more tool call to see a sketch.
 - **Ruling: the app keeps PlaneGCS unoptimised in Debug.** Typical sketches (≤ 30 entities) solve in milliseconds even unoptimised (measured in Task 10), rebuilds run off the main actor, and optimising one package in an Xcode Debug build needs `unsafeFlags`, which PR 7 ruled out. Cost if wrong: large sketches feel slow in Debug only; Release is unaffected.
 - **Ruling: extrude and revolve count as body-creating features when their operation is `newBody`**, exactly like primitives, so `Body<n>` numbering and body-reference repair keep working. Cost if wrong: none.
+
+- **Ruling (execution): faces are named by carrying each curve's midpoint along the sweep** — the planar face perpendicular to the sweep that holds it at the start is `.start`, at the end `.end`, and the face holding it halfway is `.side[…]` — found by point-to-face distance. Matching profile edges missed revolved discs, whose planar faces keep no profile edge. Cost if wrong: O(curves × faces) distance queries per sweep.
+- **Ruling (execution): `FeatureError.extent`** carries extent and angle problems, separate from sketch errors. Cost if wrong: none.
+- **Ruling (execution): `add_sketch`/`edit_sketch` append the `get_sketch` text to the write report** instead of a separate sketch line. Cost if wrong: longer write results for big sketches.
+- **Ruling (execution): a face plane without `body` uses the part's only created body**, else the tool refuses and lists the bodies. Cost if wrong: none.
+- **Measured (execution):** a 30-entity sketch rebuilds in 0.04 s in a debug build, which settles the Debug-performance ruling.
+- **Ruling (review): removed entity and constraint names are stored in `SketchFeature.retiredNames` (`"retired"` in JSON) and never handed out again**, so `side[Sketch1.line4]` cannot silently land on a new line. Cost if wrong: names keep counting up.
+- **Ruling (review): `update_entities` keeps the stored construction flag unless given and refuses a change of entity type.** Cost if wrong: none.
+- **Ruling (review): the compiler checks entity kinds (lines, arcs or circles per constraint, `tangentAt` on ends), distinct operands, positive lengths and radii, and non-degenerate or full-turn arcs**, so tools refuse such sketches before writing. Cost if wrong: none; the solver repeats the checks.
+
+## Deferred after the final review
+
+- Removing an entity does not list later features that use it (`regions`, a sketch-line axis, `side[Sketch.entity]` references); they fail at rebuild with their own messages.
+- `delete_feature` does not refuse deleting a sketch that an extrude or revolve uses.
+- Review Focus 4 has no test for an outward distance cut; a cut that removes nothing is not flagged.
+- The prompt says `Extrude1.start` is on the sketch plane; for symmetric and through-all extents it is the cap at the lower offset.
+- `edit_sketch` ignores `body` without `plane` on a base-plane sketch.
+- Filter expressions in a sketch face plane, an up-to face or an edge axis are not audited like fillet filters.
+- Selecting both a loop and its hole in `regions` fuses the hole shut instead of refusing.
+- Every solved sketch is drawn, including ones an extrude consumed, on the solid's start face.
+- Four pre-existing `CADSessionTests` (their `Gate` blocks a cooperative thread by design) time out under `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1`; two pre-existing `DocumentListingTests` expressions exceed the 150 ms type-check limit.
 
 ## Review Focus
 
