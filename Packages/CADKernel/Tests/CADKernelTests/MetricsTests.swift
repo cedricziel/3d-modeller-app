@@ -7,7 +7,8 @@ import Testing
 struct MetricsTests {
     @Test("An extruded block is one closed solid with six faces")
     func closedBlock() throws {
-        let metrics = try Kernel.metrics(of: Kernel.extrudeRectangle(width: 2, height: 1, depth: 0.5))
+        let metrics = try Kernel.metrics(
+            of: Kernel.box(width: 2, depth: 1, height: 0.5, placement: Placement(translation: SIMD3(-1, -0.5, 0))))
 
         #expect(metrics.solidCount == 1)
         #expect(metrics.faceCount == 6)

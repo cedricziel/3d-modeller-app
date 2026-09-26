@@ -5,7 +5,8 @@ import Testing
 @Suite("Tessellation")
 struct TessellateTests {
     private func roundedBlock() throws -> Solid {
-        let block = try Kernel.extrudeRectangle(width: 2, height: 1, depth: 0.5)
+        let block = try Kernel.box(
+            width: 2, depth: 1, height: 0.5, placement: Placement(translation: SIMD3(-1, -0.5, 0)))
         let vertical = try edges(block) { abs($0.direction?.z ?? 0) > 0.999 }
         return try Kernel.fillet(block, edges: vertical, radius: 0.1, feature: "Round")
     }

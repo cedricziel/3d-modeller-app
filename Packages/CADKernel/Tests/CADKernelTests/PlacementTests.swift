@@ -5,7 +5,7 @@ import Testing
 @Suite("Placement and transform")
 struct PlacementTests {
     private func block() throws -> Solid {
-        try Kernel.extrudeRectangle(width: 2, height: 4, depth: 1)
+        try Kernel.box(width: 2, depth: 4, height: 1, placement: Placement(translation: SIMD3(-1, -2, 0)))
     }
 
     @Test("Translating moves the bounds and keeps the volume")
