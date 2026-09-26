@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct Viewport3DView: View {
     let result: RebuildResult?
+    var content: ViewportContent = .parts
 
     @State private var scene = ViewportScene()
     @State private var camera = OrbitCamera()
@@ -28,11 +29,19 @@ struct Viewport3DView: View {
         .gesture(zoomGesture)
         .background(Color(white: 0.15))
         .onChange(of: result, initial: true) {
-            scene.show(result)
-            if !hasFramedModel, let bounds = ViewportFrame.sceneBounds(of: result) {
-                camera = .framing(bounds)
-                hasFramedModel = true
-            }
+            show()
+        }
+        .onChange(of: content) {
+            hasFramedModel = false
+            show()
+        }
+    }
+
+    private func show() {
+        scene.show(result, content: content)
+        if !hasFramedModel, let bounds = ViewportFrame.sceneBounds(of: result, content: content) {
+            camera = .framing(bounds)
+            hasFramedModel = true
         }
     }
 

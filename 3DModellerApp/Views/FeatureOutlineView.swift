@@ -35,6 +35,20 @@ struct FeatureOutlineView: View {
                     }
                 }
             }
+            if let assembly = model.assembly {
+                Section("Assembly") {
+                    if assembly.instances.isEmpty {
+                        Text("No instances").foregroundStyle(.secondary).italic()
+                    }
+                    ForEach(assembly.instances) { instance in
+                        InstanceRow(
+                            instance: instance, partName: model.part(id: instance.part)?.name,
+                            result: result?.assembly?.instance(id: instance.id)
+                        )
+                        .tag(instance.id)
+                    }
+                }
+            }
         }
         .listStyle(.sidebar)
     }
@@ -69,6 +83,27 @@ private struct FeatureRow: View {
         HStack {
             Image(systemName: feature.kind.symbolName).frame(width: 20).foregroundStyle(.secondary)
             Text(feature.name).lineLimit(1).strikethrough(feature.suppressed)
+            Spacer()
+            if let status = result?.status {
+                Image(systemName: status.symbolName).foregroundStyle(status.tint).help(status.description)
+            } else {
+                ProgressView().controlSize(.small)
+            }
+        }
+    }
+}
+
+private struct InstanceRow: View {
+    let instance: Instance
+    let partName: String?
+    let result: InstanceResult?
+
+    var body: some View {
+        HStack {
+            Image(systemName: instance.grounded ? "pin.fill" : "shippingbox").frame(width: 20).foregroundStyle(
+                .secondary)
+            Text(instance.name).lineLimit(1)
+            Text(partName ?? "missing part").foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if let status = result?.status {
                 Image(systemName: status.symbolName).foregroundStyle(status.tint).help(status.description)

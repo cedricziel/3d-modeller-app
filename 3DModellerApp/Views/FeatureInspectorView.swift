@@ -34,7 +34,7 @@ struct FeatureInspectorView: View {
         } else {
             ContentUnavailableView(
                 "No Selection", systemImage: "cube.transparent",
-                description: Text("Select a feature in the outline to see its parameters"))
+                description: Text("Select a feature or instance in the outline to see its details"))
         }
     }
 }

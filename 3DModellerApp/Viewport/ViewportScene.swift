@@ -31,19 +31,17 @@ final class ViewportScene {
 
     var bodyEntities: [ModelEntity] { bodies.children.compactMap { $0 as? ModelEntity } }
 
-    func show(_ result: RebuildResult?) {
+    func show(_ result: RebuildResult?, content: ViewportContent = .parts) {
         bodies.children.removeAll()
-        for (index, body) in (result?.bodies ?? []).enumerated() {
-            guard let mesh = body.mesh, mesh.triangleCount > 0,
-                let resource = try? MeshResource.generate(from: [mesh.meshDescriptor])
-            else { continue }
+        for (index, body) in (result?.displayBodies(content) ?? []).enumerated() {
+            guard let resource = try? MeshResource.generate(from: [body.mesh.meshDescriptor]) else { continue }
             let material = SimpleMaterial(
                 color: Self.palette[index % Self.palette.count], roughness: 0.6, isMetallic: false)
             let entity = ModelEntity(mesh: resource, materials: [material])
             entity.name = body.name
             bodies.addChild(entity)
         }
-        showSketches(result)
+        showSketches(content == .parts ? result : nil)
     }
 
     private func showSketches(_ result: RebuildResult?) {
