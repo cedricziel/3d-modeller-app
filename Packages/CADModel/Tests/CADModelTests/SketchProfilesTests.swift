@@ -57,6 +57,18 @@ struct SketchProfilesTests {
         #expect(try profiles.regions(selecting: ["line2", "line3"]).count == 1)
     }
 
+    @Test("Selecting a loop and a hole inside it is refused instead of filling the hole")
+    func loopAndHoleRefused() throws {
+        let profiles = SketchProfiles(outline + [circle("circle1", 30, 20, 10), circle("circle2", 30, 20, 4)])
+        #expect(throws: FeatureError.sketch("circle1 is a hole in the loop of line1; select either, not both")) {
+            try profiles.regions(selecting: ["line1", "circle1"])
+        }
+        #expect(throws: FeatureError.sketch("circle2 is a hole in the loop of circle1; select either, not both")) {
+            try profiles.regions(selecting: ["circle2", "circle1"])
+        }
+        #expect(try profiles.regions(selecting: ["line1", "circle2"]).count == 2)
+    }
+
     @Test("Curves in any order and direction chain end to start")
     func scrambledSlot() throws {
         let entities = [
