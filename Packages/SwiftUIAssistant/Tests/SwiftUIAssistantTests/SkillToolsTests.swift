@@ -63,6 +63,18 @@ struct SkillToolsTests {
         #expect(result.message == "'name' must be a skill name.")
     }
 
+    @Test("A non-string file argument is refused, but an absent or null one returns the body")
+    func nonStringFile() async throws {
+        let tool = try GetSkillTool(library: library())
+        let result = try await tool.execute(arguments: ["name": "joints", "file": 5])
+        #expect(!result.success)
+        #expect(result.message == "'file' must be one of the skill's files.")
+        let absent = try await tool.execute(arguments: ["name": "sketches"])
+        #expect(absent.message == "Sketch.\n")
+        let null = try await tool.execute(arguments: ["name": "sketches", "file": .null])
+        #expect(null.message == "Sketch.\n")
+    }
+
     @Test(
         "Files outside the skill's list are refused",
         arguments: ["nope.md", "../sketches/SKILL.md", "/etc/passwd", "SKILL.md"]

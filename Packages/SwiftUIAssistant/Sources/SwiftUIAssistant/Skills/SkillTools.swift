@@ -44,9 +44,12 @@ public struct GetSkillTool: AssistantTool {
             let names = library.skills.map(\.name).joined(separator: ", ")
             return .failure("No skill named '\(name)'. Skills: \(names).")
         }
-        guard case let .string(file) = arguments["file"] else {
+        guard let fileArgument = arguments["file"], fileArgument != .null else {
             guard !skill.files.isEmpty else { return .success(skill.body) }
             return .success("\(skill.body)\nFiles: \(skill.files.joined(separator: ", "))")
+        }
+        guard case let .string(file) = fileArgument else {
+            return .failure("'file' must be one of the skill's files.")
         }
         guard skill.files.contains(file) else {
             let listing =
