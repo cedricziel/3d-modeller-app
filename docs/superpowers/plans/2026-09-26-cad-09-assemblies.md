@@ -66,6 +66,11 @@
 - `render_views` does not note an ok instance body that has no mesh.
 - Four pre-existing `CADSessionTests` still time out under `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1`: their `Gate` blocks a cooperative thread by design.
 
+### Resolved/skipped in follow-up (`fix/deferred-review-items`)
+
+- Fixed: `add_instance` makes its default name an identifier when the part's name is not one; `render_views` names an ok instance's body that has no mesh; the `CADSessionTests` strict-pool timeouts (as in PR 8).
+- Skipped: the rotated-instance test's scope (coverage, not unsound); the viewport content choice (cosmetic); `noInterference` and the gate on instance body metrics (only reachable when the kernel measures a part body but not its moved copy); grading "model once" (bench design); the `InstanceResult.transform` doc (already fixed); the unchanged-instance list (write-report formatting, owned by a sibling follow-up); duplicate instance names in hand-edited files (the rebuild already fails the second one).
+
 ## Review Focus
 
 1. **An instance whose part body disappears** (a feature deletes or breaks the body, or a named body does not exist). Expected: the instance fails with a message listing the bodies that exist. Other instances and the parts still build. Pinned in Task 3 (`missingBodyFails`, `brokenPartBodyFailsInstance`).

@@ -210,6 +210,11 @@ App build and tests with derived data in the scratchpad; fresh `opus` reviewer o
 - The app's chat does not show tool-result images yet.
 - `ModelGeometry` should key bodies by part id once parts can be added (PR 9).
 
+### Resolved/skipped in follow-up (`fix/deferred-review-items`)
+
+- Fixed: rewriting a run folder removes the `view-*.png` and `final.step` an earlier write left.
+- Skipped: dropping old images (a cost trade-off in the provider); the duplicate point–point distance (cosmetic); tool-result images in the chat (a feature); keying bodies by part id (already done: `BodyKey` has an owner).
+
 ## Self-review
 
 - Spec coverage: write results (Task 4; sketch and joint states arrive with PRs 8–11), `measure` (Tasks 2, 3, 5), `render_views` as images (Tasks 1, 6), bench renders (Task 7), prompt (Task 7).

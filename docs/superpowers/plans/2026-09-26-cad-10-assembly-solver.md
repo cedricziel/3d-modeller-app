@@ -154,6 +154,11 @@ A spike measured these behaviours:
 - An instance body reference inside a joint side is not renumbered when bodies renumber (by ruling).
 - Not checked: leaks across repeated OndselSolver solves, and whether `runPreDrag`'s initialisation loop can spin on some input.
 
+### Resolved/skipped in follow-up (`fix/deferred-review-items`)
+
+- Fixed: a failing joint between two grounded instances says both are grounded; a joint fails when the instance it moved cannot be moved there; a retry that ties a thrown first attempt without throwing is kept, and the kept attempt's solver message is reported.
+- Skipped: assembly-wide "conflicting" (needs a solver design); renumbering joint body references (ruling); leak and spin checks (speculative).
+
 ## Review Focus
 
 1. **Two joints that conflict** (a lid fixed flush on top and also fixed 5 mm higher). Expected: one or both fail "conflicts with other joints" or "not satisfied", nothing crashes, instances stay finite, and the listing shows it. Pinned in Task 2 (`conflictingFixedJoints`) and Task 4 (`conflictingJointsReported`).
