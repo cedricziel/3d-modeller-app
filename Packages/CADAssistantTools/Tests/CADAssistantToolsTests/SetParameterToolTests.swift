@@ -8,7 +8,7 @@ import Testing
 @MainActor
 @Suite("set_parameter")
 struct SetParameterToolTests {
-    @Test("Adding a parameter appends it and reports the changed listing line")
+    @Test("Adding a parameter appends it and reports only the new parameter")
     func adds() async throws {
         let harness = Harness()
 
@@ -21,9 +21,8 @@ struct SetParameterToolTests {
             result.message == """
                 Added parameter width = 60
                 Bodies: none
-                Listing changes:
-                  - parameters: none
-                  + parameters: width = 60
+                Parameters:
+                  + width = 60
                 """)
     }
 
@@ -38,7 +37,9 @@ struct SetParameterToolTests {
         #expect(harness.document.parameters[0].expression == 0)
         #expect(result.message.contains("Status changes elsewhere:\n  Base: ok → failed: dimensions must be positive"))
         #expect(result.message.contains("  Hole: ok → skipped: depends on Base"))
-        #expect(result.message.contains("+ parameters: width = 0, depth = 40"))
+        #expect(result.message.contains("Parameters:\n  width: 60 → 0"))
+        #expect(!result.message.contains("parameters:"))
+        #expect(!result.message.contains("Listing changes"), "status changes are not repeated as listing lines")
     }
 
     @Test("Expression strings are kept as expressions and numeric strings become numbers")
@@ -64,6 +65,32 @@ struct SetParameterToolTests {
         #expect(result.success)
         #expect(harness.commits == ["Remove Parameter hole_r"])
         #expect(!harness.document.parameters.contains { $0.name == "hole_r" })
+        #expect(result.message.hasSuffix("Parameters:\n  - hole_r"))
+    }
+
+    @Test("A changed expression shows the old and new value; dependents whose value moved are listed too")
+    func reportsExpressionsAndDependents() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let changed = try await harness.call("set_parameter", ["name": "hole_d", "expression": 6])
+        let rewritten = try await harness.call("set_parameter", ["name": "hole_r", "expression": "hole_d / 4"])
+
+        #expect(changed.message.hasSuffix("Parameters:\n  hole_d: 5.5 → 6\n  hole_r = hole_d / 2: 2.75 → 3"))
+        #expect(rewritten.message.hasSuffix("Parameters:\n  hole_r: hole_d / 2 (= 3) → hole_d / 4 (= 1.5)"))
+    }
+
+    @Test("A single change in a document with 20 parameters costs under 300 characters")
+    func singleChangeBudget() async throws {
+        let parameters = (1...20).map { Parameter(name: "p\($0)", expression: .number(Double($0))) }
+        var document = Fixtures.plate()
+        document.parameters += parameters
+        let harness = Harness(document)
+        try await harness.session.rebuild()
+
+        let result = try await harness.call("set_parameter", ["name": "p7", "expression": 8])
+
+        #expect(result.success)
+        #expect(result.message.count < 300, "\(result.message.count) characters:\n\(result.message)")
     }
 
     @Test("Removing a parameter that features or parameters use is refused with every broken expression")
@@ -107,10 +134,143 @@ struct SetParameterToolTests {
                 == "No parameter named 'nope'. Parameters: width, depth, t, hole_d, hole_r.")
         #expect(
             try await harness.refused("set_parameter", ["name": "x", "value": 1])
-                == "Unknown argument 'value'. Accepted: name, expression, remove.")
+                == "Unknown argument 'value'. Accepted: name, expression, remove, parameters.")
         #expect(
             try await harness.refused("set_parameter", ["name": "x", "expression": true])?.contains(
                 "must be a number or an expression") == true)
+    }
+
+    @Test("A list of parameters is applied as one undo step and reports each change once")
+    func batch() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let result = try await harness.call(
+            "set_parameter",
+            [
+                "parameters": [
+                    ["name": "depth", "expression": 41], ["name": "gap", "expression": "t / 4"],
+                    ["name": "hole_r", "remove": true],
+                ]
+            ])
+
+        #expect(result.success)
+        #expect(harness.commits == ["Set Parameters"])
+        #expect(
+            harness.document.parameters.map(\.name) == ["width", "depth", "t", "hole_d", "gap"])
+        #expect(
+            result.message == """
+                Changed 3 parameters
+                Bodies: none
+                Parameters:
+                  depth: 40 → 41
+                  + gap = t / 4 (= 2.5)
+                  - hole_r
+                """)
+    }
+
+    @Test("Parameters added in one list may refer to each other in any order")
+    func batchForwardReferences() async throws {
+        let harness = Harness()
+
+        let result = try await harness.call(
+            "set_parameter",
+            ["parameters": [["name": "half", "expression": "full / 2"], ["name": "full", "expression": 8]]])
+
+        #expect(result.success)
+        #expect(harness.session.listing.contains("parameters: half = full / 2 (= 4), full = 8"))
+    }
+
+    @Test("A list with one bad entry changes nothing and names the entry")
+    func batchAllOrNothing() async throws {
+        let harness = Harness(Fixtures.plate())
+
+        #expect(
+            try await harness.refused(
+                "set_parameter",
+                ["parameters": [["name": "depth", "expression": 41], ["name": "2x", "expression": 1]]])
+                == "parameters[1]: '2x' is not a valid parameter name: use letters, digits and _, starting with a letter or _."
+        )
+        #expect(
+            try await harness.refused(
+                "set_parameter",
+                ["parameters": [["name": "depth", "expression": 41], ["name": "hole_d", "remove": true]]])?.contains(
+                    "parameter hole_r = hole_d / 2: unknown parameter 'hole_d'") == true)
+        #expect(
+            try await harness.refused(
+                "set_parameter",
+                ["parameters": [["name": "depth", "expression": 41], ["name": "depth", "remove": true]]])
+                == "parameters[1]: 'depth' is already in the list; give each parameter once.")
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": [["name": "depth", "value": 41]]])
+                == "parameters[0]: Unknown argument 'value'. Accepted: name, expression, remove.")
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": [], "name": "depth"])
+                == "With 'parameters', leave out 'name'.")
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": []])
+                == "'parameters' is empty; give at least one {name, expression} or {name, remove: true}.")
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": [41]])
+                == "parameters[0] must be an object such as {\"name\": \"width\", \"expression\": 60}.")
+        #expect(
+            try await harness.refused("set_parameter", [:])
+                == "Give 'name' with 'expression' or 'remove', or a 'parameters' list.")
+    }
+
+    @Test("A one-entry list is the single form; a list of no-ops changes nothing")
+    func batchEdges() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let one = try await harness.call("set_parameter", ["parameters": [["name": "depth", "expression": 41]]])
+        let none = try await harness.call(
+            "set_parameter",
+            ["parameters": [["name": "depth", "expression": 41], ["name": "t", "expression": 10]]])
+        let some = try await harness.call(
+            "set_parameter",
+            ["parameters": [["name": "depth", "expression": 42], ["name": "t", "expression": 10]]])
+
+        #expect(harness.commits == ["Set Parameter depth", "Set Parameters"])
+        #expect(one.message.hasPrefix("Set parameter depth = 41\n"))
+        #expect(none.message == "Changed no parameters. Nothing changed.")
+        #expect(some.message.hasPrefix("Changed 1 of 2 parameters\n"))
+    }
+
+    @Test("A dependent added with its source in one list reports the new value")
+    func batchDependent() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let result = try await harness.call(
+            "set_parameter",
+            [
+                "parameters": [
+                    ["name": "gap", "expression": "depth / 4"], ["name": "depth", "expression": 48],
+                ]
+            ])
+
+        #expect(result.message.hasSuffix("Parameters:\n  depth: 40 → 48\n  + gap = depth / 4 (= 12)"))
+    }
+
+    @Test("Extra keys next to a list are named")
+    func batchMixedKeys() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": [], "expression": 1, "remove": true])
+                == "With 'parameters', leave out 'expression', 'remove'.")
+    }
+
+    @Test("Setting 20 parameters in one call costs under 600 characters")
+    func batchBudget() async throws {
+        let harness = Harness(Fixtures.plate())
+        try await harness.session.rebuild()
+        let entries: [JSONValue] = (1...20).map { index in
+            ["name": .string("p\(index)"), "expression": .integer(index)]
+        }
+
+        let result = try await harness.call("set_parameter", ["parameters": .array(entries)])
+
+        #expect(result.success)
+        #expect(result.message.count < 600, "\(result.message.count) characters:\n\(result.message)")
     }
 
     @Test("Setting a parameter to its current expression changes nothing and adds no undo step")

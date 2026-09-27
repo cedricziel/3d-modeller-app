@@ -209,9 +209,8 @@ struct CADSessionTests {
         #expect(
             result.message.hasSuffix(
                 """
-                Listing changes:
-                  - parameters: width = 60, depth = 40, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
-                  + parameters: width = 60, depth = 41, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
+                Parameters:
+                  depth: 40 → 41
                 """))
         #expect(session.document.parts[0].features[3] == fixed.parts[0].features[3])
     }
