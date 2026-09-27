@@ -89,7 +89,8 @@ extension CADSession {
             let arguments = try Arguments(raw, allowed: ["part", "name", "body", "placement", "grounded"])
             let part = document.parts[try document.partIndex(named: try arguments.requiredString("part"))]
             let name =
-                try arguments.string("name") ?? Naming.next(part.name, taken: Set(document.instances.map(\.name)))
+                try arguments.string("name")
+                ?? Naming.next(Naming.identifier(from: part.name), taken: Set(document.instances.map(\.name)))
             try Naming.checkInstanceName(name, in: document)
             let body = try arguments.string("body")
             if let body, let bodies = built?.parts.first(where: { $0.id == part.id })?.bodies.map(\.name),

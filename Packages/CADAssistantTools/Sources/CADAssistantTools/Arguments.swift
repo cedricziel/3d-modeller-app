@@ -115,6 +115,13 @@ enum Naming {
         }
     }
 
+    /// `name` with every character an identifier cannot hold replaced by `_`, and `_` in front of a leading digit.
+    static func identifier(from name: String) -> String {
+        let characters = name.prefix(60).map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "_" }
+        guard let first = characters.first else { return "_" }
+        return (first.isNumber ? "_" : "") + String(characters)
+    }
+
     /// `base` followed by the lowest number ≥ 1 that makes a name not in `taken`.
     static func next(_ base: String, taken: Set<String>) -> String {
         (1...).lazy.map { "\(base)\($0)" }.first { !taken.contains($0) }!
