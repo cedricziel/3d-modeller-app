@@ -22,12 +22,17 @@ public struct STEPOccurrence: Sendable {
     public var product: Int
     public var rotation: simd_double3x3
     public var translation: SIMD3<Double>
+    /// Overrides the product's colour for this occurrence; red, green and blue in 0…1.
+    public var color: SIMD3<Double>?
 
-    public init(name: String, product: Int, rotation: simd_double3x3, translation: SIMD3<Double>) {
+    public init(
+        name: String, product: Int, rotation: simd_double3x3, translation: SIMD3<Double>, color: SIMD3<Double>? = nil
+    ) {
         self.name = name
         self.product = product
         self.rotation = rotation
         self.translation = translation
+        self.color = color
     }
 }
 
@@ -39,6 +44,8 @@ public struct STEPContents: @unchecked Sendable {
     public let names: [String]
     /// The colour of every coloured node.
     public let colors: [SIMD3<Double>]
+    /// The colour of each named node that has one; an occurrence shows its own colour, else its product's.
+    public let namedColors: [String: SIMD3<Double>]
 }
 
 extension Kernel {
@@ -65,6 +72,10 @@ extension Kernel {
                         matrix: rowMajor(occurrence.rotation, occurrence.translation)
                     )
                     try setName(component, occurrence.name, in: document)
+                    if let color = occurrence.color {
+                        document.node(at: component)?.setColor(
+                            OCCTSwift.Color(red: color.x, green: color.y, blue: color.z))
+                    }
                 }
             }
             document.updateAssemblies()
@@ -88,12 +99,15 @@ extension Kernel {
             }
             var names: [String] = []
             var colors: [SIMD3<Double>] = []
+            var namedColors: [String: SIMD3<Double>] = [:]
             func walk(_ node: AssemblyNode) {
-                if let name = node.name, !name.isEmpty {
+                let name = node.name ?? ""
+                if !name.isEmpty {
                     names.append(name)
                 }
                 if let color = node.color {
                     colors.append(SIMD3(color.red, color.green, color.blue))
+                    if !name.isEmpty { namedColors[name] = SIMD3(color.red, color.green, color.blue) }
                 }
                 node.children.forEach(walk)
             }
@@ -104,8 +118,8 @@ extension Kernel {
                 }
             }
             return STEPContents(
-                solids: shape.solids.map { Solid(shape: $0, feature: "STEP") }, names: names, colors: colors
-            )
+                solids: shape.solids.map { Solid(shape: $0, feature: "STEP") }, names: names, colors: colors,
+                namedColors: namedColors)
         }
     }
 
