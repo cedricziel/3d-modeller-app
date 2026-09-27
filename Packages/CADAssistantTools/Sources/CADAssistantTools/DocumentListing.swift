@@ -12,8 +12,9 @@ public enum DocumentListing {
         [parametersLine(document.parameters)] + modelLines(document, result: result)
     }
 
-    /// Everything after the parameters line: parts with their features, then the assembly.
-    static func modelLines(_ document: CADDocument, result: RebuildResult?) -> [String] {
+    /// Everything after the parameters line: parts with their features, then the assembly. Features, instances and
+    /// joints in `statusless` are listed without their status.
+    static func modelLines(_ document: CADDocument, result: RebuildResult?, statusless: Set<UUID> = []) -> [String] {
         var lines: [String] = []
         for part in document.parts {
             lines.append("part \(part.name)")
@@ -25,10 +26,10 @@ public enum DocumentListing {
                     ?? (feature.suppressed ? FeatureStatus.suppressed.description : "not built")
                 let summary = summary(
                     feature.kind, body: bodies[feature.id], sketch: result?.sketch(id: feature.id))
-                lines.append("  \(feature.name)  \(summary)  \(status)")
+                lines.append("  \(feature.name)  \(summary)" + (statusless.contains(feature.id) ? "" : "  \(status)"))
             }
         }
-        return lines + AssemblyListing.lines(document, result: result)
+        return lines + AssemblyListing.lines(document, result: result, statusless: statusless)
     }
 
     static func parametersLine(_ parameters: [Parameter]) -> String {

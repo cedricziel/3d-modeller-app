@@ -53,9 +53,10 @@ struct WriteReport {
             lines.append("Parameters:")
             lines += Self.capped(parameters, "changed parameters", then: "call get_listing")
         }
+        let statusless = reportedStatuses(afterResult)
         let diff = Self.diff(
-            DocumentListing.modelLines(before, result: beforeResult),
-            DocumentListing.modelLines(after, result: afterResult))
+            DocumentListing.modelLines(before, result: beforeResult, statusless: statusless),
+            DocumentListing.modelLines(after, result: afterResult, statusless: statusless))
         if !diff.isEmpty {
             lines.append("Listing changes:")
             lines += Self.capped(diff, "changed lines", then: "call get_listing")
@@ -78,6 +79,20 @@ struct WriteReport {
     static func names(_ names: [String]) -> String {
         let shown = names.prefix(nameLimit).joined(separator: ", ")
         return names.count > nameLimit ? "\(shown) and \(names.count - nameLimit) more" : shown
+    }
+
+    /// Features, instances and joints kept by the edit, whose status the focus line or the status changes already
+    /// report, so their listing lines change only when something besides the status did.
+    private func reportedStatuses(_ afterResult: RebuildResult) -> Set<UUID> {
+        guard let beforeResult else { return [] }
+        let features = afterResult.parts.flatMap(\.features).map(\.id).filter { beforeResult.feature(id: $0) != nil }
+        let instances = (afterResult.assembly?.instances ?? []).map(\.id).filter {
+            beforeResult.assembly?.instance(id: $0) != nil
+        }
+        let joints = (afterResult.assembly?.joints ?? []).map(\.id).filter {
+            beforeResult.assembly?.joint(id: $0) != nil
+        }
+        return Set(features + instances + joints)
     }
 
     private func statusChanges(_ afterResult: RebuildResult) -> [String] {

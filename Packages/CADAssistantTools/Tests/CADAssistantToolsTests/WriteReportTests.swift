@@ -80,13 +80,15 @@ struct WriteReportTests {
     func listingDiffCapped() async throws {
         let harness = try await loaded(blocks(40))
 
-        let result = try await harness.call("set_parameter", ["name": "w", "expression": -1])
-        let lines = result.message.split(separator: "\n")
+        let broken = try await harness.call("set_parameter", ["name": "w", "expression": -1])
+        let renumbered = try await harness.call("delete_feature", ["feature": "Block1"])
+        let lines = renumbered.message.split(separator: "\n")
         let start = try #require(lines.firstIndex(of: "Listing changes:"))
 
         #expect(lines[(start + 1)...].count == 31)
-        #expect(lines.last == "  … 50 more changed lines; call get_listing")
-        #expect(result.message.contains("… 10 more status changes; call get_listing"))
+        #expect(lines.last == "  … 49 more changed lines; call get_listing")
+        #expect(broken.message.contains("… 10 more status changes; call get_listing"))
+        #expect(!broken.message.contains("Listing changes:"))
     }
 
     @Test("A parameter that changes many bodies lists 30 of them")
