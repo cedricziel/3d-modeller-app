@@ -10,6 +10,7 @@
 		0D66709B9DC06503A2C37525 /* CADModelDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9999FB5840E8BD6958F13B0C /* CADModelDocument.swift */; };
 		0DDF50EF1563D28F24B562DA /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3472816753BD59DD3D099D2 /* ViewportContent.swift */; };
 		17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6058937E5DD57AD2F2ED9A /* AppModel.swift */; };
+		26F22B8890BC41BB14AB18F6 /* AppearanceColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6D6DAA65E84E9F1615A083 /* AppearanceColor.swift */; };
 		2D4CBE2018902C7A84A39DDA /* CADModel in Frameworks */ = {isa = PBXBuildFile; productRef = EEAED2A3A075FB9AEC5B04B3 /* CADModel */; };
 		3B2AAB9C5A3ED7E6564760A5 /* FeatureDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F869442913BB8FF10B2B1D /* FeatureDisplayTests.swift */; };
 		4021EF09AE9EC9DC2514850B /* CADModelKernel in Frameworks */ = {isa = PBXBuildFile; productRef = E88F9D535CBF750500F2B1D4 /* CADModelKernel */; };
@@ -28,6 +29,7 @@
 		8EB736741A4470C3544D7B4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 076C9052B33D923C5ACB0C09 /* Assets.xcassets */; };
 		92CBCF72AD0E55F6C3ABA6F1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */; };
 		97A798E2EAD2FB31F6ECDAC0 /* InstanceInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DC61CADEBAF78C7E027963 /* InstanceInspectorView.swift */; };
+		9915DBE0DC6741E3233A2126 /* AppearanceDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B7CE4FD8986D67AB8AA8085 /* AppearanceDisplayTests.swift */; };
 		9E466BFBD95A57718CC77CE1 /* CADModelSolvers in Frameworks */ = {isa = PBXBuildFile; productRef = 3BBA500803D418271A0FD2F0 /* CADModelSolvers */; };
 		9E5651D8553FDFF9C19CA558 /* ExportScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFEDDCBF6906592370B3530E /* ExportScopeTests.swift */; };
 		A874DAA62EEC6E30A107759B /* OrbitCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFCDD190A776BC6EFFB4136 /* OrbitCameraTests.swift */; };
@@ -67,6 +69,7 @@
 		24E6BB346016D6BB0545D19E /* SwiftUIAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SwiftUIAssistant; path = Packages/SwiftUIAssistant; sourceTree = SOURCE_ROOT; };
 		2CC2406D364440B7BDC0892D /* SketchDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchDisplay.swift; sourceTree = "<group>"; };
 		2F62A2D8BD4024BE5A37E61D /* ExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportSheet.swift; sourceTree = "<group>"; };
+		3B7CE4FD8986D67AB8AA8085 /* AppearanceDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceDisplayTests.swift; sourceTree = "<group>"; };
 		488500E0ED65C12E5916808C /* FeatureInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureInspectorView.swift; sourceTree = "<group>"; };
 		4C3F2E04AA00D8C342CEE1CF /* ViewportFrameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportFrameTests.swift; sourceTree = "<group>"; };
 		50EEA813F6BE6E6C0F0BE1E8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -97,6 +100,7 @@
 		ED6058937E5DD57AD2F2ED9A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		EFFBB66155410ABDA8497C94 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantEditingTests.swift; sourceTree = "<group>"; };
+		FD6D6DAA65E84E9F1615A083 /* AppearanceColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceColor.swift; sourceTree = "<group>"; };
 		FD9FF27B6031E2366EE4AF9B /* CADModelDocument+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CADModelDocument+Session.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -143,6 +147,7 @@
 		976F0DAA64C5943C333EBD87 /* 3DModellerAppTests */ = {
 			isa = PBXGroup;
 			children = (
+				3B7CE4FD8986D67AB8AA8085 /* AppearanceDisplayTests.swift */,
 				EFFBB66155410ABDA8497C94 /* AppModelTests.swift */,
 				5378FF521C0686F41B87CF7A /* AssemblyDisplayTests.swift */,
 				FBEBDD5CFBFF723AF537AD4D /* AssistantEditingTests.swift */,
@@ -180,6 +185,7 @@
 		DC5776009A8E9E109E201B8D /* Viewport */ = {
 			isa = PBXGroup;
 			children = (
+				FD6D6DAA65E84E9F1615A083 /* AppearanceColor.swift */,
 				2CC2406D364440B7BDC0892D /* SketchDisplay.swift */,
 				C3472816753BD59DD3D099D2 /* ViewportContent.swift */,
 				E5DFDE87E68FC93F8E89BFB7 /* ViewportFrame.swift */,
@@ -332,6 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */,
+				26F22B8890BC41BB14AB18F6 /* AppearanceColor.swift in Sources */,
 				F7C8C4BD167F2672D2154D64 /* CADModelDocument+Session.swift in Sources */,
 				0D66709B9DC06503A2C37525 /* CADModelDocument.swift in Sources */,
 				521165A128D2584BE448AA8F /* ContentView.swift in Sources */,
@@ -361,6 +368,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				40FDC5120526582872C6D151 /* AppModelTests.swift in Sources */,
+				9915DBE0DC6741E3233A2126 /* AppearanceDisplayTests.swift in Sources */,
 				E7A65BCB7D99D36D826A1140 /* AssemblyDisplayTests.swift in Sources */,
 				BB2A346C051A3267FA37A8BF /* AssistantEditingTests.swift in Sources */,
 				DCA230D5524643F73D85E084 /* CADModelDocumentTests.swift in Sources */,
