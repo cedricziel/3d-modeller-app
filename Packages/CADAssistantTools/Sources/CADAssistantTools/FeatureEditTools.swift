@@ -70,7 +70,10 @@ extension CADSession {
             let given = try FeatureSpec(arguments)
             let kind = try given.kind(given: given)
             let part = document.parts[partIndex]
-            let name = try arguments.string("name") ?? Self.defaultName(for: given.type ?? "", in: part)
+            let type = given.type ?? ""
+            let name =
+                try arguments.string("name")
+                ?? Naming.nextFeature(type.prefix(1).uppercased() + type.dropFirst(), in: document, part: partIndex)
             try Naming.checkFeatureName(name, in: part)
             var index = part.features.endIndex
             switch (try arguments.string("before"), try arguments.string("after")) {
@@ -110,9 +113,4 @@ extension CADSession {
         return index
     }
 
-    private static func defaultName(for type: String, in part: Part) -> String {
-        let base = type.prefix(1).uppercased() + type.dropFirst()
-        let names = Set(part.features.map(\.name))
-        return (1...).lazy.map { "\(base)\($0)" }.first { !names.contains($0) }!
-    }
 }

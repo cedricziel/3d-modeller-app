@@ -120,6 +120,15 @@ enum Naming {
         (1...).lazy.map { "\(base)\($0)" }.first { !taken.contains($0) }!
     }
 
+    /// `base` followed by the lowest number ≥ 1 that names no feature of the part and that no reference to the part
+    /// still uses, so a new feature never answers a reference left over from a deleted one.
+    static func nextFeature(_ base: String, in document: CADDocument, part: Int) -> String {
+        let names = Set(document.parts[part].features.map(\.name))
+        return (1...).lazy.map { "\(base)\($0)" }.first {
+            !names.contains($0) && !document.mentionsFeature($0, of: part)
+        }!
+    }
+
     static func checkFeatureName(_ name: String, in part: Part, excluding id: UUID? = nil) throws(ToolError) {
         guard isIdentifier(name) else {
             throw ToolError(
@@ -174,5 +183,19 @@ extension CADDocument {
             let owners = matches.map { parts[$0.part].name }.joined(separator: ", ")
             throw ToolError("Several parts have a feature named '\(name)' (\(owners)); say which one with 'part'.")
         }
+    }
+}
+
+extension CADDocument {
+    /// Whether a feature reference of the part, or a joint side on one of its instances, names the feature `name`.
+    func mentionsFeature(_ name: String, of part: Int) -> Bool {
+        let other = name + "_"
+        for feature in parts[part].features {
+            var kind = feature.kind
+            kind.renameFeatureReferences(name, to: other)
+            if kind != feature.kind { return true }
+        }
+        var copy = self
+        return !copy.renameJointReferences(part: parts[part].id, from: name, to: other).isEmpty
     }
 }
