@@ -11,7 +11,8 @@ public struct DeleteFeatureTool: AssistantTool {
 
     public let description = """
         Deletes a feature. Deleting a feature that creates a body renumbers later bodies; references to them are \
-        updated to match and reported. The delete is refused while another feature uses the deleted feature's body. \
+        updated to match and reported. The delete is refused while another feature uses the deleted feature's body, \
+        or an extrude or revolve uses the deleted sketch. \
         Face and edge references to the deleted feature's faces are left as they are and fail if nothing else \
         carries those names. \
         Returns status changes, every body's validity, volume and bounds, and the changed listing lines.
@@ -83,7 +84,7 @@ extension CADSession {
             let arguments = try Arguments(raw, allowed: ["feature", "part"])
             let location = try document.featureLocation(
                 named: try arguments.requiredString("feature"), part: try arguments.string("part"))
-            let feature = document.parts[location.part].features.remove(at: location.feature)
+            let feature = try document.parts[location.part].removeFeature(at: location.feature)
             return WriteFocus(
                 actionName: "Delete \(feature.name)",
                 summary: "Deleted \(feature.name) from part \(document.parts[location.part].name)")
