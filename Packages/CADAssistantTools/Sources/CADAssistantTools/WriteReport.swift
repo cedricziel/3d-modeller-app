@@ -161,8 +161,7 @@ struct WriteReport {
         let current = afterResult.assembly?.instances ?? []
         for instance in current {
             let line = Self.describe(instance, in: after)
-            let definitionKept =
-                before.instances.first { $0.id == instance.id } == after.instances.first { $0.id == instance.id }
+            let definitionKept = Self.shape(of: instance.id, in: before) == Self.shape(of: instance.id, in: after)
             if instance.status == .ok, definitionKept, old[instance.id] == line {
                 unchanged.append(instance.name)
             } else {
@@ -177,6 +176,13 @@ struct WriteReport {
         if !unchanged.isEmpty { lines.append("Unchanged instances: \(Self.names(unchanged))") }
         if !removed.isEmpty { lines.append("Removed instances: \(Self.names(removed))") }
         return lines
+    }
+
+    /// The instance without its appearance, which the listing changes already report.
+    private static func shape(of id: UUID, in document: CADDocument) -> Instance? {
+        var instance = document.instances.first { $0.id == id }
+        instance?.appearance = nil
+        return instance
     }
 
     static func describe(_ instance: InstanceResult, in document: CADDocument) -> String {

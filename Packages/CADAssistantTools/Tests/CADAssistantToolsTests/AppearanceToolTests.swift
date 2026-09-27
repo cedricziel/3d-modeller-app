@@ -43,6 +43,8 @@ struct AppearanceToolTests {
         let overridden = harness.session.result?.assembly?.instance(named: "O2")?.appearance
 
         #expect(set.message.hasPrefix("Set the appearance of instance O2 to #C62828"))
+        #expect(set.message.contains("Unchanged instances: O1, O2"))
+        #expect(set.message.contains("+ O2  Ornament at origin, #C62828"))
         #expect(harness.document.instances[1].appearance?.color.hex == "#C62828")
         #expect(harness.document.instances[0].appearance == nil)
         #expect(overridden?.color.hex == "#C62828")
