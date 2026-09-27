@@ -114,4 +114,24 @@ struct SkillLibraryTests {
         let root = try directory(["a/SKILL.md": "---\nname: a\ndescription: >\n---\nBody\n"])
         #expect(throws: SkillError.missingKey(folder: "a", key: "description")) { try SkillLibrary(directory: root) }
     }
+
+    @Test("Symlinks inside a skill folder to files or directories outside it are never listed")
+    func symlinksOutsideAreExcluded() throws {
+        let outsideRoot = try directory(["secret.md": "Secret", "hidden/deeper.md": "Deeper"])
+        let root = try directory([
+            "a/SKILL.md": skillFile("a", "A."),
+            "a/notes.md": "Notes",
+        ])
+        let outsideFile = outsideRoot.appending(path: "secret.md")
+        let outsideDirectory = outsideRoot.appending(path: "hidden")
+        try FileManager.default.createSymbolicLink(
+            at: root.appending(path: "a/link-to-file.md"), withDestinationURL: outsideFile
+        )
+        try FileManager.default.createSymbolicLink(
+            at: root.appending(path: "a/link-to-directory"), withDestinationURL: outsideDirectory
+        )
+        let library = try SkillLibrary(directory: root)
+        let skill = try #require(library.skill(named: "a"))
+        #expect(skill.files == ["notes.md"])
+    }
 }
