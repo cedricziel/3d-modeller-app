@@ -116,6 +116,43 @@ struct ExportRoundTripTests {
         }
     }
 
+    private func coloured() -> CADDocument {
+        var document = assembly()
+        document.parts[1].appearance = Appearance(color: HexColor(red: 0x2E, green: 0x7D, blue: 0x32))
+        document.assembly?.instances[2].appearance = Appearance(color: HexColor(red: 0xC6, green: 0x28, blue: 0x28))
+        return document
+    }
+
+    private func near(_ color: SIMD3<Double>?, _ hex: String) -> Bool {
+        guard let color, let expected = HexColor(hex)?.rgb else { return false }
+        return simd_distance(color, expected) < 3e-3
+    }
+
+    @Test("STEP keeps each part's colour and an instance's own colour")
+    func stepColours() async throws {
+        let model = try await engine.build(coloured())
+        let url = try temporaryFile("coloured.step")
+
+        _ = try model.geometry.export(.document, of: model.result, as: .step, to: url)
+        let colors = try OCCTGeometryKernel.inspectSTEP(at: url).namedColors
+
+        #expect(near(colors["Base"], "#457AD9"))
+        #expect(near(colors["Pin1"], "#2E7D32"))
+        #expect(near(colors["Pin2"], "#C62828"))
+    }
+
+    @Test("3MF colours each item with its instance's colour")
+    func threeMFColours() async throws {
+        let model = try await engine.build(coloured())
+        let url = try temporaryFile("coloured.3mf")
+
+        _ = try model.geometry.export(.document, of: model.result, as: .threeMF, to: url)
+        let contents = try ThreeMFReader.read(Data(contentsOf: url))
+
+        #expect(contents.items.map(\.colors) == [["#457AD9"], ["#2E7D32"], ["#C62828"]])
+        #expect(contents.items.map(\.openEdgeCount) == [0, 0, 0])
+    }
+
     @Test("A single body exports on its own")
     func bodyStep() async throws {
         let model = try await engine.build(CADDocument(parts: [Self.plate, Self.pin]))
