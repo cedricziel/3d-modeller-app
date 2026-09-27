@@ -76,6 +76,13 @@ public struct Appearance: Sendable, Hashable, Codable, CustomStringConvertible {
         self.roughness = roughness
     }
 
+    /// The same metallic and roughness in another colour.
+    public func with(color: HexColor) -> Appearance {
+        var copy = self
+        copy.color = color
+        return copy
+    }
+
     private enum CodingKeys: String, CodingKey { case color, metallic, roughness }
 
     public init(from decoder: any Decoder) throws {

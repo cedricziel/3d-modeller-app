@@ -23,7 +23,10 @@ struct AppearanceTests {
         #expect(throws: AppearanceError.self) { try Appearance(color: colour, metallic: 1.5) }
         #expect(throws: AppearanceError.self) { try Appearance(color: colour, roughness: -0.1) }
         #expect(throws: AppearanceError.self) { try Appearance(color: colour, metallic: .nan) }
-        #expect((try? Appearance(color: colour, metallic: 1, roughness: 0)) != nil)
+        let metal = try? Appearance(color: colour, metallic: 1, roughness: 0)
+        let recoloured = metal?.with(color: HexColor(red: 1, green: 2, blue: 3))
+        #expect(recoloured?.color.hex == "#010203")
+        #expect(recoloured?.metallic == 1 && recoloured?.roughness == 0)
     }
 
     @Test("Parts and instances keep their appearance through a save; earlier documents load without one")
