@@ -35,8 +35,9 @@ extension AssemblyBuilder {
                         transform: nil, bodies: []))
             }
         }
-        var (joints, solved, freedoms) = solveJoints(
+        let (solvedJoints, solved, freedoms) = solveJoints(
             assembly, instances: instances, partResults: partResults, solver: solver)
+        var joints = solvedJoints
         var unmovable: [UUID: String] = [:]
         for (id, transform) in solved {
             guard let index = instances.firstIndex(where: { $0.id == id }), let entry = placedBodies[id] else {
