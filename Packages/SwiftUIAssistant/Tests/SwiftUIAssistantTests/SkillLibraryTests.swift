@@ -32,7 +32,8 @@ struct SkillLibraryTests {
     @Test("Frontmatter keeps everything after the first colon and accepts CRLF line endings")
     func frontmatterColonAndCRLF() throws {
         let parsed = try #require(
-            Frontmatter.parse("---\r\nname: a\r\ndescription: Load before: add_joint\r\n---\r\nBody\r\n"))
+            Frontmatter.parse("---\r\nname: a\r\ndescription: Load before: add_joint\r\n---\r\nBody\r\n")
+        )
         #expect(parsed.fields["description"] == "Load before: add_joint")
         #expect(parsed.body == "Body\n")
     }
@@ -41,6 +42,21 @@ struct SkillLibraryTests {
     func noFrontmatter() {
         #expect(Frontmatter.parse("# Title\n") == nil)
         #expect(Frontmatter.parse("---\nname: a\n") == nil)
+    }
+
+    @Test("Frontmatter strips one matching pair of surrounding quotes from a value")
+    func frontmatterUnquotes() throws {
+        let parsed = try #require(
+            Frontmatter.parse("---\nname: a\ndescription: \"a: b\"\nother: 'single'\n---\nBody\n")
+        )
+        #expect(parsed.fields["description"] == "a: b")
+        #expect(parsed.fields["other"] == "single")
+    }
+
+    @Test("Frontmatter treats a YAML block scalar value as missing", arguments: [">", "|", ">-", "|-"])
+    func frontmatterBlockScalarIsMissing(marker: String) throws {
+        let parsed = try #require(Frontmatter.parse("---\nname: a\ndescription: \(marker)\n---\nBody\n"))
+        #expect(parsed.fields["description"] == nil)
     }
 
     @Test("Skills load sorted by name with their other files, skipping hidden ones")
@@ -91,5 +107,11 @@ struct SkillLibraryTests {
     func unreadable() {
         let root = FileManager.default.temporaryDirectory.appending(path: "missing-\(UUID().uuidString)")
         #expect(throws: SkillError.unreadable(path: root.path)) { try SkillLibrary(directory: root) }
+    }
+
+    @Test("A description that is a YAML block scalar is treated as missing")
+    func blockScalarDescriptionIsMissingKey() throws {
+        let root = try directory(["a/SKILL.md": "---\nname: a\ndescription: >\n---\nBody\n"])
+        #expect(throws: SkillError.missingKey(folder: "a", key: "description")) { try SkillLibrary(directory: root) }
     }
 }
