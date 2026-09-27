@@ -190,6 +190,8 @@ struct SketchToolTests {
         #expect(empty?.contains("Give at least one change") == true)
         let notSketch = try await harness.refused("edit_sketch", ["sketch": "Box1", "offset": 1])
         #expect(notSketch?.contains("Box1 is not a sketch") == true)
+        let bodyOnBase = try await harness.refused("edit_sketch", ["sketch": "Sketch1", "body": "Body1"])
+        #expect(bodyOnBase == "'body' is only for a sketch on a face, not on XY.")
     }
 
     @Test("get_sketch shows the frame, the entities, the constraints and open ends")
