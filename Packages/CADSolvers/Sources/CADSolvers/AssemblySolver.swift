@@ -31,8 +31,7 @@ public struct AssemblySolver: Sendable {
         let preferSecond =
             second.failures < first.failures
             || (second.failures == first.failures && first.failure != nil && second.failure == nil)
-        let best = preferSecond ? second : first
-        return best.solution(attempts: 2, bothFailed: first.failure != nil && second.failure != nil)
+        return (preferSecond ? second : first).solution(attempts: 2)
     }
 
     struct Attempt {
@@ -41,9 +40,8 @@ public struct AssemblySolver: Sendable {
         let failure: String?
         let failures: Int
 
-        func solution(attempts: Int, bothFailed: Bool = true) -> AssemblySolution {
-            AssemblySolution(
-                placements: placements, joints: joints, failure: bothFailed ? failure : nil, attempts: attempts)
+        func solution(attempts: Int) -> AssemblySolution {
+            AssemblySolution(placements: placements, joints: joints, failure: failure, attempts: attempts)
         }
     }
 

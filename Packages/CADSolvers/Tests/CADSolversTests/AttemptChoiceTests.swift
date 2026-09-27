@@ -27,4 +27,13 @@ struct AttemptChoiceTests {
         #expect(both.joints == [.unsatisfied(distance: 1, angle: 0)])
         #expect(both.failure == "boom")
     }
+
+    @Test("A retry with fewer failures that threw keeps its message")
+    func winnerThatThrewReports() {
+        let first = attempt(distance: 1, failure: nil)
+        let second = AssemblySolver.Attempt(
+            placements: [.identity], joints: [.satisfied], failure: "bang", failures: 0)
+
+        #expect(AssemblySolver.better(first, second).failure == "bang")
+    }
 }
