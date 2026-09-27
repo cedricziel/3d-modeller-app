@@ -61,14 +61,16 @@ extension CADSession {
                 }
                 return try Self.applyParameter(arguments, to: &document)
             }
-            guard arguments.keys == ["parameters"] else {
-                throw ToolError("Give either 'parameters' or 'name', not both.")
+            let extra = ["name", "expression", "remove"].filter(arguments.has)
+            guard extra.isEmpty else {
+                throw ToolError("With 'parameters', leave out \(extra.map { "'\($0)'" }.joined(separator: ", ")).")
             }
             guard !list.isEmpty else {
                 throw ToolError("'parameters' is empty; give at least one {name, expression} or {name, remove: true}.")
             }
             var seen: Set<String> = []
             var focus: WriteFocus?
+            var changed = 0
             for (index, item) in list.enumerated() {
                 guard let object = item.objectValue else {
                     throw ToolError(
@@ -80,13 +82,21 @@ extension CADSession {
                     guard seen.insert(name).inserted else {
                         throw ToolError("'\(name)' is already in the list; give each parameter once.")
                     }
+                    let previous = document.parameters
                     focus = try Self.applyParameter(entry, to: &document)
+                    if document.parameters != previous { changed += 1 }
                 } catch {
                     throw ToolError("parameters[\(index)]: \(error.description)")
                 }
             }
             if list.count == 1, let focus { return focus }
-            return WriteFocus(actionName: "Set Parameters", summary: "Set \(list.count) parameters")
+            let summary =
+                switch changed {
+                case 0: "Changed no parameters"
+                case list.count: "Changed \(changed) parameters"
+                default: "Changed \(changed) of \(list.count) parameters"
+                }
+            return WriteFocus(actionName: "Set Parameters", summary: summary)
         }
     }
 

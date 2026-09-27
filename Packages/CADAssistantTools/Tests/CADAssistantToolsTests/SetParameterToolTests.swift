@@ -39,6 +39,7 @@ struct SetParameterToolTests {
         #expect(result.message.contains("  Hole: ok → skipped: depends on Base"))
         #expect(result.message.contains("Parameters:\n  width: 60 → 0"))
         #expect(!result.message.contains("parameters:"))
+        #expect(!result.message.contains("Listing changes"), "status changes are not repeated as listing lines")
     }
 
     @Test("Expression strings are kept as expressions and numeric strings become numbers")
@@ -158,7 +159,7 @@ struct SetParameterToolTests {
             harness.document.parameters.map(\.name) == ["width", "depth", "t", "hole_d", "gap"])
         #expect(
             result.message == """
-                Set 3 parameters
+                Changed 3 parameters
                 Bodies: none
                 Parameters:
                   depth: 40 → 41
@@ -204,7 +205,7 @@ struct SetParameterToolTests {
                 == "parameters[0]: Unknown argument 'value'. Accepted: name, expression, remove.")
         #expect(
             try await harness.refused("set_parameter", ["parameters": [], "name": "depth"])
-                == "Give either 'parameters' or 'name', not both.")
+                == "With 'parameters', leave out 'name'.")
         #expect(
             try await harness.refused("set_parameter", ["parameters": []])
                 == "'parameters' is empty; give at least one {name, expression} or {name, remove: true}.")
@@ -214,6 +215,48 @@ struct SetParameterToolTests {
         #expect(
             try await harness.refused("set_parameter", [:])
                 == "Give 'name' with 'expression' or 'remove', or a 'parameters' list.")
+    }
+
+    @Test("A one-entry list is the single form; a list of no-ops changes nothing")
+    func batchEdges() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let one = try await harness.call("set_parameter", ["parameters": [["name": "depth", "expression": 41]]])
+        let none = try await harness.call(
+            "set_parameter",
+            ["parameters": [["name": "depth", "expression": 41], ["name": "t", "expression": 10]]])
+        let some = try await harness.call(
+            "set_parameter",
+            ["parameters": [["name": "depth", "expression": 42], ["name": "t", "expression": 10]]])
+
+        #expect(harness.commits == ["Set Parameter depth", "Set Parameters"])
+        #expect(one.message.hasPrefix("Set parameter depth = 41\n"))
+        #expect(none.message == "Changed no parameters. Nothing changed.")
+        #expect(some.message.hasPrefix("Changed 1 of 2 parameters\n"))
+    }
+
+    @Test("A dependent added with its source in one list reports the new value")
+    func batchDependent() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        let result = try await harness.call(
+            "set_parameter",
+            [
+                "parameters": [
+                    ["name": "gap", "expression": "depth / 4"], ["name": "depth", "expression": 48],
+                ]
+            ])
+
+        #expect(result.message.hasSuffix("Parameters:\n  depth: 40 → 48\n  + gap = depth / 4 (= 12)"))
+    }
+
+    @Test("Extra keys next to a list are named")
+    func batchMixedKeys() async throws {
+        let harness = Harness(Fixtures.plateParametersOnly())
+
+        #expect(
+            try await harness.refused("set_parameter", ["parameters": [], "expression": 1, "remove": true])
+                == "With 'parameters', leave out 'expression', 'remove'.")
     }
 
     @Test("Setting 20 parameters in one call costs under 600 characters")
