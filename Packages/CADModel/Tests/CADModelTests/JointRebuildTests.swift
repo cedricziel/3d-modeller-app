@@ -143,6 +143,46 @@ struct JointRebuildTests {
         #expect(status == .failed("b: Top did not build: part Block has no body named Body9; bodies: Body1"))
     }
 
+    @Test("A failing joint between two grounded instances says both are grounded")
+    func bothGroundedNamed() async throws {
+        let solver = FakeAssemblySolver { assembly in
+            var solution = FakeAssemblySolver.unchanged(assembly)
+            solution.joints = [.unsatisfied(distance: 30, angle: 0), .conflicting]
+            return solution
+        }
+        var document = document { [mate($0, $1), mate($0, $1, name: "Again")] }
+        document.assembly?.instances[1].grounded = true
+
+        let result = try await rebuild(document, solver)
+        let statuses = try #require(result.assembly?.joints.map(\.status))
+
+        let grounded = "; Base and Top are both grounded, so neither can move"
+        #expect(
+            statuses == [
+                .failed("not satisfied: origins 30 mm apart, axes 0° apart" + grounded),
+                .failed("conflicts with other joints" + grounded),
+            ])
+    }
+
+    @Test("A joint fails when the instance it moved cannot be moved there")
+    func unmovableInstanceFailsJoint() async throws {
+        let solver = FakeAssemblySolver { assembly in
+            var solution = FakeAssemblySolver.unchanged(assembly)
+            let top = assembly.joints[0].bodyB
+            solution.placements[top] = RigidTransform(
+                rotation: matrix_identity_double3x3, translation: SIMD3(.nan, 0, 0))
+            return solution
+        }
+
+        let result = try await rebuild(document { [mate($0, $1)] }, solver)
+        let top = try #require(result.assembly?.instances.first { $0.name == "Top" })
+        let joint = try #require(result.assembly?.joints.first)
+
+        let reason = "the kernel could not move Body1: the placement is not finite"
+        #expect(top.status == .failed(reason))
+        #expect(joint.status == .failed("Top could not be moved where the joints put it: " + reason))
+    }
+
     @Test("The solver's verdicts become statuses")
     func verdictsReported() async throws {
         let solver = FakeAssemblySolver { assembly in

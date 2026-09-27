@@ -146,6 +146,8 @@ final class FakeKernel: GeometryKernel {
 
     func transform(_ body: FakeBody, by placement: ResolvedPlacement) throws -> FakeBody {
         record("transform \(Scalar.number(body.volume)) \(Self.text(placement))")
+        guard placement.translation.x.isFinite, placement.translation.y.isFinite, placement.translation.z.isFinite
+        else { throw FakeKernelError(description: "the placement is not finite") }
         return body
     }
 

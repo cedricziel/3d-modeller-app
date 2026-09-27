@@ -63,6 +63,11 @@
 - Every solved sketch is drawn, including ones an extrude consumed, on the solid's start face.
 - Four pre-existing `CADSessionTests` (their `Gate` blocks a cooperative thread by design) time out under `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1`; two pre-existing `DocumentListingTests` expressions exceed the 150 ms type-check limit.
 
+### Resolved/skipped in follow-up (`fix/deferred-review-items`)
+
+- Fixed: `delete_feature` refuses to delete a sketch an extrude or revolve uses; selecting a loop and a hole inside it in `regions` is refused; the prompt says where `Extrude1.start` lies for symmetric and through-all extents; `edit_sketch` refuses `body` without `plane` on a base-plane sketch; the four `CADSessionTests` gate tests rebuild on a thread-per-job executor and pass under `LIBDISPATCH_COOPERATIVE_POOL_STRICT=1`.
+- Skipped: listing later users of a removed entity (they fail at rebuild with their own messages); flagging a cut that removes nothing (the result shows the unchanged volume; a warning needs a design); auditing filter expressions in a face plane, up-to face or edge axis (only `circular r=` filters carry expressions, and they never pick a planar face or a straight edge, so the rebuild fails there anyway); drawing consumed sketches (cosmetic); the two `DocumentListingTests` expressions (not over 150 ms in a clean run of this branch).
+
 ## Review Focus
 
 1. An open or branched profile (a rectangle with one line missing, or a T junction). Expected: the extrude fails naming the open ends or the branch node and its entities; the sketch itself is `ok` with the open ends in `get_sketch`. Pinned in Task 4 (`openChain`, `branchNode`) and Task 6 (`extrudeOpenProfileFails`).

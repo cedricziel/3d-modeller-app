@@ -105,6 +105,12 @@ public struct JointResult: Sendable, Equatable, Identifiable {
         self.freedoms = freedoms
     }
 
+    func with(status: JointStatus) -> JointResult {
+        JointResult(
+            id: id, name: name, status: status, motion: motion, value: value, minimum: minimum, maximum: maximum,
+            driven: driven, freedoms: freedoms)
+    }
+
     /// Whether a free joint rests outside its limits.
     public var isOutsideLimits: Bool {
         guard let value else { return false }

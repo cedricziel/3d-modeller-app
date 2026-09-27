@@ -67,6 +67,23 @@ struct RenderViewsToolTests {
         )
     }
 
+    @Test("An instance body without a mesh is named while the rest of the instance is shown")
+    func instanceBodyWithoutMesh() async throws {
+        var kernel = FakeKernel()
+        kernel.meshFails = { $0.volume == 8 }
+        let part = Part(name: "P", features: [Fixtures.box("A", 1, 1, 1), Fixtures.box("B", 2, 2, 2)])
+        let session = CADSession(
+            document: CADDocument(
+                parts: [part], assembly: Assembly(instances: [Instance(name: "Base", part: part.id, grounded: true)])),
+            kernel: kernel)
+
+        let rendering = await session.renderViews([.top])
+
+        #expect(rendering.views.count == 1)
+        #expect(rendering.text.hasPrefix("Rendered 1 view, 512 × 512 px each: Base (P) blue. Lengths in mm."))
+        #expect(rendering.text.hasSuffix(" Not shown: Base/Body2 (P) (no mesh for this body)."), "\(rendering.text)")
+    }
+
     @Test("An empty model gives text and no images")
     func nothingToRender() async throws {
         let result = try await Harness().call("render_views", [:])

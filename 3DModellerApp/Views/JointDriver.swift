@@ -20,7 +20,7 @@ final class JointDriver {
     @ObservationIgnored private var pending: (document: CADDocument, joint: UUID, value: Double)?
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var animation: Task<Void, Never>?
-    /// Bumped by `clear`, so rebuilds that finish afterwards are dropped.
+    /// Bumped by `clear`, so rebuilds that started before it are dropped when they finish.
     @ObservationIgnored private var generation = 0
 
     static let framesPerSecond = 30.0
@@ -33,19 +33,17 @@ final class JointDriver {
         self.sleep = sleep
     }
 
-    /// Previews `joint` at `value`. One rebuild runs at a time; a newer value replaces one still waiting.
+    /// Previews `joint` at `value`. One rebuild runs at a time, even across `clear`; a newer value replaces one still
+    /// waiting.
     func drive(_ joint: UUID, to value: Double, in document: CADDocument) {
         pending = (Self.document(document, driving: joint, to: value), joint, value)
         guard worker == nil else { return }
-        let generation = generation
         worker = Task { [weak self] in
-            while let self, self.generation == generation, let next = self.pending {
+            while let self, let next = self.pending {
                 self.pending = nil
-                await self.show(next.document, next.joint, next.value, generation: generation)
+                await self.show(next.document, next.joint, next.value, generation: self.generation)
             }
-            if let self, self.generation == generation {
-                self.worker = nil
-            }
+            self?.worker = nil
         }
     }
 
@@ -92,12 +90,11 @@ final class JointDriver {
         isAnimating = false
     }
 
-    /// Drops the preview, so the document shows as it is.
+    /// Drops the preview, so the document shows as it is. A rebuild still running finishes unseen.
     func clear() {
         stop()
         generation += 1
         pending = nil
-        worker = nil
         preview = nil
         previewed = nil
     }

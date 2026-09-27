@@ -16,7 +16,7 @@ public struct AssemblySolution: Sendable, Hashable {
     /// Every body's placement after the solve, or as given when it was not solved.
     public let placements: [RigidPlacement]
     public let joints: [JointState]
-    /// The solver's message when every attempt threw.
+    /// The solver's message when the attempt whose result this is threw.
     public let failure: String?
     /// How many solves ran: 0 without solvable joints, 2 when the first left a joint unsatisfied.
     public let attempts: Int

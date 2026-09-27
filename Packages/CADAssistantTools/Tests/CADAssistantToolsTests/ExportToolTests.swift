@@ -122,6 +122,125 @@ struct ExportToolTests {
         #expect(after.count < before.count)
     }
 
+    @Test("export refuses a file name that is only an extension or starts with a dot")
+    func dotNameRefused() async throws {
+        let harness = harness()
+
+        let bare = try await harness.call("export", ["format": "step", "path": ".step"])
+        let nested = try await harness.call("export", ["format": "stl", "path": "out/.hidden"])
+
+        #expect(bare.message == "'.step' starts with a dot; give a visible file name, e.g. \"part.step\".")
+        #expect(nested.message == "'out/.hidden' starts with a dot; give a visible file name, e.g. \"part.stl\".")
+        #expect(!exists(".step.step"))
+        #expect(!exists("out"))
+    }
+
+    @Test("export refuses a subfolder that is a dangling link or a file")
+    func brokenSubfolderRefused() async throws {
+        let harness = harness()
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(
+            atPath: folder.appending(path: "gone").path, withDestinationPath: folder.appending(path: "nowhere").path)
+        try Data("x".utf8).write(to: folder.appending(path: "notes"))
+
+        let dangling = try await harness.call("export", ["format": "stl", "path": "gone/a.stl"])
+        let file = try await harness.call("export", ["format": "stl", "path": "notes/a.stl"])
+
+        #expect(dangling.message == "'gone/a.stl' goes through gone, a symbolic link to nothing.")
+        #expect(file.message == "'notes/a.stl' goes through notes, which is a file, not a folder.")
+        #expect(!exists("nowhere"))
+    }
+
+    @Test("export refuses a path with a control character, such as a NUL that would hide '..'")
+    func controlCharacterRefused() async throws {
+        let harness = harness()
+
+        let nul = try await harness.call("export", ["format": "stl", "path": .string("..\u{0}/..\u{0}/a.stl")])
+        let newline = try await harness.call("export", ["format": "stl", "path": .string("a\nb.stl")])
+
+        #expect(nul.message == "'path' contains a control character; give a plain relative path.")
+        #expect(newline.message == nul.message)
+        #expect(
+            !FileManager.default.fileExists(atPath: folder.deletingLastPathComponent().appending(path: "a.stl").path))
+    }
+
+    @Test("export refuses to replace a folder, even with overwrite")
+    func folderTargetRefused() async throws {
+        try FileManager.default.createDirectory(
+            at: folder.appending(path: "dir.stl"), withIntermediateDirectories: true)
+
+        let result = try await harness().call("export", ["format": "stl", "path": "dir", "overwrite": true])
+
+        #expect(result.message == "dir.stl is a folder; export to another name.")
+    }
+
+    @Test("A failed export creates no folders")
+    func failedExportLeavesNoFolders() async throws {
+        let harness = Harness(CADDocument(parts: [Part(name: "Empty")]))
+        harness.session.exportDirectory = folder
+
+        let result = try await harness.call("export", ["format": "stl", "path": "new/deeper/a.stl"])
+
+        #expect(!result.success)
+        #expect(result.message.hasPrefix("Nothing to export"), "\(result.message)")
+        #expect(!exists("new"))
+    }
+
+    @Test("A file planted after the check is not replaced")
+    func plantedFileKept() async throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = try ExportPath.resolve("race", in: folder, format: .stl, overwrite: false)
+        try Data("theirs".utf8).write(to: destination.url)
+
+        let error = await Self.failure(of: destination)
+        #expect(error == ExportError("race.stl already exists; pass overwrite: true to replace it."))
+        #expect(try String(contentsOf: destination.url, encoding: .utf8) == "theirs")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["race.stl"])
+    }
+
+    @Test("A symbolic link planted after the check is replaced, not followed")
+    func plantedLinkNotFollowed() async throws {
+        let outside = FileManager.default.temporaryDirectory.appending(path: "cadtools-target-\(UUID().uuidString)")
+        try Data("theirs".utf8).write(to: outside)
+        defer { try? FileManager.default.removeItem(at: outside) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = try ExportPath.resolve("race.stl", in: folder, format: .stl, overwrite: true)
+        try FileManager.default.createSymbolicLink(at: destination.url, withDestinationURL: outside)
+
+        try await destination.write { (url) throws(ExportError) in try Self.writeOurs(to: url) }
+
+        let kind = try FileManager.default.attributesOfItem(atPath: destination.url.path)[.type] as? FileAttributeType
+        #expect(kind == .typeRegular)
+        #expect(try String(contentsOf: destination.url, encoding: .utf8) == "ours")
+        #expect(try String(contentsOf: outside, encoding: .utf8) == "theirs")
+    }
+
+    @Test("A subfolder swapped for a link after the check is not written through")
+    func swappedFolderRefused() async throws {
+        let outside = FileManager.default.temporaryDirectory.appending(path: "cadtools-outside-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: outside) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = try ExportPath.resolve("sub/a.stl", in: folder, format: .stl, overwrite: false)
+        try FileManager.default.createSymbolicLink(at: folder.appending(path: "sub"), withDestinationURL: outside)
+
+        #expect(await Self.failure(of: destination) != nil)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path).isEmpty)
+    }
+
+    private static func failure(of destination: ExportDestination) async -> ExportError? {
+        do {
+            try await destination.write { (url) throws(ExportError) in try writeOurs(to: url) }
+            return nil
+        } catch {
+            return error
+        }
+    }
+
+    private static func writeOurs(to url: URL) throws(ExportError) {
+        do { try Data("ours".utf8).write(to: url) } catch { throw ExportError("\(error)") }
+    }
+
     @Test("export refuses without an export folder")
     func noDirectoryRefused() async throws {
         let result = try await harness(granted: false).call("export", ["format": "stl"])

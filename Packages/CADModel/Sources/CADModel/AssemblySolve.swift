@@ -35,8 +35,10 @@ extension AssemblyBuilder {
                         transform: nil, bodies: []))
             }
         }
-        let (joints, solved, freedoms) = solveJoints(
+        let (solvedJoints, solved, freedoms) = solveJoints(
             assembly, instances: instances, partResults: partResults, solver: solver)
+        var joints = solvedJoints
+        var unmovable: [UUID: String] = [:]
         for (id, transform) in solved {
             guard let index = instances.firstIndex(where: { $0.id == id }), let entry = placedBodies[id] else {
                 continue
@@ -51,6 +53,15 @@ extension AssemblyBuilder {
                     id: id, name: entry.instance.name, part: entry.instance.part, status: .failed(error.reason),
                     transform: nil, bodies: [])
                 placedBodies[id] = nil
+                unmovable[id] = "\(entry.instance.name) could not be moved where the joints put it: \(error.reason)"
+            }
+        }
+        if !unmovable.isEmpty {
+            joints = zip(assembly.joints, joints).map { joint, result in
+                guard result.status.holds,
+                    let reason = unmovable[joint.a.instance] ?? unmovable[joint.b.instance]
+                else { return result }
+                return result.with(status: .failed(reason))
             }
         }
         let bodies = assembly.instances.compactMap { instance in
@@ -210,7 +221,15 @@ extension AssemblyBuilder {
                 return .failed(solution.failure.map { "the solver failed (\($0)); \(reason)" } ?? reason)
             }
         }
-        return (statuses, solution.placements)
+        let explained = statuses.indices.map { index -> JointStatus in
+            let joint = system.joints[index]
+            guard case .failed(let reason) = statuses[index], system.bodies[joint.bodyA].grounded,
+                system.bodies[joint.bodyB].grounded
+            else { return statuses[index] }
+            let (a, b) = solverJoints[index].sides
+            return .failed("\(reason); \(a.name) and \(b.name) are both grounded, so neither can move")
+        }
+        return (explained, solution.placements)
     }
 
     private static func rounded(_ value: Double) -> String {

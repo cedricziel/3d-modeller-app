@@ -43,17 +43,13 @@ public struct ExportTool: AssistantTool {
             guard let directory = await session.exportDirectory else {
                 throw ToolError("This host grants no export folder, so export cannot write files here.")
             }
-            let url: URL
-            do {
-                url = try ExportPath.resolve(
+            do throws(ExportError) {
+                let destination = try ExportPath.resolve(
                     request.path, in: directory, format: request.format, overwrite: request.overwrite)
-            } catch {
-                throw ToolError(error.description)
-            }
-            do {
-                let summary = try await session.export(
-                    request.target, as: request.format, to: url, tolerance: request.tolerance)
-                return .success(Self.describe(summary, in: directory))
+                let summary = try await destination.write { (url) throws(ExportError) in
+                    try await session.export(request.target, as: request.format, to: url, tolerance: request.tolerance)
+                }
+                return .success(Self.describe(summary, at: destination))
             } catch {
                 throw ToolError(error.description)
             }
@@ -62,10 +58,10 @@ public struct ExportTool: AssistantTool {
         }
     }
 
-    static func describe(_ summary: ExportSummary, in directory: URL) -> String {
-        let name = ExportPath.relative(summary.url, to: directory.resolvingSymlinksInPath())
+    static func describe(_ summary: ExportSummary, at destination: ExportDestination) -> String {
         let size = ByteCountFormatter.string(fromByteCount: Int64(summary.bytes), countStyle: .file)
-        var text = "Wrote \(name) (\(summary.format.displayName), \(size), mm) at \(summary.url.path): "
+        var text =
+            "Wrote \(destination.display) (\(summary.format.displayName), \(size), mm) at \(destination.url.path): "
         text += "products \(summary.products.joined(separator: ", "))"
         if !summary.occurrences.isEmpty { text += "; occurrences \(summary.occurrences.joined(separator: ", "))" }
         text += "; \(summary.bodyCount) \(summary.bodyCount == 1 ? "body" : "bodies")"

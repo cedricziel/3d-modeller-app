@@ -115,9 +115,25 @@ enum Naming {
         }
     }
 
+    /// `name` with every character an identifier cannot hold replaced by `_`, and `_` in front of a leading digit.
+    static func identifier(from name: String) -> String {
+        let characters = name.prefix(60).map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "_" }
+        guard let first = characters.first else { return "_" }
+        return (first.isNumber ? "_" : "") + String(characters)
+    }
+
     /// `base` followed by the lowest number ≥ 1 that makes a name not in `taken`.
     static func next(_ base: String, taken: Set<String>) -> String {
         (1...).lazy.map { "\(base)\($0)" }.first { !taken.contains($0) }!
+    }
+
+    /// `base` followed by the lowest number ≥ 1 that names no feature of the part and that no reference to the part
+    /// still uses, so a new feature never answers a reference left over from a deleted one.
+    static func nextFeature(_ base: String, in document: CADDocument, part: Int) -> String {
+        let names = Set(document.parts[part].features.map(\.name))
+        return (1...).lazy.map { "\(base)\($0)" }.first {
+            !names.contains($0) && !document.mentionsFeature($0, of: part)
+        }!
     }
 
     static func checkFeatureName(_ name: String, in part: Part, excluding id: UUID? = nil) throws(ToolError) {
@@ -174,5 +190,19 @@ extension CADDocument {
             let owners = matches.map { parts[$0.part].name }.joined(separator: ", ")
             throw ToolError("Several parts have a feature named '\(name)' (\(owners)); say which one with 'part'.")
         }
+    }
+}
+
+extension CADDocument {
+    /// Whether a feature reference of the part, or a joint side on one of its instances, names the feature `name`.
+    func mentionsFeature(_ name: String, of part: Int) -> Bool {
+        let other = name + "_"
+        for feature in parts[part].features {
+            var kind = feature.kind
+            kind.renameFeatureReferences(name, to: other)
+            if kind != feature.kind { return true }
+        }
+        var copy = self
+        return !copy.renameJointReferences(part: parts[part].id, from: name, to: other).isEmpty
     }
 }
