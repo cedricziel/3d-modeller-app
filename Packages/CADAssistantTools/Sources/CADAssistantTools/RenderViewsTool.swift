@@ -123,6 +123,10 @@ public struct ViewRendering: Sendable {
                     add(name, [], problem: reason)
                 } else {
                     add(name, instance.bodies.compactMap(\.mesh), problem: nil)
+                    let unmeshed = instance.bodies.filter { ($0.mesh?.triangleCount ?? 0) == 0 }
+                    guard unmeshed.count < instance.bodies.count else { continue }
+                    let part = partNames[instance.part] ?? "missing part"
+                    missing += unmeshed.map { "\(instance.name)/\($0.name) (\(part)) (\($0.error ?? "no mesh"))" }
                 }
             }
         }
