@@ -1,9 +1,8 @@
+@testable import CADAssistantTools
 import CADModel
 import Foundation
 import SwiftUIAssistant
 import Testing
-
-@testable import CADAssistantTools
 
 @MainActor
 @Suite("delete_feature, rename_feature, suppress_feature, get_listing")
@@ -21,11 +20,15 @@ struct FeatureLifecycleToolTests {
                     Feature(
                         name: "E",
                         kind: .transform(
-                            TransformFeature(body: "Body3", placement: Placement(translation: Vector3(1, 0, 0))))),
+                            TransformFeature(body: "Body3", placement: Placement(translation: Vector3(1, 0, 0)))
+                        )
+                    ),
                     Feature(
                         name: "F",
-                        kind: .boolean(BooleanFeature(operation: .subtract, target: "Body2", tools: ["Body3"]))),
-                ])
+                        kind: .boolean(BooleanFeature(operation: .subtract, target: "Body2", tools: ["Body3"]))
+                    ),
+                ]
+            )
         ])
     }
 
@@ -61,12 +64,15 @@ struct FeatureLifecycleToolTests {
                   D now refers to Body1 (was Body2)
                   E now refers to Body2 (was Body3)
                   F now refers to Body1 (was Body2), Body2 (was Body3)
-                """))
+                """
+            )
+        )
         let after = try #require(harness.session.result)
         #expect(after.parts[0].features.map(\.status) == [.ok, .ok, .ok, .ok, .ok])
         #expect(
             after.parts[0].bodies.map(\.metrics?.volume)
-                == before.parts[0].bodies.dropFirst().prefix(1).map(\.metrics?.volume))
+                == before.parts[0].bodies.dropFirst().prefix(1).map(\.metrics?.volume)
+        )
     }
 
     @Test("Ruling: deleting a feature whose body others use is refused and names them")
@@ -80,21 +86,25 @@ struct FeatureLifecycleToolTests {
                 Nothing changed, because bodies that other features or instances use would no longer exist: \
                 E uses Body3, which C creates; F uses Body3, which C creates. Change or delete those features first, \
                 or suppress the creating feature instead.
-                """)
+                """
+        )
     }
 
     @Test("Deleting an unknown feature, or an ambiguous one, is refused")
     func deleteRefusals() async throws {
         let sphere = { Feature(name: "S", kind: .primitive(PrimitiveFeature(.sphere(radius: 1)))) }
         let harness = Harness(
-            CADDocument(parts: [Part(name: "A", features: [sphere()]), Part(name: "B", features: [sphere()])]))
+            CADDocument(parts: [Part(name: "A", features: [sphere()]), Part(name: "B", features: [sphere()])])
+        )
 
         #expect(
             try await harness.refused("delete_feature", ["feature": "T"])
-                == "No feature named 'T'. Features by part: A: S; B: S.")
+                == "No feature named 'T'. Features by part: A: S; B: S."
+        )
         #expect(
             try await harness.refused("delete_feature", ["feature": "S"])
-                == "Several parts have a feature named 'S' (A, B); say which one with 'part'.")
+                == "Several parts have a feature named 'S' (A, B); say which one with 'part'."
+        )
         #expect(try await harness.call("delete_feature", ["feature": "S", "part": "B"]).success)
         #expect(harness.document.parts.map(\.features.count) == [1, 0])
     }
@@ -111,16 +121,22 @@ struct FeatureLifecycleToolTests {
         #expect(result.message.contains("Merge: skipped: depends on BadCone → skipped: depends on Cone"))
         #expect(
             try await harness.refused("rename_feature", ["feature": "Cone", "new_name": "Base"])
-                == "Part Plate already has a feature named 'Base'.")
+                == "Part Plate already has a feature named 'Base'."
+        )
         #expect(
             try await harness.refused("rename_feature", ["feature": "Cone", "new_name": "1st"])?.hasPrefix(
-                "'1st' is not a valid feature name") == true)
+                "'1st' is not a valid feature name"
+            ) == true
+        )
         #expect(
             try await harness.refused("rename_feature", ["feature": "Nope", "new_name": "X"])?.hasPrefix(
-                "No feature named 'Nope'") == true)
+                "No feature named 'Nope'"
+            ) == true
+        )
         #expect(
             try await harness.call("rename_feature", ["feature": "Cone", "new_name": "Cone"]).message
-                == "Renamed Cone to Cone. Nothing changed.")
+                == "Renamed Cone to Cone. Nothing changed."
+        )
     }
 
     @Test("Suppressing skips dependants; unsuppressing restores them; each is one named undo step")
@@ -140,7 +156,8 @@ struct FeatureLifecycleToolTests {
         )
         #expect(
             try await harness.refused("suppress_feature", ["feature": "Pin", "suppressed": "yes"])
-                == "'suppressed' must be true or false.")
+                == "'suppressed' must be true or false."
+        )
     }
 
     @Test("get_listing rebuilds when needed and returns the listing with statuses")
@@ -165,8 +182,9 @@ struct FeatureLifecycleToolTests {
                 "edit_feature",
                 "delete_feature", "rename_feature", "suppress_feature", "add_sketch", "edit_sketch", "get_sketch",
                 "add_part", "rename_part", "delete_part", "add_instance", "edit_instance", "delete_instance",
-                "add_joint", "edit_joint", "delete_joint", "move_joint",
-            ])
+                "add_joint", "edit_joint", "delete_joint", "move_joint", "list_skills", "get_skill",
+            ]
+        )
         for name in [
             "get_listing", "measure", "set_parameter", "add_feature", "edit_feature", "add_sketch", "add_instance",
             "add_joint", "move_joint",
