@@ -35,7 +35,7 @@ struct AppearanceSection: View {
         Binding(
             get: { shown.map { Color($0.color) } ?? .gray },
             set: { picked in
-                guard let hex = HexColor(picked), hex != appearance?.color else { return }
+                guard let hex = HexColor(picked), hex != shown?.color else { return }
                 set(appearance?.with(color: hex) ?? inherited?.with(color: hex) ?? Appearance(color: hex))
             }
         )

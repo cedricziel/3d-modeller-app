@@ -143,7 +143,7 @@ struct ContentView: View {
     private func setAppearance(_ target: AppearanceTarget, _ appearance: Appearance?) {
         document.edit(
             "\(appearance == nil ? "Clear" : "Set") appearance of \(target.name(in: document.model))",
-            undoManager: undoManager
+            coalescing: "appearance \(target)", undoManager: undoManager
         ) { model in
             target.apply(appearance, to: &model)
         }
