@@ -18,11 +18,14 @@ public struct ExportOccurrence: Sendable, Equatable {
     public var name: String
     public var product: Int
     public var transform: RigidTransform
+    /// Overrides the product's colour for this occurrence.
+    public var color: SIMD3<Double>?
 
-    public init(name: String, product: Int, transform: RigidTransform) {
+    public init(name: String, product: Int, transform: RigidTransform, color: SIMD3<Double>? = nil) {
         self.name = name
         self.product = product
         self.transform = transform
+        self.color = color
     }
 }
 
@@ -154,7 +157,8 @@ private struct Planner {
             if bodies.isEmpty { skipped.append("\(name) (no bodies)") }
             return nil
         }
-        products.append(ExportProduct(name: name, bodies: keys, color: ExportPalette.color(products.count)))
+        let color = part.appearance?.color.rgb ?? ExportPalette.color(products.count)
+        products.append(ExportProduct(name: name, bodies: keys, color: color))
         productIndex[identity] = products.count - 1
         return products.count - 1
     }
@@ -175,6 +179,7 @@ private struct Planner {
             skipped.append("\(instance.name) (no bodies)")
             return
         }
-        occurrences.append(ExportOccurrence(name: instance.name, product: product, transform: transform))
+        let color = instance.appearance.map(\.color.rgb).flatMap { $0 == products[product].color ? nil : $0 }
+        occurrences.append(ExportOccurrence(name: instance.name, product: product, transform: transform, color: color))
     }
 }

@@ -33,24 +33,28 @@ struct DisplayBody: Equatable {
     let name: String
     let mesh: BodyMesh
     let metrics: BodyMetrics?
+    var appearance: Appearance?
 }
 
 extension RebuildResult {
     /// The meshes the content shows, each named after its body or instance.
     func displayBodies(_ content: ViewportContent) -> [DisplayBody] {
-        let bodies: [(String, BodyResult)] =
+        let bodies: [(String, BodyResult, Appearance?)] =
             switch content {
-            case .parts: self.bodies.map { ($0.name, $0) }
+            case .parts: parts.flatMap { part in part.bodies.map { ($0.name, $0, part.appearance) } }
             case .assembly:
                 (assembly?.instances ?? []).flatMap { instance in
                     instance.bodies.map {
-                        (instance.bodies.count > 1 ? "\(instance.name)/\($0.name)" : instance.name, $0)
+                        (
+                            instance.bodies.count > 1 ? "\(instance.name)/\($0.name)" : instance.name, $0,
+                            instance.appearance
+                        )
                     }
                 }
             }
-        return bodies.compactMap { name, body in
+        return bodies.compactMap { name, body, appearance in
             guard let mesh = body.mesh, mesh.triangleCount > 0 else { return nil }
-            return DisplayBody(name: name, mesh: mesh, metrics: body.metrics)
+            return DisplayBody(name: name, mesh: mesh, metrics: body.metrics, appearance: appearance)
         }
     }
 }

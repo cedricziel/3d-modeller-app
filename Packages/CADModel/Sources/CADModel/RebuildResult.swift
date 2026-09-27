@@ -63,6 +63,7 @@ public struct PartResult: Sendable, Equatable, Identifiable {
     public let features: [FeatureResult]
     public let bodies: [BodyResult]
     public let sketches: [SketchResult]
+    public let appearance: Appearance?
 }
 
 public struct RebuildResult: Sendable, Equatable {

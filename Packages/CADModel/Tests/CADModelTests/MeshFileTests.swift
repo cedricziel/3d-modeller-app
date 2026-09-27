@@ -90,6 +90,33 @@ struct MeshFileTests {
         #expect(model.contains("transform=\"0.0 1.0 0.0 -1.0 0.0 0.0 0.0 0.0 1.0 10.0 0.0 0.0\""))
     }
 
+    @Test("3MF gives an occurrence with its own colour a copy of the product's meshes in that colour")
+    func threeMFOccurrenceColours() throws {
+        let green = SIMD3<Double>(0x2E, 0x7D, 0x32) / 255
+        let red = SIMD3<Double>(0xC6, 0x28, 0x28) / 255
+        let scene = ExportScene(
+            name: "Assembly",
+            products: [
+                ExportProduct(name: "Ornament", bodies: [("Body1", triangle), ("Body2", triangle)], color: green)
+            ],
+            occurrences: [
+                ExportOccurrence(name: "O1", product: 0, transform: .identity),
+                ExportOccurrence(name: "O2", product: 0, transform: .identity, color: red),
+                ExportOccurrence(name: "O3", product: 0, transform: .identity, color: red),
+            ])
+
+        let contents = try ThreeMFReader.read(ThreeMFWriter.data(scene))
+
+        #expect(contents.colors == ["#2E7D32", "#C62828"])
+        #expect(
+            contents.items.map(\.colors) == [
+                ["#2E7D32", "#2E7D32"], ["#C62828", "#C62828"], ["#C62828", "#C62828"],
+            ])
+        #expect(contents.items[0].object != contents.items[1].object)
+        #expect(contents.items[1].object == contents.items[2].object)
+        #expect(contents.triangleCount == 6)
+    }
+
     @Test("3MF merges the corners the kernel repeats along shared edges, so the mesh is closed")
     func threeMFWelds() throws {
         let square = BodyMesh(

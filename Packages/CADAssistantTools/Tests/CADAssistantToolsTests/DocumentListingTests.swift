@@ -37,6 +37,26 @@ struct DocumentListingTests {
         #expect(Array(lines[2...4]) == expected)
     }
 
+    @Test("Appearances follow the part's name and the instance's placement")
+    func appearances() throws {
+        let part = Part(
+            name: "Ornament",
+            appearance: try Appearance(color: HexColor(red: 0x2E, green: 0x7D, blue: 0x32), roughness: 0.4))
+        let document = CADDocument(
+            parts: [part],
+            assembly: Assembly(instances: [
+                Instance(name: "O1", part: part.id),
+                Instance(
+                    name: "O2", part: part.id, appearance: Appearance(color: HexColor(red: 255, green: 0, blue: 0))),
+            ]))
+
+        let lines = DocumentListing.lines(document, result: nil)
+
+        #expect(lines.contains("part Ornament  #2E7D32 roughness 0.4"))
+        #expect(lines.contains("  O1  Ornament at origin  not built"))
+        #expect(lines.contains("  O2  Ornament at origin, #FF0000  not built"))
+    }
+
     @Test("Empty documents, empty parts and failing parameters are listed plainly")
     func emptyAndFailing() {
         let document = CADDocument(

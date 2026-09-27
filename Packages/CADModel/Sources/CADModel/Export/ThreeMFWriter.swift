@@ -2,7 +2,9 @@ import Foundation
 import simd
 
 /// A 3MF package: one mesh object per product body, one components object per product with several bodies, one
-/// build item per occurrence (or per product without occurrences), each product coloured by a base material.
+/// build item per occurrence (or per product without occurrences), each product coloured by a base material. An
+/// occurrence with its own colour places a copy of its product's meshes in that colour, because 3MF colours objects,
+/// not items.
 public enum ThreeMFWriter {
     static let modelPath = "3D/3dmodel.model"
 
@@ -31,37 +33,51 @@ public enum ThreeMFWriter {
         """
 
     static func model(_ scene: ExportScene<BodyMesh>) -> String {
-        var resources = "<basematerials id=\"1\">\n"
-        for product in scene.products {
-            resources += "<base name=\"\(escape(product.name))\" displaycolor=\"\(hex(product.color))\"/>\n"
+        var materials = scene.products.map { (name: $0.name, color: hex($0.color)) }
+        func material(_ color: SIMD3<Double>) -> Int {
+            let code = hex(color)
+            if let index = materials.firstIndex(where: { $0.color == code }) { return index }
+            materials.append((code, code))
+            return materials.count - 1
         }
-        resources += "</basematerials>\n"
+        let occurrenceMaterials = scene.occurrences.map { $0.color.map(material) ?? $0.product }
+        var objects = ""
         var nextID = 2
-        var productObjects: [Int] = []
-        for (index, product) in scene.products.enumerated() {
+        var emitted: [[Int]: Int] = [:]
+        func productObject(_ index: Int, material: Int) -> Int {
+            if let id = emitted[[index, material]] { return id }
+            let product = scene.products[index]
             var bodyObjects: [Int] = []
             for (name, mesh) in product.bodies {
                 let objectName = product.bodies.count == 1 ? product.name : name
-                resources += object(nextID, name: objectName, material: index, mesh: mesh)
+                objects += object(nextID, name: objectName, material: material, mesh: mesh)
                 bodyObjects.append(nextID)
                 nextID += 1
             }
-            if bodyObjects.count == 1 {
-                productObjects.append(bodyObjects[0])
-            } else {
-                resources += "<object id=\"\(nextID)\" type=\"model\" name=\"\(escape(product.name))\"><components>\n"
-                resources += bodyObjects.map { "<component objectid=\"\($0)\"/>\n" }.joined()
-                resources += "</components></object>\n"
-                productObjects.append(nextID)
+            var id = bodyObjects[0]
+            if bodyObjects.count > 1 {
+                objects += "<object id=\"\(nextID)\" type=\"model\" name=\"\(escape(product.name))\"><components>\n"
+                objects += bodyObjects.map { "<component objectid=\"\($0)\"/>\n" }.joined()
+                objects += "</components></object>\n"
+                id = nextID
                 nextID += 1
             }
+            emitted[[index, material]] = id
+            return id
         }
+        let productObjects = scene.products.indices.map { productObject($0, material: $0) }
         let items =
             scene.occurrences.isEmpty
             ? productObjects.map { "<item objectid=\"\($0)\"/>\n" }
-            : scene.occurrences.map {
-                "<item objectid=\"\(productObjects[$0.product])\" transform=\"\(transform($0.transform))\"/>\n"
+            : zip(scene.occurrences, occurrenceMaterials).map { occurrence, material in
+                let id = productObject(occurrence.product, material: material)
+                return "<item objectid=\"\(id)\" transform=\"\(transform(occurrence.transform))\"/>\n"
             }
+        var resources = "<basematerials id=\"1\">\n"
+        for (name, color) in materials {
+            resources += "<base name=\"\(escape(name))\" displaycolor=\"\(color)\"/>\n"
+        }
+        resources += "</basematerials>\n" + objects
         return """
             <?xml version="1.0" encoding="UTF-8"?>
             <model unit="millimeter" xml:lang="en-US" \

@@ -58,5 +58,6 @@ enum AssemblyListing {
         guard let part = document.part(id: instance.part) else { return "(missing part)" }
         let placed = part.name + (instance.body.map { "/\($0)" } ?? "")
         return "\(placed) \(DocumentListing.location(instance.placement))" + (instance.grounded ? ", grounded" : "")
+            + (instance.appearance.map { ", \($0)" } ?? "")
     }
 }

@@ -51,7 +51,7 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
             parts.append(
                 PartResult(
                     id: part.id, name: part.name, features: features, bodies: try builder.bodyResults(),
-                    sketches: builder.sketchResults))
+                    sketches: builder.sketchResults, appearance: part.appearance))
             partBodies[part.id] = builder.builtBodies
             for (name, body) in builder.builtBodies {
                 bodies[BodyKey(part: part.id, body: name)] = body
@@ -66,7 +66,13 @@ public struct RebuildEngine<Kernel: GeometryKernel>: Sendable {
                 documentAssembly,
                 partResults: Dictionary(parts.map { ($0.id, $0.bodies) }, uniquingKeysWith: { first, _ in first }),
                 solver: assemblySolver)
-            assembly = assembled.result
+            let appearances = Dictionary(
+                documentAssembly.instances.map { instance in
+                    (instance.id, instance.appearance ?? document.part(id: instance.part)?.appearance)
+                }, uniquingKeysWith: { first, _ in first })
+            assembly = AssemblyResult(
+                instances: assembled.result.instances.map { $0.with(appearance: appearances[$0.id] ?? nil) },
+                joints: assembled.result.joints)
             instanceBodies = assembled.bodies
             for (instance, placed) in assembled.bodies {
                 for (name, body) in placed {

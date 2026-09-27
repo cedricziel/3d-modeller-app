@@ -150,6 +150,13 @@ struct AssistantLoopTests {
         #expect(!prompt.contains("use flip if the axes point opposite ways"))
     }
 
+    @Test("The prompt teaches colours: a part's appearance and an instance's override")
+    func promptAppearance() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("set_appearance"))
+        #expect(prompt.contains("overrides its part's"))
+    }
+
     @Test("The prompt asks for several parameters in one set_parameter call")
     func promptBatchesParameters() {
         #expect(CADAssistantPrompt.system.contains("set several parameters in one set_parameter call"))

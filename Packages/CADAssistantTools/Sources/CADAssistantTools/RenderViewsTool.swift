@@ -13,8 +13,9 @@ public struct RenderViewsTool: AssistantTool {
 
     public let description = """
         Renders the rebuilt model and returns the pictures: iso (seen from +X −Y +Z), top (down −Z), front (the −Y \
-        side) and right (the +X side), each 512 × 512 px, flat shaded with dark feature edges, each body in its own \
-        colour. When the document has instances it shows the assembly, each instance in its own colour; show: parts \
+        side) and right (the +X side), each 512 × 512 px, flat shaded with dark feature edges, each body in its \
+        appearance's colour or else its own palette colour. When the document has instances it shows the assembly, \
+        each instance in its colour; show: parts \
         shows the parts' own bodies instead. Each view is framed on its own; its caption gives the mm per pixel. Use it to check the shape after \
         bigger changes; it costs about 350 input tokens per view, now and on every later turn, so ask only for the \
         views you need.
@@ -89,7 +90,8 @@ public struct ViewRendering: Sendable {
         render(result, views: views, content: content, partNames: partNames)
     }
 
-    /// The assembly's instances or the parts' bodies that have a mesh, coloured from the palette in order.
+    /// The assembly's instances or the parts' bodies that have a mesh, each in its appearance's colour, else coloured
+    /// from the palette in order.
     static func render(
         _ result: RebuildResult, views: [ViewDirection], content: RenderContent = .parts,
         partNames: [UUID: String] = [:]
@@ -97,13 +99,15 @@ public struct ViewRendering: Sendable {
         var shown: [String] = []
         var missing: [String] = []
         var bodies: [RenderBody] = []
-        func add(_ name: String, _ meshes: [BodyMesh], problem: String?) {
+        func add(_ name: String, _ meshes: [BodyMesh], problem: String?, appearance: Appearance? = nil) {
             let usable = meshes.filter { $0.triangleCount > 0 }
             guard !usable.isEmpty, problem == nil else {
                 missing.append("\(name) (\(problem ?? "no mesh"))")
                 return
             }
-            let colour = palette[shown.count % palette.count]
+            let colour =
+                appearance.map { (name: $0.color.hex, colour: SIMD3<Float>($0.color.rgb)) }
+                ?? palette[shown.count % palette.count]
             bodies += usable.map { RenderBody(mesh: $0, colour: colour.colour) }
             shown.append("\(name) \(colour.name)")
         }
@@ -113,7 +117,7 @@ public struct ViewRendering: Sendable {
                 for body in part.bodies {
                     add(
                         "\(body.name) (\(part.name))", body.mesh.map { [$0] } ?? [],
-                        problem: body.mesh == nil ? (body.error ?? "no mesh") : nil)
+                        problem: body.mesh == nil ? (body.error ?? "no mesh") : nil, appearance: part.appearance)
                 }
             }
         case .assembly:
@@ -122,7 +126,7 @@ public struct ViewRendering: Sendable {
                 if case .failed(let reason) = instance.status {
                     add(name, [], problem: reason)
                 } else {
-                    add(name, instance.bodies.compactMap(\.mesh), problem: nil)
+                    add(name, instance.bodies.compactMap(\.mesh), problem: nil, appearance: instance.appearance)
                     let unmeshed = instance.bodies.filter { ($0.mesh?.triangleCount ?? 0) == 0 }
                     guard unmeshed.count < instance.bodies.count else { continue }
                     let part = partNames[instance.part] ?? "missing part"

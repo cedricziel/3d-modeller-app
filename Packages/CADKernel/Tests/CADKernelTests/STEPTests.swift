@@ -97,6 +97,27 @@ struct STEPTests {
         #expect(colors.contains { simd_distance($0, red) < 1e-3 })
     }
 
+    @Test("An occurrence's own colour survives the round trip on that occurrence")
+    func occurrenceColourRoundTrips() throws {
+        let url = try temporaryFile("occurrence-colour.step")
+        let green = SIMD3<Double>(0.18, 0.49, 0.2)
+        let block = try Kernel.box(width: 1, depth: 1, height: 1)
+        try Kernel.writeSTEP(
+            products: [STEPProduct(name: "Block", bodies: [("Body1", block)], color: green)],
+            occurrences: [
+                STEPOccurrence(name: "Plain", product: 0, rotation: matrix_identity_double3x3, translation: .zero),
+                STEPOccurrence(
+                    name: "Red", product: 0, rotation: matrix_identity_double3x3, translation: SIMD3(5, 0, 0),
+                    color: red),
+            ],
+            name: "Assembly", to: url)
+
+        let named = try Kernel.readSTEP(from: url).namedColors
+
+        #expect(named["Plain"].map { simd_distance($0, green) < 1e-3 } == true)
+        #expect(named["Red"].map { simd_distance($0, red) < 1e-3 } == true)
+    }
+
     @Test("Writing into a missing folder is an error")
     func badPathThrows() throws {
         let url = FileManager.default.temporaryDirectory.appending(path: "missing-\(UUID().uuidString)/a.step")

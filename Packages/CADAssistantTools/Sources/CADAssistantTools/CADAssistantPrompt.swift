@@ -111,6 +111,13 @@ public enum CADAssistantPrompt {
         free: true releases it. Give a hinge or slide its range with limits {min, max} on add_joint or edit_joint.
         - To make a joint hold still at a pose, drive it with a value instead of replacing it with a fixed joint.
 
+        ## Colours
+        - When the user names colours or materials, use set_appearance: a hex colour such as #2E7D32, and \
+        optionally metallic and roughness (0 to 1). A part's appearance colours all its instances; an instance's own \
+        appearance overrides its part's, so place one part several times in different colours rather than copying \
+        it. The listing shows appearances after the part name and after an instance's placement; render_views and \
+        exports use them.
+
         ## Export
         - export writes the rebuilt model to a file when the user asks for one: step for CAD (exact geometry; an \
         assembly keeps its parts, instances, names and colours), stl or 3mf for printing (triangles; tolerance sets \

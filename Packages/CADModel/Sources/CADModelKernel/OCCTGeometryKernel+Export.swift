@@ -10,6 +10,8 @@ public struct STEPInspection: Sendable, Equatable {
     /// Nil when the file has no solids.
     public let bounds: Bounds?
     public let names: [String]
+    /// The colour of each named product or occurrence; an occurrence shows its own colour, else its product's.
+    public let namedColors: [String: SIMD3<Double>]
 }
 
 extension OCCTGeometryKernel {
@@ -27,7 +29,7 @@ extension OCCTGeometryKernel {
             occurrences: scene.occurrences.map {
                 STEPOccurrence(
                     name: $0.name, product: $0.product, rotation: $0.transform.rotation,
-                    translation: $0.transform.translation)
+                    translation: $0.transform.translation, color: $0.color)
             },
             name: scene.name, to: url)
     }
@@ -43,6 +45,6 @@ extension OCCTGeometryKernel {
         }
         return STEPInspection(
             solidCount: contents.solids.count, volume: metrics.reduce(0) { $0 + ($1.volume ?? 0) }, bounds: bounds,
-            names: contents.names)
+            names: contents.names, namedColors: contents.namedColors)
     }
 }

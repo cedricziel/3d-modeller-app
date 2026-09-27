@@ -17,7 +17,7 @@ public enum DocumentListing {
     static func modelLines(_ document: CADDocument, result: RebuildResult?, statusless: Set<UUID> = []) -> [String] {
         var lines: [String] = []
         for part in document.parts {
-            lines.append("part \(part.name)")
+            lines.append("part \(part.name)" + (part.appearance.map { "  \($0)" } ?? ""))
             if part.features.isEmpty { lines.append("  (no features)") }
             let bodies = part.affectedBodies()
             for feature in part.features {

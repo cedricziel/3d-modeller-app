@@ -9,6 +9,8 @@ public struct ThreeMFContents: Sendable, Equatable {
         public let bounds: Bounds
         /// Edges of its meshes not shared by exactly two triangles; 0 for a closed, manifold mesh.
         public let openEdgeCount: Int
+        /// The display colour of each mesh it places, in order.
+        public let colors: [String]
     }
 
     public let unit: String?
@@ -36,14 +38,17 @@ public enum ThreeMFReader {
         for (object, transform) in collector.items {
             var points: [SIMD3<Double>] = []
             var openEdges = 0
-            let triangles = try collector.place(object, transform, into: &points, openEdges: &openEdges, depth: 0)
+            var colors: [String] = []
+            let triangles = try collector.place(
+                object, transform, into: &points, openEdges: &openEdges, colors: &colors, depth: 0)
             guard let first = points.first else { throw ExportError("Build item \(object) has no vertices") }
             let bounds = points.reduce(Bounds(min: first, max: first)) {
                 Bounds(min: simd_min($0.min, $1), max: simd_max($0.max, $1))
             }
             items.append(
                 ThreeMFContents.Item(
-                    object: object, triangleCount: triangles, bounds: bounds, openEdgeCount: openEdges))
+                    object: object, triangleCount: triangles, bounds: bounds, openEdgeCount: openEdges,
+                    colors: colors))
         }
         return ThreeMFContents(
             unit: collector.unit, objectNames: collector.objects.values.map(\.name).sorted(),
@@ -54,6 +59,7 @@ public enum ThreeMFReader {
 private final class ModelCollector: NSObject, XMLParserDelegate {
     struct Object {
         var name = ""
+        var material: Int?
         var vertices: [SIMD3<Double>] = []
         var triangles: [[Int]] = []
         var components: [(Int, RigidTransform)] = []
@@ -75,7 +81,9 @@ private final class ModelCollector: NSObject, XMLParserDelegate {
         case "base": colors.append(attributes["displaycolor"] ?? "")
         case "object":
             current = Int(attributes["id"] ?? "")
-            if let current { objects[current] = Object(name: attributes["name"] ?? "") }
+            if let current {
+                objects[current] = Object(name: attributes["name"] ?? "", material: Int(attributes["pindex"] ?? ""))
+            }
         case "vertex":
             if let current { objects[current]?.vertices.append(SIMD3(number("x"), number("y"), number("z"))) }
         case "triangle":
@@ -99,12 +107,16 @@ private final class ModelCollector: NSObject, XMLParserDelegate {
     }
 
     func place(
-        _ id: Int, _ transform: RigidTransform, into points: inout [SIMD3<Double>], openEdges: inout Int, depth: Int
+        _ id: Int, _ transform: RigidTransform, into points: inout [SIMD3<Double>], openEdges: inout Int,
+        colors: inout [String], depth: Int
     ) throws(ExportError) -> Int {
         guard depth < 16, let object = objects[id] else {
             throw ExportError("Object \(id) is missing or nested too deep")
         }
         points += object.vertices.map(transform.point)
+        if let material = object.material, !object.triangles.isEmpty {
+            colors.append(self.colors.indices.contains(material) ? self.colors[material] : "")
+        }
         var edgeUses: [[Int]: Int] = [:]
         for triangle in object.triangles {
             for (a, b) in [(triangle[0], triangle[1]), (triangle[1], triangle[2]), (triangle[2], triangle[0])] {
@@ -115,7 +127,8 @@ private final class ModelCollector: NSObject, XMLParserDelegate {
         var triangles = object.triangles.count
         for (child, local) in object.components {
             triangles += try place(
-                child, transform.composed(with: local), into: &points, openEdges: &openEdges, depth: depth + 1)
+                child, transform.composed(with: local), into: &points, openEdges: &openEdges, colors: &colors,
+                depth: depth + 1)
         }
         return triangles
     }

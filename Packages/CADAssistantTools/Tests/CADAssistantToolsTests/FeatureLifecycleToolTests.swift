@@ -164,7 +164,8 @@ struct FeatureLifecycleToolTests {
                 "get_listing", "find_geometry", "measure", "render_views", "set_parameter", "add_feature",
                 "edit_feature",
                 "delete_feature", "rename_feature", "suppress_feature", "add_sketch", "edit_sketch", "get_sketch",
-                "add_part", "rename_part", "delete_part", "add_instance", "edit_instance", "delete_instance",
+                "add_part", "rename_part", "delete_part", "set_appearance", "add_instance", "edit_instance",
+                "delete_instance",
                 "add_joint", "edit_joint", "delete_joint", "move_joint", "export",
             ])
         for name in [
