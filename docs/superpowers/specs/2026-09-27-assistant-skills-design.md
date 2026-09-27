@@ -40,9 +40,10 @@ description: Constrained sketches, extrude and revolve. Load before add_sketch, 
 - `Skill`: `name`, `description`, `body` (the `SKILL.md` text after the frontmatter), `files` (paths of the other
   files in the folder, relative to it, sorted), and the folder URL.
 - `SkillLibrary(directory: URL) throws`: loads every subfolder of `directory` as a skill. It throws a `SkillError`
-  naming the folder for: a missing `SKILL.md`, missing frontmatter or a missing key, a `name` that differs from the
-  folder name, or two skills with the same name. `skills` is sorted by name; `skill(named:)` looks one up;
-  `index` is the text for the prompt, one line per skill: `- name: description`.
+  naming the folder for: a missing `SKILL.md`, missing frontmatter or a missing key, or a `name` that differs from
+  the folder name. A skill's name is required to equal its folder name, so two skills cannot share a name. `skills`
+  is sorted by name; `skill(named:)` looks one up; `index` is the text for the prompt, one line per skill:
+  `- name: description`.
 - `ListSkillsTool(library:)` (`list_skills`, no parameters): the index.
 - `GetSkillTool(library:)` (`get_skill`, `name` required, `file` optional):
   - No `file`: the body, then `Files: a.md, b.cadmodel` when the folder has other files.
