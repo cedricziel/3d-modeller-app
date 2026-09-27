@@ -10,11 +10,14 @@ public struct Instance: Codable, Sendable, Hashable, Identifiable {
     public var body: String?
     public var placement: Placement
     public var grounded: Bool
+    /// Overrides the part's appearance for this instance.
+    public var appearance: Appearance?
 
     public init(
         id: UUID = UUID(), name: String, part: UUID, body: String? = nil, placement: Placement = .identity,
-        grounded: Bool = false
+        grounded: Bool = false, appearance: Appearance? = nil
     ) {
+        self.appearance = appearance
         self.id = id
         self.name = name
         self.part = part
@@ -31,6 +34,7 @@ public struct Instance: Codable, Sendable, Hashable, Identifiable {
         body = try container.decodeIfPresent(String.self, forKey: .body)
         placement = try container.decodeIfPresent(Placement.self, forKey: .placement) ?? .identity
         grounded = try container.decodeIfPresent(Bool.self, forKey: .grounded) ?? false
+        appearance = try container.decodeIfPresent(Appearance.self, forKey: .appearance)
     }
 }
 

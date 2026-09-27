@@ -4,11 +4,14 @@ public struct Part: Codable, Sendable, Hashable, Identifiable {
     public var id: UUID
     public var name: String
     public var features: [Feature]
+    /// How its bodies look, unless an instance overrides it; nil leaves the colour to the viewer.
+    public var appearance: Appearance?
 
-    public init(id: UUID = UUID(), name: String, features: [Feature] = []) {
+    public init(id: UUID = UUID(), name: String, features: [Feature] = [], appearance: Appearance? = nil) {
         self.id = id
         self.name = name
         self.features = features
+        self.appearance = appearance
     }
 
     public init(from decoder: any Decoder) throws {
@@ -16,6 +19,7 @@ public struct Part: Codable, Sendable, Hashable, Identifiable {
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         name = try container.decode(String.self, forKey: .name)
         features = try container.decodeIfPresent([Feature].self, forKey: .features) ?? []
+        appearance = try container.decodeIfPresent(Appearance.self, forKey: .appearance)
     }
 }
 
