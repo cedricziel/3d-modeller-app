@@ -7,6 +7,8 @@ public actor ClaudeProvider: LLMProvider {
     private let maxTokens: Int
     private let effort: String
     private let baseURL: URL
+    private let idleTimeout: Duration
+    private let session: URLSession
 
     /// Initialize the Claude provider
     /// - Parameters:
@@ -14,18 +16,23 @@ public actor ClaudeProvider: LLMProvider {
     ///   - model: The Claude model to use (default: claude-opus-5-5)
     ///   - maxTokens: Maximum tokens in the response, thinking included (default: 16000)
     ///   - effort: How much the model thinks: low, medium, high, xhigh or max (default: medium)
+    ///   - idleTimeout: How long the response stream may send nothing before the request fails (default: 120 s)
     public init(
         apiKey: String,
         model: String = "claude-opus-5-5",
         maxTokens: Int = 16000,
         effort: String = "medium",
-        baseURL: URL = URL(string: "https://api.anthropic.com")!
+        baseURL: URL = URL(string: "https://api.anthropic.com")!,
+        idleTimeout: Duration = .seconds(120),
+        session: URLSession = .shared
     ) {
         self.apiKey = apiKey
         self.model = model
         self.maxTokens = maxTokens
         self.effort = effort
         self.baseURL = baseURL
+        self.idleTimeout = idleTimeout
+        self.session = session
     }
 
     public func sendMessage(
@@ -34,33 +41,99 @@ public actor ClaudeProvider: LLMProvider {
         conversationHistory: [Message],
         tools: [any AssistantTool]
     ) async throws -> LLMResponse {
-        let request = try buildRequest(
-            systemPrompt: systemPrompt,
-            messages: conversationHistory,
-            tools: tools
-        )
+        try await streamMessage(
+            message, systemPrompt: systemPrompt, conversationHistory: conversationHistory, tools: tools
+        ) { _ in }
+    }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+    public func streamMessage(
+        _ message: String,
+        systemPrompt: String,
+        conversationHistory: [Message],
+        tools: [any AssistantTool],
+        onEvent: @escaping @Sendable (LLMStreamEvent) async -> Void
+    ) async throws -> LLMResponse {
+        // A timeout ends the call only once `onEvent` returns, so it must return promptly.
+        let request = try buildRequest(systemPrompt: systemPrompt, messages: conversationHistory, tools: tools)
+        let session = session
+        let idleTimeout = idleTimeout
+        let activity = ActivityClock()
+
+        return try await withThrowingTaskGroup(of: LLMResponse?.self) { group in
+            group.addTask {
+                try await Self.receive(request, session: session, activity: activity, onEvent: onEvent)
+            }
+            group.addTask {
+                try await activity.expire(after: idleTimeout)
+                return nil
+            }
+            defer { group.cancelAll() }
+            guard let response = try await group.next() ?? nil else { throw URLError(.timedOut) }
+            return response
+        }
+    }
+
+    private static func receive(
+        _ request: URLRequest,
+        session: URLSession,
+        activity: ActivityClock,
+        onEvent: @Sendable (LLMStreamEvent) async -> Void
+    ) async throws -> LLMResponse {
+        let (bytes, response) = try await session.bytes(for: request)
+        activity.touch()
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AssistantError.networkError("Invalid response type")
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+            var body = Data()
+            for try await byte in bytes {
+                activity.touch()
+                body.append(byte)
+            }
+            throw httpError(
+                status: httpResponse.statusCode,
+                body: String(data: body, encoding: .utf8) ?? "Unknown error",
+                retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap { Double($0) }
+            )
+        }
 
-            if httpResponse.statusCode == 401 {
-                throw AssistantError.authenticationFailed("Invalid API key")
-            } else if httpResponse.statusCode == 429 {
-                let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
-                    .flatMap { Double($0) }
-                throw AssistantError.rateLimited(retryAfter: retryAfter)
-            } else {
-                throw AssistantError.providerError("HTTP \(httpResponse.statusCode): \(errorBody)")
+        var accumulator = ClaudeStreamAccumulator()
+        var line = Data()
+
+        func process(_ line: Data) async throws {
+            try Task.checkCancellation()
+            activity.touch()
+            guard let payload = try ClaudeStreamAccumulator.payload(ofLine: line) else { return }
+            for event in try accumulator.apply(payload) {
+                await onEvent(event)
+                activity.touch()
             }
         }
 
-        return try parseResponse(data)
+        for try await byte in bytes {
+            if byte == UInt8(ascii: "\n") {
+                try await process(line)
+                line.removeAll(keepingCapacity: true)
+            } else {
+                line.append(byte)
+            }
+        }
+        try await process(line)
+
+        guard let finished = accumulator.response else {
+            throw AssistantError.networkError("The response stream ended before the message was complete")
+        }
+        return finished
+    }
+
+    static func httpError(status: Int, body: String, retryAfter: TimeInterval?) -> AssistantError {
+        switch status {
+        case 401: .authenticationFailed("Invalid API key")
+        case 429: .rateLimited(retryAfter: retryAfter)
+        default: .providerError("HTTP \(status): \(body)")
+        }
     }
 
     // MARK: - Request Building
@@ -74,8 +147,8 @@ public actor ClaudeProvider: LLMProvider {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        // The response is not streamed, so nothing arrives while the model thinks; the 60 s default cuts long turns.
-        request.timeoutInterval = 600
+        // URLSession applies this between packets, not to the whole response.
+        request.timeoutInterval = idleTimeout.seconds
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
@@ -86,6 +159,7 @@ public actor ClaudeProvider: LLMProvider {
             "system": systemPrompt,
             "output_config": ["effort": effort],
             "messages": messages.compactMap { formatMessage($0) },
+            "stream": true,
         ]
 
         if !tools.isEmpty {
@@ -212,6 +286,10 @@ public actor ClaudeProvider: LLMProvider {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw AssistantError.parsingError("Invalid JSON response")
         }
+        return try Self.parseMessage(json)
+    }
+
+    static func parseMessage(_ json: [String: Any]) throws -> LLMResponse {
 
         // Parse stop reason
         let stopReasonString = json["stop_reason"] as? String ?? "end_turn"
@@ -245,7 +323,9 @@ public actor ClaudeProvider: LLMProvider {
 
             switch type {
             case "text":
-                textContent = block["text"] as? String
+                if let text = block["text"] as? String {
+                    textContent = (textContent ?? "") + text
+                }
 
             case "tool_use":
                 guard let id = block["id"] as? String,

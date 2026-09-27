@@ -80,13 +80,15 @@ struct WriteReportTests {
     func listingDiffCapped() async throws {
         let harness = try await loaded(blocks(40))
 
-        let result = try await harness.call("set_parameter", ["name": "w", "expression": -1])
-        let lines = result.message.split(separator: "\n")
+        let broken = try await harness.call("set_parameter", ["name": "w", "expression": -1])
+        let renumbered = try await harness.call("delete_feature", ["feature": "Block1"])
+        let lines = renumbered.message.split(separator: "\n")
         let start = try #require(lines.firstIndex(of: "Listing changes:"))
 
         #expect(lines[(start + 1)...].count == 31)
-        #expect(lines.last == "  … 52 more changed lines; call get_listing")
-        #expect(result.message.contains("… 10 more status changes; call get_listing"))
+        #expect(lines.last == "  … 49 more changed lines; call get_listing")
+        #expect(broken.message.contains("… 10 more status changes; call get_listing"))
+        #expect(!broken.message.contains("Listing changes:"))
     }
 
     @Test("A parameter that changes many bodies lists 30 of them")
@@ -97,6 +99,17 @@ struct WriteReportTests {
 
         #expect(result.message.split(separator: "\n").count { $0.hasPrefix("  Body") } == 30)
         #expect(result.message.contains("  … 10 more changed bodies; call measure for their sizes"))
+    }
+
+    @Test("Unchanged bodies are named up to ten, then counted")
+    func unchangedNamesCapped() async throws {
+        let harness = try await loaded(blocks(40))
+
+        let result = try await harness.call("edit_feature", ["feature": "Block2", "height": 5])
+        let line = try #require(result.message.split(separator: "\n").first { $0.hasPrefix("Unchanged bodies:") })
+
+        #expect(line.hasPrefix("Unchanged bodies: Body1 (Plate), Body3 (Plate), "))
+        #expect(line.hasSuffix(", Body11 (Plate) and 29 more"))
     }
 
     @Test("A cut in a ten-body document costs a few hundred tokens")

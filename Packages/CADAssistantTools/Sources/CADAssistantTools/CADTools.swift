@@ -20,6 +20,7 @@ public enum CADTools {
             AddPartTool(session: session),
             RenamePartTool(session: session),
             DeletePartTool(session: session),
+            SetAppearanceTool(session: session),
             AddInstanceTool(session: session),
             EditInstanceTool(session: session),
             DeleteInstanceTool(session: session),
@@ -27,6 +28,7 @@ public enum CADTools {
             EditJointTool(session: session),
             DeleteJointTool(session: session),
             MoveJointTool(session: session),
+            ExportTool(session: session),
             ListSkillsTool(library: CADSkills.library),
             GetSkillTool(library: CADSkills.library),
         ]

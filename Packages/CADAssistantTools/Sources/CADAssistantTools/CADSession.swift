@@ -20,7 +20,11 @@ public final class CADSession {
     /// Measurements on the bodies of `result`.
     @ObservationIgnored public private(set) var geometry: ModelGeometry?
 
+    /// The folder the `export` tool may write into; the tool refuses to export without one.
+    @ObservationIgnored public var exportDirectory: URL?
+
     @ObservationIgnored private let build: @Sendable (CADDocument) async throws -> RebuiltModel
+    @ObservationIgnored private let rebuildExecutor: (any TaskExecutor)?
     @ObservationIgnored private var builtDocument: CADDocument?
     /// The running rebuild. Callers share it, and their own cancellation does not stop it; only a rebuild of a
     /// newer document cancels it, so a view that disappears mid-rebuild cannot leave the document unbuilt.
@@ -28,13 +32,15 @@ public final class CADSession {
     private nonisolated let snapshot: Mutex<String>
 
     /// Without a sketch solver, sketches fail to build and the features that use them are skipped. Without an
-    /// assembly solver, every joint fails.
+    /// assembly solver, every joint fails. Rebuilds run on `rebuildExecutor` when given, else on the global
+    /// concurrent executor.
     public init<Kernel: GeometryKernel>(
         document: CADDocument = CADDocument(), kernel: Kernel, sketchSolver: (any SketchSolving)? = nil,
-        assemblySolver: (any AssemblySolving)? = nil
+        assemblySolver: (any AssemblySolving)? = nil, rebuildExecutor: (any TaskExecutor)? = nil
     ) {
         let engine = RebuildEngine(kernel: kernel, sketchSolver: sketchSolver, assemblySolver: assemblySolver)
         build = { try await engine.build($0) }
+        self.rebuildExecutor = rebuildExecutor
         self.document = document
         snapshot = Mutex(DocumentListing.render(document, result: nil))
     }
@@ -62,7 +68,7 @@ public final class CADSession {
         } else {
             building?.task.cancel()
             let build = build
-            task = Task { try await build(target) }
+            task = Task(executorPreference: rebuildExecutor) { try await build(target) }
             building = (target, task)
         }
         defer { if building?.task == task { building = nil } }

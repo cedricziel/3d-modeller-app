@@ -35,8 +35,10 @@ final class ViewportScene {
         bodies.children.removeAll()
         for (index, body) in (result?.displayBodies(content) ?? []).enumerated() {
             guard let resource = try? MeshResource.generate(from: [body.mesh.meshDescriptor]) else { continue }
-            let material = SimpleMaterial(
-                color: Self.palette[index % Self.palette.count], roughness: 0.6, isMetallic: false)
+            var material = SimpleMaterial(
+                color: body.appearance.map { NSColor($0.color) } ?? Self.palette[index % Self.palette.count],
+                roughness: .float(Float(body.appearance?.roughness ?? 0.6)), isMetallic: false)
+            material.metallic = .float(Float(body.appearance?.metallic ?? 0))
             let entity = ModelEntity(mesh: resource, materials: [material])
             entity.name = body.name
             bodies.addChild(entity)

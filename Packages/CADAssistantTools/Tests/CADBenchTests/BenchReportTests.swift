@@ -18,7 +18,10 @@ struct BenchReportTests {
         #expect(PassAtK.estimate(samples: 0, passes: 0, k: 1) == 0)
     }
 
-    private func record(_ task: String, _ attempt: Int, passed: Bool, secret: String = "") -> RunRecord {
+    private func record(
+        _ task: String, _ attempt: Int, passed: Bool, secret: String = "", views: [ViewDirection] = [.top],
+        step: Bool = true
+    ) -> RunRecord {
         let outcome = CheckOutcome(check: "volume", passed: passed, detail: passed ? "ok" : "6100 mm³")
         return RunRecord(
             task: task, attempt: attempt, end: .completed, error: nil, grade: Grade(outcomes: [outcome]),
@@ -26,7 +29,8 @@ struct BenchReportTests {
             costUSD: 0.01, seconds: 2, listing: "part P\n  (no features) \(secret)",
             document: CADDocument(parts: [Part(name: "P \(secret)")]),
             transcript: [TranscriptEntry(.user("hello \(secret)"))],
-            renders: [RenderedView(view: .top, png: png, millimetresPerPixel: 0.1)])
+            renders: views.map { RenderedView(view: $0, png: png, millimetresPerPixel: 0.1) },
+            step: step ? Data("ISO-10303-21; \(secret)".utf8) : nil)
     }
 
     private let png = Data([0x89, 0x50, 0x4E, 0x47, 0xFF, 0x00])
@@ -67,7 +71,7 @@ struct BenchReportTests {
         let files = try FileManager.default.subpathsOfDirectory(atPath: directory.path).sorted()
         for expected in [
             "a/run-1/document.cadmodel", "a/run-1/transcript.json", "a/run-1/listing.txt", "a/run-1/run.json",
-            "a/run-1/view-top.png", "summary.json", "summary.md",
+            "a/run-1/view-top.png", "a/run-1/final.step", "summary.json", "summary.md",
         ] {
             #expect(files.contains(expected), "\(expected)")
         }
@@ -83,6 +87,18 @@ struct BenchReportTests {
         let document = try CADDocument(json: Data(contentsOf: directory.appending(path: "a/run-1/document.cadmodel")))
         #expect(document.parts[0].name == "P [redacted]")
         #expect(try Data(contentsOf: directory.appending(path: "a/run-1/view-top.png")) == png)
+    }
+
+    @Test("Rewriting a run removes the renders and STEP file an earlier write left behind")
+    func rewriteRemovesStaleFiles() throws {
+        let directory = try Bench.temporaryDirectory()
+        let writer = ResultWriter(directory: directory, redactor: Redactor(secrets: []))
+        try writer.write(record("a", 1, passed: true, views: [.top, .iso]))
+
+        try writer.write(record("a", 1, passed: true, views: [.top], step: false))
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.appending(path: "a/run-1").path)
+        #expect(files.sorted() == ["document.cadmodel", "listing.txt", "run.json", "transcript.json", "view-top.png"])
     }
 
     @Test("Timestamps contain no colons")

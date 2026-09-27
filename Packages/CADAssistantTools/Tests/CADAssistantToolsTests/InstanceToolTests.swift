@@ -33,6 +33,19 @@ struct InstanceToolTests {
         #expect(harness.commits.suffix(2) == ["Add instance Plate1", "Add instance Plate2"])
     }
 
+    @Test("A default instance name is made an identifier when the part's name is not one")
+    func defaultNameFromOddPartName() async throws {
+        let harness = Harness(
+            CADDocument(parts: [Part(name: "Top plate", features: [Fixtures.box("Box", 1, 1, 1)]), Part(name: "2x")]))
+
+        let spaced = try await harness.call("add_instance", ["part": "Top plate"])
+        let digit = try await harness.call("add_instance", ["part": "2x"])
+
+        #expect(spaced.success, "\(spaced.message)")
+        #expect(digit.success, "\(digit.message)")
+        #expect(harness.document.instances.map(\.name) == ["Top_plate1", "_2x1"])
+    }
+
     @Test("Instances are refused for unknown parts and bodies, bad or taken names and bad expressions")
     func addInstanceRefusals() async throws {
         let harness = try await plate()

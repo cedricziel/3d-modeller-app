@@ -19,6 +19,8 @@ struct CADSkillsTests {
         #expect(body.contains("tangentAt"))
         #expect(body.contains("fully constrained"))
         #expect(body.contains("Extrude1.side[Sketch1.line3]"))
+        #expect(body.contains("throughAll it is the cap behind the plane, against its normal"))
+        #expect(!body.contains("Extrude1.start (on the sketch plane)"))
     }
 
     @Test("The assemblies skill teaches instances")

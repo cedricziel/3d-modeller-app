@@ -53,6 +53,32 @@ struct AddFeatureToolTests {
         #expect(result.message.contains("Body1 (Plate): valid closed solid, 6 faces, 12 edges, volume 23773.125 mm³"))
     }
 
+    @Test("A default name skips names that references still use, so a new feature never answers a stale one")
+    func defaultNameSkipsReferencedNames() async throws {
+        let part = Part(
+            name: "Plate",
+            features: [
+                Fixtures.box("Box2", 10, 10, 10),
+                Feature(
+                    name: "Round",
+                    kind: .fillet(
+                        FilletFeature(body: "Body1", edges: [.name("edge(Box1.top, Box1.front)")], radius: 1))),
+                Feature(name: "Pad", kind: .extrude(ExtrudeFeature(sketch: "Sketch1", extent: .distance(4)))),
+            ])
+        let base = Instance(name: "Base", part: part.id, grounded: true)
+        let joint = Joint(
+            name: "Mate", kind: .fixed, a: JointFrameRef(instance: base.id, face: .name("Sphere1.top")),
+            b: JointFrameRef(instance: base.id, face: .name("Box2.top")))
+        let harness = Harness(
+            CADDocument(parts: [part], assembly: Assembly(instances: [base], joints: [joint])))
+
+        _ = try await harness.call("add_feature", ["type": "box", "width": 1, "depth": 1, "height": 1])
+        _ = try await harness.call("add_feature", ["type": "sphere", "radius": 1])
+        _ = try await harness.call("add_sketch", ["plane": "XY"])
+
+        #expect(harness.features() == ["Box2", "Round", "Pad", "Box3", "Sphere2", "Sketch2"])
+    }
+
     @Test("Default names count up per type, and translations may be given as [x, y, z]")
     func defaultsAndArrays() async throws {
         let harness = Harness()

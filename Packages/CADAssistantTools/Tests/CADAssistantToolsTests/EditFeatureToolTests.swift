@@ -34,9 +34,9 @@ struct EditFeatureToolTests {
         )
         #expect(result.message.contains("Hole: ok"))
         #expect(
-            result.message.contains("- Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  ok")
+            result.message.contains("- Hole  cylinder r=hole_r h=t at (width / 2, depth / 2, 0), cut Body1 → Body1\n")
         )
-        #expect(result.message.contains("+ Hole  cylinder r=4 h=t at (12, depth / 2, 0), cut Body1 → Body1  ok"))
+        #expect(result.message.hasSuffix("+ Hole  cylinder r=4 h=t at (12, depth / 2, 0), cut Body1 → Body1"))
     }
 
     @Test("Switching an operation to newBody drops the old target body")
@@ -51,7 +51,8 @@ struct EditFeatureToolTests {
             return
         }
         #expect(primitive.operation == .newBody)
-        #expect(result.message.contains("→ Body2  ok"))
+        #expect(result.message.contains("Hole: ok"))
+        #expect(result.message.split(separator: "\n").contains { $0.hasPrefix("  + Hole") && $0.hasSuffix("→ Body2") })
     }
 
     @Test("Changing the type keeps shared dimensions and needs the new ones")

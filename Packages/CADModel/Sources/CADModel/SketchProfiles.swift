@@ -170,6 +170,7 @@ public struct SketchProfiles: Sendable, Equatable {
             )
         }
         var outers: [Int] = []
+        var selectedBy: [Int: String] = [:]
         if selection.isEmpty {
             outers = loops.indices.filter { loops[$0].depth % 2 == 0 }
             guard !outers.isEmpty else {
@@ -184,7 +185,12 @@ public struct SketchProfiles: Sendable, Equatable {
                 }
                 if !outers.contains(index) {
                     outers.append(index)
+                    selectedBy[index] = name
                 }
+            }
+            for index in outers {
+                guard let parent = loops[index].parent, let outer = selectedBy[parent] else { continue }
+                throw .sketch("\(selectedBy[index]!) is a hole in the loop of \(outer); select either, not both")
             }
         }
         return outers.map { outer in

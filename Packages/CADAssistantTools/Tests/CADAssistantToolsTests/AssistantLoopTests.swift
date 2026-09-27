@@ -189,4 +189,16 @@ struct AssistantLoopTests {
         #expect(results[1].hasPrefix("Success: "))
         #expect(session.document.parts[0].features.map(\.name) == ["Sketch1"])
     }
+
+    @Test("The prompt teaches colours: a part's appearance and an instance's override")
+    func promptAppearance() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("set_appearance"))
+        #expect(prompt.contains("overrides its part's"))
+    }
+
+    @Test("The prompt asks for several parameters in one set_parameter call")
+    func promptBatchesParameters() {
+        #expect(CADAssistantPrompt.system.contains("set several parameters in one set_parameter call"))
+    }
 }

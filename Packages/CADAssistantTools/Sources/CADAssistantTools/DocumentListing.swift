@@ -9,9 +9,15 @@ public enum DocumentListing {
     }
 
     static func lines(_ document: CADDocument, result: RebuildResult?) -> [String] {
-        var lines = [parametersLine(document.parameters)]
+        [parametersLine(document.parameters)] + modelLines(document, result: result)
+    }
+
+    /// Everything after the parameters line: parts with their features, then the assembly. Features, instances and
+    /// joints in `statusless` are listed without their status.
+    static func modelLines(_ document: CADDocument, result: RebuildResult?, statusless: Set<UUID> = []) -> [String] {
+        var lines: [String] = []
         for part in document.parts {
-            lines.append("part \(part.name)")
+            lines.append("part \(part.name)" + (part.appearance.map { "  \($0)" } ?? ""))
             if part.features.isEmpty { lines.append("  (no features)") }
             let bodies = part.affectedBodies()
             for feature in part.features {
@@ -20,25 +26,26 @@ public enum DocumentListing {
                     ?? (feature.suppressed ? FeatureStatus.suppressed.description : "not built")
                 let summary = summary(
                     feature.kind, body: bodies[feature.id], sketch: result?.sketch(id: feature.id))
-                lines.append("  \(feature.name)  \(summary)  \(status)")
+                lines.append("  \(feature.name)  \(summary)" + (statusless.contains(feature.id) ? "" : "  \(status)"))
             }
         }
-        return lines + AssemblyListing.lines(document, result: result)
+        return lines + AssemblyListing.lines(document, result: result, statusless: statusless)
     }
 
     static func parametersLine(_ parameters: [Parameter]) -> String {
         guard !parameters.isEmpty else { return "parameters: none" }
-        let table = ParameterTable(parameters)
-        let entries = table.parameters.map { parameter in
-            var entry = "\(parameter.name) = \(parameter.expression)"
-            switch parameter.value {
-            case .failure(let error): entry += " (error: \(error))"
-            case .success(let value):
-                if case .expression = parameter.expression { entry += " (= \(Format.number(value)))" }
-            }
-            return entry
-        }
+        let entries = ParameterTable(parameters).parameters.map { "\($0.name) = \(expression($0))" }
         return "parameters: " + entries.joined(separator: ", ")
+    }
+
+    /// The expression as written, with its value when it is not a plain number or its error.
+    static func expression(_ parameter: EvaluatedParameter) -> String {
+        switch parameter.value {
+        case .failure(let error): return "\(parameter.expression) (error: \(error))"
+        case .success(let value):
+            guard case .expression = parameter.expression else { return parameter.expression.description }
+            return "\(parameter.expression) (= \(Format.number(value)))"
+        }
     }
 
     static func summary(_ kind: FeatureKind, body: String?, sketch sketchResult: SketchResult? = nil) -> String {

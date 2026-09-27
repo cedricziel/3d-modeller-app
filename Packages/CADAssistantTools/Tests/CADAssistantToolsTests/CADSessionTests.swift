@@ -6,8 +6,8 @@ import Testing
 @testable import CADAssistantTools
 
 /// Holds every box build until released, so a test can overlap two rebuilds.
-/// `pass()` blocks a cooperative thread, so tests wait for it with `waitUntilEntered()` rather than
-/// polling with `Task.sleep`, whose wake-up needs a free thread from the same pool.
+/// `pass()` blocks its thread, so sessions that use a gate rebuild on a `ThreadExecutor`, never on the cooperative
+/// pool, and tests wait for it with `waitUntilEntered()` rather than polling.
 final class Gate: Sendable {
     private let state = Mutex((entered: 0, open: false, waiters: [CheckedContinuation<Void, Never>]()))
 
@@ -42,6 +42,14 @@ final class Gate: Sendable {
     }
 
     func open() { state.withLock { $0.open = true } }
+}
+
+/// Runs each job on a thread of its own, so a job that blocks never holds a cooperative thread another task needs.
+final class ThreadExecutor: TaskExecutor {
+    func enqueue(_ job: consuming ExecutorJob) {
+        let job = UnownedJob(job)
+        Thread.detachNewThread { job.runSynchronously(on: self.asUnownedTaskExecutor()) }
+    }
 }
 
 final class Counter: Sendable {
@@ -110,7 +118,9 @@ struct CADSessionTests {
     @Test("A slow rebuild of an older document never replaces the result of a newer one")
     func staleResultDropped() async throws {
         let gate = Gate()
-        let session = CADSession(document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }))
+        let session = CADSession(
+            document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }),
+            rebuildExecutor: ThreadExecutor())
         let slow = Task { await session.load(Fixtures.plate()) }
         await gate.waitUntilEntered()
 
@@ -138,7 +148,9 @@ struct CADSessionTests {
     func cancelledLoadStillBuilds() async throws {
         let gate = Gate()
         let plate = Fixtures.plate()
-        let session = CADSession(document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }))
+        let session = CADSession(
+            document: CADDocument(), kernel: FakeKernel(onBox: { gate.pass() }),
+            rebuildExecutor: ThreadExecutor())
         let first = Task { await session.load(plate) }
         await gate.waitUntilEntered()
 
@@ -162,7 +174,8 @@ struct CADSessionTests {
             kernel: FakeKernel(onBox: {
                 boxes.increment()
                 gate.pass()
-            }))
+            }),
+            rebuildExecutor: ThreadExecutor())
         let load = Task { await session.load(plate) }
         await gate.waitUntilEntered()
 
@@ -193,7 +206,9 @@ struct CADSessionTests {
     func writeReportsAgainstEditedDocument() async throws {
         let gate = Gate()
         let plate = Fixtures.plate()
-        let session = CADSession(document: plate, kernel: FakeKernel(onBox: { gate.pass() }))
+        let session = CADSession(
+            document: plate, kernel: FakeKernel(onBox: { gate.pass() }),
+            rebuildExecutor: ThreadExecutor())
         let write = Task { await session.setParameter(["name": "depth", "expression": 41]) }
         await gate.waitUntilEntered()
 
@@ -209,9 +224,8 @@ struct CADSessionTests {
         #expect(
             result.message.hasSuffix(
                 """
-                Listing changes:
-                  - parameters: width = 60, depth = 40, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
-                  + parameters: width = 60, depth = 41, t = 10, hole_d = 5.5, hole_r = hole_d / 2 (= 2.75)
+                Parameters:
+                  depth: 40 → 41
                 """))
         #expect(session.document.parts[0].features[3] == fixed.parts[0].features[3])
     }

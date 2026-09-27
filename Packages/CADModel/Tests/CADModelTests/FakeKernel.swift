@@ -146,6 +146,8 @@ final class FakeKernel: GeometryKernel {
 
     func transform(_ body: FakeBody, by placement: ResolvedPlacement) throws -> FakeBody {
         record("transform \(Scalar.number(body.volume)) \(Self.text(placement))")
+        guard placement.translation.x.isFinite, placement.translation.y.isFinite, placement.translation.z.isFinite
+        else { throw FakeKernelError(description: "the placement is not finite") }
         return body
     }
 
@@ -225,6 +227,11 @@ final class FakeKernel: GeometryKernel {
             volume: body.volume, boundsMin: .zero, boundsMax: SIMD3(1, 1, 1),
             faceCount: 6, solidCount: 1, isValid: true, isClosed: true
         )
+    }
+
+    func mesh(of body: FakeBody, tolerance: Double) throws -> BodyMesh {
+        record("mesh tolerance \(tolerance)")
+        return try mesh(of: body)
     }
 
     func mesh(of _: FakeBody) throws -> BodyMesh {

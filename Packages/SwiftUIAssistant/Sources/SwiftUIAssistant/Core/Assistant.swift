@@ -15,6 +15,9 @@ public final class Assistant: ObservableObject {
     /// The current error, if any
     @Published public private(set) var currentError: AssistantError?
 
+    /// The reply the model is still generating, until its turn is complete
+    @Published public private(set) var streamingReply: StreamingReply?
+
     // MARK: - Dependencies
 
     private let provider: any LLMProvider
@@ -91,12 +94,17 @@ public final class Assistant: ObservableObject {
                 ?? configuration.buildSystemPrompt(context: contextProvider())
             conversationSystemPrompt = systemPrompt
 
-            let response = try await provider.sendMessage(
+            streamingReply = StreamingReply()
+            defer { streamingReply = nil }
+            let response = try await provider.streamMessage(
                 messages.last?.content ?? "",
                 systemPrompt: systemPrompt,
                 conversationHistory: messages,
                 tools: toolRegistry.allTools
-            )
+            ) { [weak self] event in
+                await self?.apply(event)
+            }
+            streamingReply = nil
 
             // Add assistant message if there's content
             if let content = response.content {
@@ -125,6 +133,18 @@ public final class Assistant: ObservableObject {
         }
     }
 
+    private func apply(_ event: LLMStreamEvent) {
+        guard var reply = streamingReply else { return }
+        switch event {
+        case .thinking:
+            reply.isThinking = true
+        case .text(let text):
+            reply.text += text
+            reply.isThinking = false
+        }
+        streamingReply = reply
+    }
+
     private func executeToolCall(_ toolCall: ToolCall) async -> ToolExecutionResult {
         guard let tool = toolRegistry.tool(named: toolCall.name) else {
             return .failure("Tool '\(toolCall.name)' not found")
@@ -143,5 +163,17 @@ public final class Assistant: ObservableObject {
             currentError = assistantError
             return .failure(error.localizedDescription)
         }
+    }
+}
+
+/// The part of a reply that has arrived so far
+public struct StreamingReply: Equatable, Sendable {
+    public var text: String
+    /// Whether the model is thinking rather than writing
+    public var isThinking: Bool
+
+    public init(text: String = "", isThinking: Bool = false) {
+        self.text = text
+        self.isThinking = isThinking
     }
 }

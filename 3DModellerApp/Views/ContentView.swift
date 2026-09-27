@@ -16,10 +16,12 @@ struct ContentView: View {
     @State private var refusal: String?
     /// The content the user chose; nil follows the document.
     @State private var chosenContent: ViewportContent?
+    @State private var isExporting = false
 
     init(document: CADModelDocument) {
         _document = ObservedObject(wrappedValue: document)
         let session = CADSession.forApp(document: document.model)
+        session.exportDirectory = CADSession.assistantExportDirectory
         _session = State(wrappedValue: session)
         _driver = State(wrappedValue: JointDriver { [session] document in try await session.preview(document) })
     }
@@ -64,7 +66,8 @@ struct ContentView: View {
                 sketchResult: selection.flatMap { session.result?.sketch(id: $0) },
                 assistant: assistant,
                 driver: driver,
-                moveJoint: moveJoint
+                moveJoint: moveJoint,
+                setAppearance: setAppearance
             )
             .inspectorColumnWidth(min: 280, ideal: 340, max: 500)
         }
@@ -84,6 +87,10 @@ struct ContentView: View {
         }
         .task {
             setupAssistant()
+        }
+        .focusedSceneValue(\.exportAction, ExportAction { isExporting = true })
+        .sheet(isPresented: $isExporting) {
+            ExportSheet(session: session, scopes: ExportScope.choices(for: document.model, result: session.result))
         }
         .task(id: document.model) {
             await session.load(document.model)
@@ -130,6 +137,15 @@ struct ContentView: View {
         document.edit("Move \(joint.name)", undoManager: undoManager) { model in
             guard let index = model.joints.firstIndex(where: { $0.id == joint.id }) else { return }
             model.assembly?.joints[index].value = .number(value)
+        }
+    }
+
+    private func setAppearance(_ target: AppearanceTarget, _ appearance: Appearance?) {
+        document.edit(
+            "\(appearance == nil ? "Clear" : "Set") appearance of \(target.name(in: document.model))",
+            coalescing: "appearance \(target)", undoManager: undoManager
+        ) { model in
+            target.apply(appearance, to: &model)
         }
     }
 
@@ -188,6 +204,7 @@ struct InspectorView: View {
     let assistant: Assistant?
     let driver: JointDriver
     let moveJoint: (Joint, Double) -> Void
+    let setAppearance: (AppearanceTarget, Appearance?) -> Void
     @EnvironmentObject private var appModel: AppModel
 
     var body: some View {
@@ -214,13 +231,20 @@ struct InspectorView: View {
             case .properties:
                 if let instance {
                     InstanceInspectorView(
-                        instance: instance, partName: model.part(id: instance.part)?.name, result: instanceResult)
+                        instance: instance, partName: model.part(id: instance.part)?.name, result: instanceResult,
+                        partAppearance: model.part(id: instance.part)?.appearance,
+                        setAppearance: { setAppearance(.instance(instance.id), $0) })
                 } else if let joint {
                     JointInspectorView(
                         joint: joint, model: model, result: jointResult, driver: driver,
                         move: { moveJoint(joint, $0) })
                 } else {
-                    FeatureInspectorView(feature: feature, result: featureResult, sketch: sketchResult)
+                    let part = feature.flatMap { feature in
+                        model.parts.first { $0.features.contains { $0.id == feature.id } }
+                    }
+                    FeatureInspectorView(
+                        feature: feature, result: featureResult, sketch: sketchResult, part: part,
+                        setPartAppearance: part.map { part in { setAppearance(.part(part.id), $0) } })
                 }
             case .assistant:
                 if let assistant {

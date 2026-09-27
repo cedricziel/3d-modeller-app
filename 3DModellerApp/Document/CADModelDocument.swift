@@ -34,11 +34,29 @@ final class CADModelDocument: ReferenceFileDocument {
         FileWrapper(regularFileWithContents: try snapshot.jsonData())
     }
 
+    /// The key and result of the last coalescing edit, while it is still the latest change.
+    @MainActor private var coalesced: (key: String, model: CADDocument)?
+
+    /// Records the change as an undo step. Edits with the same `coalescing` key that follow each other directly,
+    /// such as the ticks of a colour picker drag, share one undo step.
     @MainActor
-    func edit(_ actionName: String, undoManager: UndoManager?, _ change: (inout CADDocument) -> Void) {
+    func edit(
+        _ actionName: String, coalescing key: String? = nil, undoManager: UndoManager?,
+        _ change: (inout CADDocument) -> Void
+    ) {
         var updated = model
         change(&updated)
-        replace(with: updated, actionName: actionName, undoManager: undoManager)
+        guard updated != model else { return }
+        if let key, let coalesced, coalesced.key == key, coalesced.model == model,
+            undoManager?.undoActionName == actionName
+        {
+            objectWillChange.send()
+            storage.withLock { $0 = updated }
+            onChange?(updated)
+        } else {
+            replace(with: updated, actionName: actionName, undoManager: undoManager)
+        }
+        coalesced = key.map { ($0, updated) }
     }
 
     @MainActor

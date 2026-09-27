@@ -85,7 +85,11 @@ enum SketchArguments {
             }
             guard offset != nil || arguments.has("body") else { return nil }
             switch current {
-            case .base(let base, let old): return .base(base, offset: offset ?? old)
+            case .base(let base, let old):
+                if arguments.has("body") {
+                    throw ToolError("'body' is only for a sketch on a face, not on \(base.rawValue).")
+                }
+                return .base(base, offset: offset ?? old)
             case .face(let body, let face, let old):
                 return .face(body: try arguments.string("body") ?? body, face: face, offset: offset ?? old)
             }

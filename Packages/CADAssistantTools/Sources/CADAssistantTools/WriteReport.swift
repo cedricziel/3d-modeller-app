@@ -35,32 +35,64 @@ struct WriteReport {
         let changes = statusChanges(afterResult)
         if !changes.isEmpty {
             lines.append("Status changes elsewhere:")
-            lines += changes.prefix(Self.diffLimit).map { "  \($0)" }
-            if changes.count > Self.diffLimit {
-                lines.append("  … \(changes.count - Self.diffLimit) more status changes; call get_listing")
-            }
+            lines += Self.capped(changes, "status changes", then: "call get_listing")
         }
         if !notes.isEmpty {
             lines.append("Body references renumbered:")
-            lines += notes.map { "  \($0)" }
+            lines += Self.capped(notes, "renumbered references")
         }
         if !referenceNotes.isEmpty {
             lines.append("Geometry references updated:")
-            lines += referenceNotes.map { "  \($0)" }
+            lines += Self.capped(referenceNotes, "updated references")
         }
         lines += bodyLines(afterResult)
         lines += instanceLines(afterResult)
         lines += jointLines(afterResult)
+        let parameters = Self.parameterChanges(before.parameters, after.parameters)
+        if !parameters.isEmpty {
+            lines.append("Parameters:")
+            lines += Self.capped(parameters, "changed parameters", then: "call get_listing")
+        }
+        let statusless = reportedStatuses(afterResult)
         let diff = Self.diff(
-            DocumentListing.lines(before, result: beforeResult), DocumentListing.lines(after, result: afterResult))
+            DocumentListing.modelLines(before, result: beforeResult, statusless: statusless),
+            DocumentListing.modelLines(after, result: afterResult, statusless: statusless))
         if !diff.isEmpty {
             lines.append("Listing changes:")
-            lines += diff.prefix(Self.diffLimit).map { "  \($0)" }
-            if diff.count > Self.diffLimit {
-                lines.append("  … \(diff.count - Self.diffLimit) more changed lines; call get_listing")
-            }
+            lines += Self.capped(diff, "changed lines", then: "call get_listing")
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The first `diffLimit` entries indented, then how many were left out.
+    static func capped(_ entries: [String], _ what: String, then hint: String? = nil) -> [String] {
+        var lines = entries.prefix(diffLimit).map { "  \($0)" }
+        if entries.count > diffLimit {
+            lines.append("  … \(entries.count - diffLimit) more \(what)" + (hint.map { "; \($0)" } ?? ""))
+        }
+        return lines
+    }
+
+    static let nameLimit = 10
+
+    /// Names separated by commas, the first `nameLimit` of them and a count of the rest.
+    static func names(_ names: [String]) -> String {
+        let shown = names.prefix(nameLimit).joined(separator: ", ")
+        return names.count > nameLimit ? "\(shown) and \(names.count - nameLimit) more" : shown
+    }
+
+    /// Features, instances and joints kept by the edit, whose status the focus line or the status changes already
+    /// report, so their listing lines change only when something besides the status did.
+    private func reportedStatuses(_ afterResult: RebuildResult) -> Set<UUID> {
+        guard let beforeResult else { return [] }
+        let features = afterResult.parts.flatMap(\.features).map(\.id).filter { beforeResult.feature(id: $0) != nil }
+        let instances = (afterResult.assembly?.instances ?? []).map(\.id).filter {
+            beforeResult.assembly?.instance(id: $0) != nil
+        }
+        let joints = (afterResult.assembly?.joints ?? []).map(\.id).filter {
+            beforeResult.assembly?.joint(id: $0) != nil
+        }
+        return Set(features + instances + joints)
     }
 
     private func statusChanges(_ afterResult: RebuildResult) -> [String] {
@@ -91,7 +123,8 @@ struct WriteReport {
         let faulty = (afterResult.assembly?.joints ?? []).filter { !$0.status.holds && $0.id != jointFocus }
         if !faulty.isEmpty {
             lines.append("Joints:")
-            lines += faulty.prefix(Self.diffLimit).map { "  \($0.name): \($0.status)" }
+            lines += Self.capped(
+                faulty.map { "\($0.name): \($0.status)" }, "joints that do not hold", then: "call get_listing")
         }
         let moved = (afterResult.assembly?.instances ?? []).compactMap { instance -> String? in
             guard let old = beforeResult?.assembly?.instance(id: instance.id),
@@ -101,7 +134,11 @@ struct WriteReport {
             let (before, after) = (Self.pose(from), Self.pose(to))
             return before == after ? nil : "\(instance.name) \(before) → \(after)"
         }
-        if !moved.isEmpty { lines.append("Moved by joints: \(moved.joined(separator: "; "))") }
+        if !moved.isEmpty {
+            let shown = moved.prefix(Self.nameLimit).joined(separator: "; ")
+            let rest = moved.count > Self.nameLimit ? "; and \(moved.count - Self.nameLimit) more" : ""
+            lines.append("Moved by joints: \(shown)\(rest)")
+        }
         return lines
     }
 
@@ -124,8 +161,7 @@ struct WriteReport {
         let current = afterResult.assembly?.instances ?? []
         for instance in current {
             let line = Self.describe(instance, in: after)
-            let definitionKept =
-                before.instances.first { $0.id == instance.id } == after.instances.first { $0.id == instance.id }
+            let definitionKept = Self.shape(of: instance.id, in: before) == Self.shape(of: instance.id, in: after)
             if instance.status == .ok, definitionKept, old[instance.id] == line {
                 unchanged.append(instance.name)
             } else {
@@ -136,13 +172,17 @@ struct WriteReport {
         let removed = oldInstances.filter { !currentIDs.contains($0.id) }.map(\.name)
         var lines: [String] = []
         if !changed.isEmpty { lines.append("Instances:") }
-        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
-        if changed.count > Self.diffLimit {
-            lines.append("  … \(changed.count - Self.diffLimit) more changed instances; call get_listing")
-        }
-        if !unchanged.isEmpty { lines.append("Unchanged instances: \(unchanged.joined(separator: ", "))") }
-        if !removed.isEmpty { lines.append("Removed instances: \(removed.joined(separator: ", "))") }
+        lines += Self.capped(changed, "changed instances", then: "call get_listing")
+        if !unchanged.isEmpty { lines.append("Unchanged instances: \(Self.names(unchanged))") }
+        if !removed.isEmpty { lines.append("Removed instances: \(Self.names(removed))") }
         return lines
+    }
+
+    /// The instance without its appearance, which the listing changes already report.
+    private static func shape(of id: UUID, in document: CADDocument) -> Instance? {
+        var instance = document.instances.first { $0.id == id }
+        instance?.appearance = nil
+        return instance
     }
 
     static func describe(_ instance: InstanceResult, in document: CADDocument) -> String {
@@ -186,12 +226,9 @@ struct WriteReport {
         var lines: [String] = []
         if changed.isEmpty && unchanged.isEmpty { lines.append("Bodies: none") }
         if !changed.isEmpty { lines.append("Bodies:") }
-        lines += changed.prefix(Self.diffLimit).map { "  \($0)" }
-        if changed.count > Self.diffLimit {
-            lines.append("  … \(changed.count - Self.diffLimit) more changed bodies; call measure for their sizes")
-        }
-        if !unchanged.isEmpty { lines.append("Unchanged bodies: \(unchanged.joined(separator: ", "))") }
-        if !removed.isEmpty { lines.append("Removed bodies: \(removed.joined(separator: ", "))") }
+        lines += Self.capped(changed, "changed bodies", then: "call measure for their sizes")
+        if !unchanged.isEmpty { lines.append("Unchanged bodies: \(Self.names(unchanged))") }
+        if !removed.isEmpty { lines.append("Removed bodies: \(Self.names(removed))") }
         return lines
     }
 
@@ -232,6 +269,34 @@ struct WriteReport {
         let volume = metrics.volume.map { "volume \(Format.number($0)) mm³" } ?? "volume unknown"
         return
             "\(name): \(state), \(counts), \(volume), bounds \(Format.point(metrics.boundsMin)) to \(Format.point(metrics.boundsMax))"
+    }
+
+    /// Parameters added ("+ name = expression"), changed ("name: old → new"), whose value moved through another
+    /// parameter ("name = expression: old → new"), then removed ("- name"). Unchanged parameters are left out.
+    static func parameterChanges(_ old: [Parameter], _ new: [Parameter]) -> [String] {
+        let oldTable = Dictionary(
+            ParameterTable(old).parameters.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        let newParameters = ParameterTable(new).parameters
+        let newNames = Set(newParameters.map(\.name))
+        func value(_ parameter: EvaluatedParameter) -> String {
+            switch parameter.value {
+            case .success(let value): Format.number(value)
+            case .failure(let error): "error: \(error)"
+            }
+        }
+        let changes = newParameters.compactMap { parameter -> String? in
+            guard let previous = oldTable[parameter.name] else {
+                return "+ \(parameter.name) = \(DocumentListing.expression(parameter))"
+            }
+            if previous.expression != parameter.expression {
+                return
+                    "\(parameter.name): \(DocumentListing.expression(previous)) → \(DocumentListing.expression(parameter))"
+            }
+            guard value(previous) != value(parameter) else { return nil }
+            return "\(parameter.name) = \(parameter.expression): \(value(previous)) → \(value(parameter))"
+        }
+        let removed = ParameterTable(old).parameters.filter { !newNames.contains($0.name) }.map { "- \($0.name)" }
+        return changes + removed
     }
 
     /// Lines only in `old` as "- …", then lines only in `new` as "+ …", each in its listing's order.

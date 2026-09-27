@@ -74,7 +74,9 @@ struct CADBenchCommand {
         var records: [RunRecord] = []
         for task in tasks {
             for attempt in 1...options.repeatCount {
-                let record = await runner.run(task, attempt: attempt)
+                let record = await runner.run(
+                    task, attempt: attempt,
+                    exportDirectory: writer.folder(task: task.id, attempt: attempt).appending(path: "exports"))
                 try writer.write(record)
                 records.append(record)
                 let verdict = record.passed ? "PASS" : "FAIL"

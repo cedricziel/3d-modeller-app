@@ -1,3 +1,5 @@
+import Foundation
+
 public protocol GeometryKernel: Sendable {
     associatedtype Body: Sendable
 
@@ -32,6 +34,20 @@ public protocol GeometryKernel: Sendable {
     /// The minimum distance between the operands; 0 when they touch or overlap.
     func distance(_ a: GeometryOperand<Body>, _ b: GeometryOperand<Body>) throws -> DistanceMeasurement
     func bounds(of operand: GeometryOperand<Body>) throws -> Bounds
+    /// The body's triangles with a linear deflection of at most `tolerance` (mm), for export.
+    func mesh(of body: Body, tolerance: Double) throws -> BodyMesh
+    /// Writes the scene as STEP in millimetres, with its products, occurrences, names and colours.
+    func writeSTEP(_ scene: ExportScene<Body>, to url: URL) throws
+}
+
+extension GeometryKernel {
+    public func mesh(of body: Body, tolerance: Double) throws -> BodyMesh {
+        try mesh(of: body)
+    }
+
+    public func writeSTEP(_ scene: ExportScene<Body>, to url: URL) throws {
+        throw ExportError("this geometry kernel cannot write STEP")
+    }
 }
 
 /// What a measurement is taken on; face and edge indices follow `topology(of:)`.

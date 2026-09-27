@@ -11,6 +11,8 @@ struct ModellerApp: App {
         }
         .defaultSize(width: 1440, height: 860)
         .commands {
+            ExportCommands()
+
             CommandMenu("Tools") {
                 Button("Select") {
                     appModel.selectedTool = .select

@@ -67,6 +67,73 @@ struct RenderViewsToolTests {
         )
     }
 
+    @Test("An instance body without a mesh is named while the rest of the instance is shown")
+    func instanceBodyWithoutMesh() async throws {
+        var kernel = FakeKernel()
+        kernel.meshFails = { $0.volume == 8 }
+        let part = Part(name: "P", features: [Fixtures.box("A", 1, 1, 1), Fixtures.box("B", 2, 2, 2)])
+        let session = CADSession(
+            document: CADDocument(
+                parts: [part], assembly: Assembly(instances: [Instance(name: "Base", part: part.id, grounded: true)])),
+            kernel: kernel)
+
+        let rendering = await session.renderViews([.top])
+
+        #expect(rendering.views.count == 1)
+        #expect(rendering.text.hasPrefix("Rendered 1 view, 512 × 512 px each: Base (P) blue. Lengths in mm."))
+        #expect(rendering.text.hasSuffix(" Not shown: Base/Body2 (P) (no mesh for this body)."), "\(rendering.text)")
+    }
+
+    @Test("Appearances replace the palette; the text names each colour")
+    func appearanceCaptions() async {
+        let ornament = Part(
+            name: "Ornament", features: [Fixtures.box("A", 1, 1, 1)],
+            appearance: Appearance(color: HexColor(red: 0x2E, green: 0x7D, blue: 0x32))
+        )
+        let plain = Part(name: "Plain", features: [Fixtures.box("B", 2, 2, 2)])
+        let red = Appearance(color: HexColor(red: 0xC6, green: 0x28, blue: 0x28))
+        let document = CADDocument(
+            parts: [ornament, plain],
+            assembly: Assembly(instances: [
+                Instance(name: "O1", part: ornament.id), Instance(name: "O2", part: ornament.id, appearance: red),
+                Instance(name: "P1", part: plain.id),
+            ])
+        )
+        let session = CADSession(document: document, kernel: FakeKernel())
+
+        let assembly = await session.renderViews([.top])
+        let parts = await session.renderViews([.top], show: .parts)
+
+        #expect(
+            assembly.text
+                == "Rendered 1 view, 512 × 512 px each: O1 (Ornament) #2E7D32, O2 (Ornament) #C62828, P1 (Plain) green. "
+                + "Lengths in mm."
+        )
+        #expect(parts.text.contains(": Body1 (Ornament) #2E7D32, Body1 (Plain) orange."))
+    }
+
+    @Test("On the real kernel a coloured part is drawn in its colour")
+    func appearancePixels() async throws {
+        let part = Part(
+            name: "Plate", features: [Fixtures.box("Plate", 60, 40, 10)],
+            appearance: Appearance(color: HexColor(red: 0xC6, green: 0x28, blue: 0x28))
+        )
+        let session = CADSession(document: CADDocument(parts: [part]), kernel: OCCTGeometryKernel())
+
+        let rendering = await session.renderViews([.top])
+        let png = try #require(rendering.views.first?.png)
+        let source = try #require(CGImageSourceCreateWithData(png as CFData, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let pixels = try #require(RGBA(image))
+
+        for y in stride(from: 236, through: 276, by: 10) {
+            for x in stride(from: 216, through: 296, by: 10) {
+                let pixel = pixels.at(x, y)
+                #expect(pixel.x > 2 * pixel.y && pixel.x > 2 * pixel.z && pixel.x > 60, "(\(x), \(y)) is \(pixel)")
+            }
+        }
+    }
+
     @Test("An empty model gives text and no images")
     func nothingToRender() async throws {
         let result = try await Harness().call("render_views", [:])

@@ -187,4 +187,25 @@ struct SketchFeatureToolTests {
         #expect(result.message.contains("Pad now uses sketch Base (was Sketch1)"))
         #expect(result.message.contains("Round now refers to edge(Pad.side[Base.line1], Pad.end)"))
     }
+
+    @Test("Deleting a sketch that extrudes or revolves use is refused and names them")
+    func deleteUsedSketchRefused() async throws {
+        var document = Fixtures.sketched()
+        document.parts[0].features += [
+            Feature(name: "Pad", kind: .extrude(ExtrudeFeature(sketch: "Sketch1", extent: .distance(4)))),
+            Feature(name: "Spin", kind: .revolve(RevolveFeature(sketch: "Sketch1", axis: .x))),
+        ]
+        let harness = Harness(document)
+        let sketch = try #require(document.parts[0].features.first { $0.name == "Sketch1" })
+
+        let message = try await harness.refused("delete_feature", ["feature": "Sketch1"])
+        let byID = await harness.session.deleteFeature(id: sketch.id)
+
+        let expected =
+            "Nothing changed, because Sketch1 is used by Pad, Spin. Delete or change those features first, or "
+            + "suppress Sketch1 instead."
+        #expect(message == expected)
+        #expect(byID == expected)
+        #expect(harness.document == document)
+    }
 }

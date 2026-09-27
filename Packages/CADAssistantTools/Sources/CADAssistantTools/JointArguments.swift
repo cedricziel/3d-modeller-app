@@ -110,16 +110,21 @@ extension JointArguments {
 
     /// Drops a value and limits that were meant for another motion than the joint's kind now has; says what it
     /// dropped.
-    static func dropMismatchedDrive(_ joint: inout Joint, from old: JointKind) -> String? {
+    /// Drops the value, and the limits unless new ones replace them, when the kind's motion changed.
+    static func dropMismatchedDrive(_ joint: inout Joint, from old: JointKind, replacingLimits: Bool = false)
+        -> String?
+    {
         guard old.motion != joint.kind.motion else { return nil }
-        let what = [joint.value.map { _ in "value" }, joint.limits.map { _ in "limits" }].compactMap { $0 }
+        let droppedLimits = replacingLimits ? nil : joint.limits
+        let what = [joint.value.map { _ in "value" }, droppedLimits.map { _ in "limits" }].compactMap { $0 }
         guard !what.isEmpty else { return nil }
         joint.value = nil
         joint.limits = nil
+        let pronoun = what.count == 1 ? "it was" : "they were"
         let unit =
             switch old.motion {
-            case .angle: "they were in degrees"
-            case .travel: "they were in mm"
+            case .angle: "\(pronoun) in degrees"
+            case .travel: "\(pronoun) in mm"
             case nil: "a \(old.rawValue) joint has no motion"
             }
         return "dropped its \(what.joined(separator: " and ")) (\(unit))"

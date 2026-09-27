@@ -318,3 +318,7 @@ int32_t guarded(PGSSketch* sketch, F&& body) noexcept
 - `satisfiesEveryConstraint` costs O(tags × constraints) through `calculateConstraintErrorByTag`; 3000 constraints took 17 ms in release.
 - Int→Int32 casts of entity indices and tags trap only above 2³¹ entries.
 - Debug builds of the app (PR 8) will run PlaneGCS unoptimised (about 20× slower); consider solving only on change, or an optimised configuration for the package in the Xcode project.
+
+### Resolved/skipped in follow-up (`fix/deferred-review-items`)
+
+- Skipped, all four: no failing sketch without conflicts is known; the constraint check cost and the unoptimised debug build are performance; the Int32 casts overflow only above 2³¹ entities.

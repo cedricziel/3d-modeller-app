@@ -156,7 +156,7 @@ extension CADSession {
             SketchArguments.name(&constraints, existing: [])
             let sketch = SketchFeature(plane: plane, entities: entities, constraints: constraints)
             try Self.check(sketch, document)
-            let name = try arguments.string("name") ?? SketchArguments.next("Sketch", part.features.map(\.name))
+            let name = try arguments.string("name") ?? Naming.nextFeature("Sketch", in: document, part: partIndex)
             try Naming.checkFeatureName(name, in: part)
             let index = try Self.insertionIndex(arguments, in: part)
             let feature = Feature(name: name, kind: .sketch(sketch))

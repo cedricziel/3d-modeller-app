@@ -1,11 +1,13 @@
 import CADModel
 import SwiftUI
 
-/// Read-only details of an assembly instance.
+/// Details of an assembly instance; only its appearance can be changed here.
 struct InstanceInspectorView: View {
     let instance: Instance
     let partName: String?
     let result: InstanceResult?
+    var partAppearance: Appearance?
+    var setAppearance: ((Appearance?) -> Void)?
 
     var body: some View {
         Form {
@@ -21,6 +23,11 @@ struct InstanceInspectorView: View {
                             .textSelection(.enabled)
                     }
                 }
+            }
+            if let setAppearance {
+                AppearanceSection(
+                    title: "Appearance", appearance: instance.appearance, inherited: partAppearance,
+                    clearLabel: "Use Part's Appearance", set: setAppearance)
             }
             Section("Placement") {
                 ForEach(instance.placement.properties, id: \.self) { property in
