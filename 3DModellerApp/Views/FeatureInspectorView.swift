@@ -5,6 +5,9 @@ struct FeatureInspectorView: View {
     let feature: Feature?
     let result: FeatureResult?
     var sketch: SketchResult?
+    /// The part the feature belongs to.
+    var part: Part?
+    var setPartAppearance: ((Appearance?) -> Void)?
 
     var body: some View {
         if let feature {
@@ -20,6 +23,11 @@ struct FeatureInspectorView: View {
                                 .textSelection(.enabled)
                         }
                     }
+                }
+                if let part, let setPartAppearance {
+                    AppearanceSection(
+                        title: "Part \(part.name)", appearance: part.appearance, inherited: nil,
+                        clearLabel: "Use Default Colours", set: setPartAppearance)
                 }
                 Section("Parameters") {
                     ForEach(feature.kind.properties, id: \.self) { property in

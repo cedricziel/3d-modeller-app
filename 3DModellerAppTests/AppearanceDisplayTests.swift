@@ -64,6 +64,20 @@ struct AppearanceDisplayTests {
         #expect(scalar(red.roughness) == 0.2)
     }
 
+    @Test("An inspector edit sets or clears the part's or the instance's appearance")
+    func inspectorEdits() throws {
+        var model = try document()
+        let (part, instance) = (model.parts[0].id, model.instances[0].id)
+
+        AppearanceTarget.instance(instance).apply(green, to: &model)
+        AppearanceTarget.part(part).apply(nil, to: &model)
+
+        #expect(model.instances[0].appearance == green)
+        #expect(model.parts[0].appearance == nil)
+        #expect(AppearanceTarget.part(part).name(in: model) == "Ornament")
+        #expect(AppearanceTarget.instance(instance).name(in: model) == "O1")
+    }
+
     @Test("A picked colour becomes the nearest 8-bit hex colour")
     func pickedColour() {
         #expect(HexColor(Color(red: 0xC6 / 255.0, green: 0x28 / 255.0, blue: 0x28 / 255.0))?.hex == "#C62828")

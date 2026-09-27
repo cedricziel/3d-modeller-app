@@ -46,6 +46,7 @@
 		E7A65BCB7D99D36D826A1140 /* AssemblyDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5378FF521C0686F41B87CF7A /* AssemblyDisplayTests.swift */; };
 		EA371F2D8FD108B39C20FADC /* ViewportFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3F2E04AA00D8C342CEE1CF /* ViewportFrameTests.swift */; };
 		EB2E77A9DA5298103727F0CC /* FeatureOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6618266206397FAD09464B0 /* FeatureOutlineView.swift */; };
+		F2937735B8FDE99C0838C177 /* AppearanceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722B0CDFA262E6EA91A096C /* AppearanceSection.swift */; };
 		F7C8C4BD167F2672D2154D64 /* CADModelDocument+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9FF27B6031E2366EE4AF9B /* CADModelDocument+Session.swift */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +63,7 @@
 /* Begin PBXFileReference section */
 		076C9052B33D923C5ACB0C09 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0B5D07417AC13067E5C3C7F9 /* JointInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JointInspectorView.swift; sourceTree = "<group>"; };
+		1722B0CDFA262E6EA91A096C /* AppearanceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSection.swift; sourceTree = "<group>"; };
 		17993460361E0DC0931AD47F /* ModellerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModellerApp.swift; sourceTree = "<group>"; };
 		1CF902A5D2F3F4EC0160C8C4 /* SketchDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchDisplayTests.swift; sourceTree = "<group>"; };
 		1DF87A2AB971C73BA924219D /* ModelStatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStatisticsView.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 		E1256193B9FDE81736F729FE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1722B0CDFA262E6EA91A096C /* AppearanceSection.swift */,
 				6C7AC13B8AFB6810059AB22A /* ContentView.swift */,
 				2F62A2D8BD4024BE5A37E61D /* ExportSheet.swift */,
 				8DBA6D56A9AEEA0376524690 /* FeatureDisplay.swift */,
@@ -339,6 +342,7 @@
 			files = (
 				17BFF91F6632848BF94DE101 /* AppModel.swift in Sources */,
 				26F22B8890BC41BB14AB18F6 /* AppearanceColor.swift in Sources */,
+				F2937735B8FDE99C0838C177 /* AppearanceSection.swift in Sources */,
 				F7C8C4BD167F2672D2154D64 /* CADModelDocument+Session.swift in Sources */,
 				0D66709B9DC06503A2C37525 /* CADModelDocument.swift in Sources */,
 				521165A128D2584BE448AA8F /* ContentView.swift in Sources */,
