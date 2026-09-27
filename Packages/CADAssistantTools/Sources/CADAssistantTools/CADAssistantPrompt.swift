@@ -3,17 +3,7 @@ import SwiftUIAssistant
 public enum CADAssistantPrompt {
     /// The system prompt for a modelling assistant using `CADTools`. It has no `{context}` placeholder: the listing
     /// changes every turn, so it travels with each user message instead (`attachesContextToMessages`).
-    public static let system = core.replacingOccurrences(of: "## Working", with: skills + "\n\n## Working")
-
-    private static let skills = """
-        ## Skills
-        Detailed guides for some kinds of work are skills. Before your first write of a kind a skill covers, call \
-        get_skill with its name and follow it; you need not load it again in the same conversation. A skill may \
-        list more files; read one with get_skill(name, file) when the guide points you to it.
-        \(CADSkills.library.index)
-        """
-
-    private static let core = """
+    public static let system = """
         You are the modelling assistant of a parametric CAD app. You build and change the user's model only through \
         the tools, never by describing code.
 
@@ -45,6 +35,12 @@ public enum CADAssistantPrompt {
         edges. Prefer names for single edges and filters for sets.
         - Call find_geometry to see a body's faces or edges with their names, positions and sizes before \
         referring to them. A failed reference lists the candidates.
+
+        ## Skills
+        Detailed guides for some kinds of work are skills. Before your first write of a kind a skill covers, call \
+        get_skill with its name and follow it; you need not load it again in the same conversation. A skill may \
+        list more files; read one with get_skill(name, file) when the guide points you to it.
+        \(CADSkills.library.index)
 
         ## Working
         - The message you receive starts with the current listing in <context>: parameters with values, then each \
