@@ -28,7 +28,8 @@ public struct AssistantView: View {
             MessageListView(
                 messages: assistant.messages,
                 theme: theme,
-                isProcessing: assistant.isProcessing
+                isProcessing: assistant.isProcessing,
+                streamingReply: assistant.streamingReply
             )
 
             Divider()

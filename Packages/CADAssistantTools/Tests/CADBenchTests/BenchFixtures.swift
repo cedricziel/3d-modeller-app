@@ -41,6 +41,8 @@ actor ScriptedProvider: LLMProvider {
         case hang
         /// Answers after five seconds whatever happens, like a provider that ignores cancellation.
         case stall(LLMResponse)
+        /// Streams text, then fails
+        case partial(String, then: AssistantError)
     }
 
     private var turns: [Turn]
@@ -53,6 +55,18 @@ actor ScriptedProvider: LLMProvider {
     func sendMessage(
         _ message: String, systemPrompt: String, conversationHistory: [Message], tools: [any AssistantTool]
     ) async throws -> LLMResponse {
+        try await streamMessage(
+            message, systemPrompt: systemPrompt, conversationHistory: conversationHistory, tools: tools
+        ) { _ in }
+    }
+
+    func streamMessage(
+        _ message: String,
+        systemPrompt: String,
+        conversationHistory: [Message],
+        tools: [any AssistantTool],
+        onEvent: @escaping @Sendable (LLMStreamEvent) async -> Void
+    ) async throws -> LLMResponse {
         requests += 1
         guard !turns.isEmpty else {
             return LLMResponse(content: "(script ended)", toolCalls: nil, stopReason: .endTurn)
@@ -60,6 +74,9 @@ actor ScriptedProvider: LLMProvider {
         switch turns.removeFirst() {
         case .respond(let response): return response
         case .fail(let error): throw error
+        case .partial(let text, let error):
+            await onEvent(.text(text))
+            throw error
         case .hang:
             try await Task.sleep(for: .seconds(3600))
             throw CancellationError()

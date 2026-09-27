@@ -1,4 +1,5 @@
 import SwiftUIAssistant
+import Synchronization
 import Testing
 
 @testable import CADBench
@@ -38,6 +39,23 @@ struct RecordingProviderTests {
             ScriptedProvider([.fail(.rateLimited(retryAfter: nil)), .fail(.rateLimited(retryAfter: nil))]),
             retryDelays: [.zero])
         await #expect(throws: AssistantError.self) { try await send(exhausted) }
+    }
+
+    @Test("A turn that fails after part of it was streamed is not retried, and the events pass through")
+    func noRetryAfterStreaming() async throws {
+        let provider = RecordingProvider(
+            ScriptedProvider([.partial("Work", then: .rateLimited(retryAfter: nil)), reply("ok")]),
+            retryDelays: [.zero])
+        let events = Mutex<[LLMStreamEvent]>([])
+
+        await #expect(throws: AssistantError.self) {
+            try await provider.streamMessage("hi", systemPrompt: "s", conversationHistory: [], tools: []) { event in
+                events.withLock { $0.append(event) }
+            }
+        }
+
+        #expect(events.withLock { $0 } == [.text("Work")])
+        #expect(await provider.usage.retries == 0)
     }
 
     @Test("Cost uses the model's price per million tokens and is unknown for unlisted models")
