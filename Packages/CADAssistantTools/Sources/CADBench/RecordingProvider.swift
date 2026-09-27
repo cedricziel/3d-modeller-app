@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import SwiftUIAssistant
 
 public struct Usage: Sendable, Codable, Equatable {
@@ -34,19 +35,40 @@ public actor RecordingProvider: LLMProvider {
     public func sendMessage(
         _ message: String, systemPrompt: String, conversationHistory: [Message], tools: [any AssistantTool]
     ) async throws -> LLMResponse {
+        try await streamMessage(
+            message, systemPrompt: systemPrompt, conversationHistory: conversationHistory, tools: tools
+        ) { _ in }
+    }
+
+    /// Retries only while nothing of the turn has reached `onEvent`, so a caller never sees a reply twice
+    public func streamMessage(
+        _ message: String,
+        systemPrompt: String,
+        conversationHistory: [Message],
+        tools: [any AssistantTool],
+        onEvent: @escaping @Sendable (LLMStreamEvent) async -> Void
+    ) async throws -> LLMResponse {
+        let streamed = Mutex(false)
         var attempt = 0
         while true {
             usage.requests += 1
             do {
-                let response = try await base.sendMessage(
-                    message, systemPrompt: systemPrompt, conversationHistory: conversationHistory, tools: tools)
+                let response = try await base.streamMessage(
+                    message, systemPrompt: systemPrompt, conversationHistory: conversationHistory, tools: tools
+                ) { event in
+                    streamed.withLock { $0 = true }
+                    await onEvent(event)
+                }
                 if let tokens = response.usage {
                     usage.inputTokens += tokens.inputTokens
                     usage.outputTokens += tokens.outputTokens
                 }
                 usage.lastStopReason = response.stopReason.rawValue
                 return response
-            } catch  where attempt < retryDelays.count && !Task.isCancelled && Self.isTransient(error) {
+            } catch
+                where attempt < retryDelays.count && !Task.isCancelled && !streamed.withLock({ $0 })
+                && Self.isTransient(error)
+            {
                 try await Task.sleep(for: retryDelays[attempt])
                 attempt += 1
                 usage.retries += 1
