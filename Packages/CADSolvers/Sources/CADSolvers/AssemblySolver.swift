@@ -23,11 +23,19 @@ public struct AssemblySolver: Sendable {
         guard first.failures > 0 else { return first.solution(attempts: 1) }
         let second = try attempt(
             system, from: Self.coincidentStart(system, start), connected: connected, solvable: solvable)
-        let best = second.failures < first.failures ? second : first
+        return Self.better(first, second)
+    }
+
+    /// The attempt with fewer unsatisfied joints; on a tie, one that did not throw over one that did.
+    static func better(_ first: Attempt, _ second: Attempt) -> AssemblySolution {
+        let preferSecond =
+            second.failures < first.failures
+            || (second.failures == first.failures && first.failure != nil && second.failure == nil)
+        let best = preferSecond ? second : first
         return best.solution(attempts: 2, bothFailed: first.failure != nil && second.failure != nil)
     }
 
-    private struct Attempt {
+    struct Attempt {
         let placements: [RigidPlacement]
         let joints: [JointState]
         let failure: String?
