@@ -11,6 +11,9 @@ public enum ExportPath {
     {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ExportError("'path' is empty.") }
+        guard !trimmed.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
+            throw ExportError("'path' contains a control character; give a plain relative path.")
+        }
         guard !trimmed.hasPrefix("/"), !trimmed.hasPrefix("~") else {
             throw ExportError(
                 "'\(trimmed)' is not relative; give a path inside the export folder, e.g. \"part.\(format.fileExtension)\"."
@@ -79,7 +82,9 @@ public enum ExportPath {
                 throw ExportError("'\(trimmed)' is a symbolic link; export to another name.")
             case .missing:
                 break
-            case .file, .directory:
+            case .directory:
+                throw ExportError("\(display) is a folder; export to another name.")
+            case .file:
                 guard overwrite else {
                     throw ExportError("\(display) already exists; pass overwrite: true to replace it.")
                 }
@@ -148,6 +153,9 @@ public struct ExportDestination: Sendable {
     nonisolated(nonsending) public func write<Value>(_ export: (URL) async throws(ExportError) -> Value)
         async throws(ExportError) -> Value
     {
+        guard (folders + [file]).allSatisfy(Self.isPlainName) else {
+            throw ExportError("\(display) has a folder or file name that is not allowed.")
+        }
         var directory = Darwin.open(base.path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
         guard directory >= 0 else { throw failure("open the export folder") }
         var opened = [directory]
@@ -166,24 +174,28 @@ public struct ExportDestination: Sendable {
                 next = openat(directory, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
             }
             guard next >= 0 else {
+                let error =
+                    errno == ENOTDIR || errno == ELOOP
+                    ? ExportError("\(display) changed while exporting: \(name) is no longer a folder.")
+                    : failure("open \(name)")
                 removeCreated()
-                throw ExportError("\(display) changed while exporting: \(name) is no longer a folder.")
+                throw error
             }
             opened.append(next)
             directory = next
             folderURL.append(path: name)
         }
-        let temporary = ".\(file).\(UUID().uuidString).export"
+        let temporary = ".export-\(UUID().uuidString)"
         guard mkdirat(directory, temporary, 0o700) == 0 else {
             let error = failure("create a temporary folder for \(display)")
             removeCreated()
             throw error
         }
-        let temporaryURL = folderURL.appending(path: temporary)
         let temporaryDirectory = openat(directory, temporary, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         if temporaryDirectory >= 0 {
             opened.append(temporaryDirectory)
         }
+        let temporaryURL = Self.path(of: temporaryDirectory) ?? folderURL.appending(path: temporary)
         func removeTemporary() {
             if temporaryDirectory >= 0 {
                 _ = unlinkat(temporaryDirectory, file, 0)
@@ -195,13 +207,7 @@ public struct ExportDestination: Sendable {
         do throws(ExportError) {
             guard temporaryDirectory >= 0 else { throw failure("open the temporary folder for \(display)") }
             let value = try await export(temporaryURL.appending(path: file))
-            let flags = overwrite ? 0 : UInt32(RENAME_EXCL)
-            guard renameatx_np(temporaryDirectory, file, directory, file, flags) == 0 else {
-                if errno == EEXIST {
-                    throw ExportError("\(display) already exists; pass overwrite: true to replace it.")
-                }
-                throw failure("move the export to \(display)")
-            }
+            try place(from: temporaryDirectory, to: directory)
             removeTemporary()
             return value
         } catch {
@@ -209,6 +215,33 @@ public struct ExportDestination: Sendable {
             removeCreated()
             throw error
         }
+    }
+
+    /// Moves the file in, exclusively unless `overwrite`. Volumes without exclusive renames get a hard link, which
+    /// never replaces an existing name either.
+    private func place(from temporaryDirectory: Int32, to directory: Int32) throws(ExportError) {
+        let flags = overwrite ? 0 : UInt32(RENAME_EXCL)
+        var moved = renameatx_np(temporaryDirectory, file, directory, file, flags) == 0
+        if !moved, !overwrite, errno == ENOTSUP {
+            moved = linkat(temporaryDirectory, file, directory, file, 0) == 0
+        }
+        guard moved else {
+            if errno == EEXIST {
+                throw ExportError("\(display) already exists; pass overwrite: true to replace it.")
+            }
+            throw failure("move the export to \(display)")
+        }
+    }
+
+    private static func isPlainName(_ name: String) -> Bool {
+        !name.isEmpty && name != "." && name != ".." && !name.contains("/") && !name.contains("\u{0}")
+    }
+
+    private static func path(of descriptor: Int32) -> URL? {
+        guard descriptor >= 0 else { return nil }
+        var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+        guard fcntl(descriptor, F_GETPATH, &buffer) == 0 else { return nil }
+        return URL(filePath: String(cString: buffer), directoryHint: .isDirectory)
     }
 
     private func failure(_ action: String) -> ExportError {

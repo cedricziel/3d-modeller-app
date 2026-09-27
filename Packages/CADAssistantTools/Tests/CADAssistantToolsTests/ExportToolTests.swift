@@ -151,6 +151,29 @@ struct ExportToolTests {
         #expect(!exists("nowhere"))
     }
 
+    @Test("export refuses a path with a control character, such as a NUL that would hide '..'")
+    func controlCharacterRefused() async throws {
+        let harness = harness()
+
+        let nul = try await harness.call("export", ["format": "stl", "path": .string("..\u{0}/..\u{0}/a.stl")])
+        let newline = try await harness.call("export", ["format": "stl", "path": .string("a\nb.stl")])
+
+        #expect(nul.message == "'path' contains a control character; give a plain relative path.")
+        #expect(newline.message == nul.message)
+        #expect(
+            !FileManager.default.fileExists(atPath: folder.deletingLastPathComponent().appending(path: "a.stl").path))
+    }
+
+    @Test("export refuses to replace a folder, even with overwrite")
+    func folderTargetRefused() async throws {
+        try FileManager.default.createDirectory(
+            at: folder.appending(path: "dir.stl"), withIntermediateDirectories: true)
+
+        let result = try await harness().call("export", ["format": "stl", "path": "dir", "overwrite": true])
+
+        #expect(result.message == "dir.stl is a folder; export to another name.")
+    }
+
     @Test("A failed export creates no folders")
     func failedExportLeavesNoFolders() async throws {
         let harness = Harness(CADDocument(parts: [Part(name: "Empty")]))
