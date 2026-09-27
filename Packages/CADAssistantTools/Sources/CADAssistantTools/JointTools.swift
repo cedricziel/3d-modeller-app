@@ -140,7 +140,8 @@ extension CADSession {
             if let kind = try arguments.string("kind") {
                 let old = joint.kind
                 joint.kind = try JointArguments.kind(kind)
-                dropped = JointArguments.dropMismatchedDrive(&joint, from: old)
+                dropped = JointArguments.dropMismatchedDrive(
+                    &joint, from: old, replacingLimits: arguments.has("limits"))
             }
             if let limits = try arguments.object("limits") { joint.limits = try JointArguments.limits(limits) }
             let (a, b) = try sides(arguments, in: document, result: built, required: false)

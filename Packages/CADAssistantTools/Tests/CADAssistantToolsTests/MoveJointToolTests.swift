@@ -145,6 +145,21 @@ struct MoveJointToolTests {
         #expect(result.message.hasPrefix("Edited joint Hinge; dropped its value and limits (they were in degrees)"))
     }
 
+    @Test("A kind change that sets new limits in the same call reports only the dropped value")
+    func kindChangeWithNewLimits() async throws {
+        let harness = try await hinged()
+        _ = try await harness.call("move_joint", ["joint": "Hinge", "value": 90])
+
+        let result = try await harness.call(
+            "edit_joint", ["joint": "Hinge", "kind": "slider", "limits": ["min": 0, "max": 20]])
+        let joint = try #require(harness.document.joints.first)
+
+        #expect(result.success, "\(result.message)")
+        #expect(joint.value == nil)
+        #expect(joint.limits == JointLimits(min: 0, max: 20))
+        #expect(result.message.hasPrefix("Edited joint Hinge; dropped its value (it was in degrees)"))
+    }
+
     @Test("The listing shows each joint's value, limits and freedoms, and each instance's freedoms")
     func listing() async throws {
         let harness = try await hinged()
