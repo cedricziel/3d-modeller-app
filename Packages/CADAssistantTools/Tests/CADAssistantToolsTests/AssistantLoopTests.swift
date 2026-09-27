@@ -1,10 +1,9 @@
+@testable import CADAssistantTools
 import CADModel
 import CADModelKernel
 import Foundation
 import SwiftUIAssistant
 import Testing
-
-@testable import CADAssistantTools
 
 /// Plays back a fixed list of model turns and records every request it receives.
 actor ScriptedProvider: LLMProvider {
@@ -16,7 +15,7 @@ actor ScriptedProvider: LLMProvider {
     }
 
     func sendMessage(
-        _ message: String, systemPrompt: String, conversationHistory: [Message], tools: [any AssistantTool]
+        _: String, systemPrompt: String, conversationHistory: [Message], tools _: [any AssistantTool]
     ) async throws -> LLMResponse {
         requests.append((systemPrompt, conversationHistory))
         guard !turns.isEmpty else {
@@ -46,15 +45,18 @@ struct AssistantLoopTests {
                     call("2", "set_parameter", ["name": "depth", "expression": 40]),
                     call("3", "set_parameter", ["name": "t", "expression": 10]),
                     call("4", "set_parameter", ["name": "hole_d", "expression": 5.5]),
-                ], stopReason: .toolUse),
+                ], stopReason: .toolUse
+            ),
             LLMResponse(
                 content: nil,
                 toolCalls: [
                     call(
                         "5", "add_feature",
-                        ["name": "Plate", "type": "box", "width": "width", "depth": "depth", "height": "t"])
+                        ["name": "Plate", "type": "box", "width": "width", "depth": "depth", "height": "t"]
+                    )
                 ],
-                stopReason: .toolUse),
+                stopReason: .toolUse
+            ),
             LLMResponse(
                 content: nil,
                 toolCalls: [
@@ -64,13 +66,16 @@ struct AssistantLoopTests {
                             "name": "Hole", "type": "cylinder", "radius": "hole_d / 2", "height": "t",
                             "placement": ["translation": ["x": "width / 2", "y": "depth / 2"]],
                             "operation": "cut", "body": "Body1",
-                        ])
-                ], stopReason: .toolUse),
+                        ]
+                    )
+                ], stopReason: .toolUse
+            ),
             LLMResponse(content: "Built a 60×40×10 mm plate with a 5.5 mm hole.", toolCalls: nil, stopReason: .endTurn),
         ])
         let assistant = Assistant(
             provider: provider, tools: CADTools.all(session: session),
-            contextProvider: { session.assistantContext() }, configuration: CADAssistantPrompt.configuration)
+            contextProvider: { session.assistantContext() }, configuration: CADAssistantPrompt.configuration
+        )
 
         try await assistant.send("Make a 60 by 40 by 10 plate with a 5.5 mm hole in the middle.")
 
@@ -86,7 +91,8 @@ struct AssistantLoopTests {
             commits == [
                 "Add Parameter width", "Add Parameter depth", "Add Parameter t", "Add Parameter hole_d", "Add Plate",
                 "Add Hole",
-            ])
+            ]
+        )
         #expect(assistant.messages.last?.content == "Built a 60×40×10 mm plate with a 5.5 mm hole.")
 
         let body = try #require(session.result?.bodies.first)
@@ -95,7 +101,9 @@ struct AssistantLoopTests {
         #expect(abs((body.metrics?.volume ?? 0) - (24000 - Double.pi * 2.75 * 2.75 * 10)) < 0.01)
         #expect(
             session.currentListing().contains(
-                "Hole  cylinder r=(hole_d / 2) h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  ok"))
+                "Hole  cylinder r=(hole_d / 2) h=t at (width / 2, depth / 2, 0), cut Body1 → Body1  ok"
+            )
+        )
     }
 
     @Test("A refused call reaches the model as an error and the next turn can correct it")
@@ -103,16 +111,19 @@ struct AssistantLoopTests {
         let session = CADSession(document: CADDocument(parts: [Part(name: "P")]), kernel: FakeKernel())
         let provider = ScriptedProvider([
             LLMResponse(
-                content: nil, toolCalls: [call("1", "add_feature", ["type": "box", "width": 1])], stopReason: .toolUse),
+                content: nil, toolCalls: [call("1", "add_feature", ["type": "box", "width": 1])], stopReason: .toolUse
+            ),
             LLMResponse(
                 content: nil,
                 toolCalls: [call("2", "add_feature", ["type": "box", "width": 1, "depth": 1, "height": 1])],
-                stopReason: .toolUse),
+                stopReason: .toolUse
+            ),
             LLMResponse(content: "Done.", toolCalls: nil, stopReason: .endTurn),
         ])
         let assistant = Assistant(
             provider: provider, tools: CADTools.all(session: session),
-            contextProvider: { session.assistantContext() }, configuration: CADAssistantPrompt.configuration)
+            contextProvider: { session.assistantContext() }, configuration: CADAssistantPrompt.configuration
+        )
 
         try await assistant.send("A cube please")
 
@@ -131,23 +142,52 @@ struct AssistantLoopTests {
         #expect(prompt.contains("bigger change"))
     }
 
-    @Test("The prompt teaches sketching: fully constraining, tangentAt joints and sketch face names")
-    func promptSketches() {
+    @Test("The prompt keeps the core sections, lists the skills and no longer carries the moved sections")
+    func promptSkills() {
         let prompt = CADAssistantPrompt.system
-        #expect(prompt.contains("add_sketch"))
-        #expect(prompt.contains("tangentAt"))
-        #expect(prompt.contains("fully constrained"))
-        #expect(prompt.contains("Extrude1.side[Sketch1.line3]"))
-        #expect(prompt.contains("throughAll it is the cap behind the plane, against its normal"))
-        #expect(!prompt.contains("Extrude1.start (on the sketch plane)"))
+        for heading in ["## The model", "## Faces and edges", "## Skills", "## Working"] {
+            #expect(prompt.contains(heading))
+        }
+        for heading in ["## Sketches", "## Parts and assemblies", "## Joints (mating)", "## Motion"] {
+            #expect(!prompt.contains(heading))
+        }
+        #expect(prompt.contains(CADSkills.library.index))
+        #expect(prompt.contains("get_skill"))
     }
 
-    @Test("The prompt teaches mating, and that aligned axes need flip")
-    func promptJoints() {
-        let prompt = CADAssistantPrompt.system
-        #expect(prompt.contains("add_joint") || prompt.contains("Joints (mating)"))
-        #expect(prompt.contains("flip: true when the two axes point the same way"))
-        #expect(!prompt.contains("use flip if the axes point opposite ways"))
+    @Test("A scripted model loads the sketches skill, then sketches")
+    func loadsSkillThenSketches() async throws {
+        let session = CADSession(
+            document: Fixtures.plateParametersOnly(), kernel: FakeKernel(), sketchSolver: FakeSketchSolver()
+        )
+        let provider = ScriptedProvider([
+            LLMResponse(content: nil, toolCalls: [call("1", "get_skill", ["name": "sketches"])], stopReason: .toolUse),
+            LLMResponse(
+                content: nil,
+                toolCalls: [
+                    call(
+                        "2", "add_sketch",
+                        [
+                            "plane": "XY", "entities": SketchToolTests.rectangle,
+                            "constraints": SketchToolTests.rectangleConstraints,
+                        ]
+                    )
+                ], stopReason: .toolUse
+            ),
+            LLMResponse(content: "Sketched the outline.", toolCalls: nil, stopReason: .endTurn),
+        ])
+        let assistant = Assistant(
+            provider: provider, tools: CADTools.all(session: session),
+            contextProvider: { session.assistantContext() }, configuration: CADAssistantPrompt.configuration
+        )
+
+        try await assistant.send("Sketch a 60 by 40 outline.")
+
+        let results = await provider.requests[2].history.filter { $0.role == .toolResult }.map(\.content)
+        #expect(results.count == 2)
+        #expect(results[0].hasPrefix("Success: ## Sketches\n"))
+        #expect(results[1].hasPrefix("Success: "))
+        #expect(session.document.parts[0].features.map(\.name) == ["Sketch1"])
     }
 
     @Test("The prompt teaches colours: a part's appearance and an instance's override")

@@ -22,7 +22,8 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftUIAssistant", package: "SwiftUIAssistant"),
                 .product(name: "CADModel", package: "CADModel"),
-            ]
+            ],
+            resources: [.copy("Resources/Skills")]
         ),
         .target(
             name: "CADBench",

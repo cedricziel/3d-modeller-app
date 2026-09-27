@@ -29,6 +29,8 @@ public enum CADTools {
             DeleteJointTool(session: session),
             MoveJointTool(session: session),
             ExportTool(session: session),
+            ListSkillsTool(library: CADSkills.library),
+            GetSkillTool(library: CADSkills.library),
         ]
     }
 }
