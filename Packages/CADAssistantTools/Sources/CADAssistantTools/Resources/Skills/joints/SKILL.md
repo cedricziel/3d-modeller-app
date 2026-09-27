@@ -1,8 +1,10 @@
 ---
 name: joints
-description: Joints that mate instances, and moving mechanisms through them. Load before add_joint, edit_joint or move_joint.
+description: Mating parts that touch or move against each other, instead of hand-computed placements, and posing mechanisms. Load before add_joint, edit_joint or move_joint.
 ---
+
 ## Joints (mating)
+
 - Prefer joints to hand-computed placements whenever parts touch or move against each other: a joint states the intent, and every rebuild solves it, so the parts stay mated when dimensions change.
 - A joint joins a frame on one instance (a) to a frame on another (b). A frame sits on a face: a planar face gives its centre with z along the outward normal; a cylindrical, conical or toroidal face gives its axis as z. An edge of the same face refines it: a circular edge moves the origin to the circle's centre, a straight edge to its midpoint and turns x along it. offset {x, y, z, angle} then moves the frame along its own axes (mm) and turns it about z (degrees).
 - Side b's frame is turned half a turn about its x axis, so two faces meet flush with their outward normals facing each other: a lid's bottom face on a box's top face. flip: true keeps b unturned; use it to line up two axes pointing the same way, such as a pin's axis with a hole's.
@@ -11,6 +13,7 @@ description: Joints that mate instances, and moving mechanisms through them. Loa
 - Recipes. Lid on a box: fixed from Box.top to Lid.bottom (planar to let it slide). Pin or bolt in a hole, concentric and flush: revolute or cylindrical from the hole's cylindrical face with its circular edge on the top face, to the bolt's shank face with the circular edge under its head (flip: true when the two axes point the same way, such as both along +Z; leave it off when they point opposite ways); or cylindrical on the axes plus planar on the two faces. Slider on a rail: slider between faces whose normals run along the rail, with an offset that puts the carriage on top.
 
 ## Motion
+
 - A revolute has an angle (degrees, from a's x axis to b's about a's z), a slider or cylindrical joint a travel (mm along a's z). The listing shows it after the sides: "at 90° driven" when a value holds it, "at 12° free" when the solver left it there, then the limits and the freedoms ("1 dof") the joint leaves. Each instance that is not grounded shows how many freedoms it has left ("1 dof free") or "fully constrained".
 - To open, turn, slide or pose a mechanism, use move_joint(joint, value); never move a jointed instance by its placement, which is only the solver's starting guess. The value must lie within the joint's limits; free: true releases it. Give a hinge or slide its range with limits {min, max} on add_joint or edit_joint.
 - To make a joint hold still at a pose, drive it with a value instead of replacing it with a fixed joint.

@@ -45,4 +45,12 @@ struct CADSkillsTests {
         #expect(names.contains("list_skills"))
         #expect(names.contains("get_skill"))
     }
+
+    @Test("The prompt's skill index says when to use each skill, so the model can choose without loading it")
+    func skillIndexSaysWhenToUse() {
+        let prompt = CADAssistantPrompt.system
+        #expect(prompt.contains("L or T sections"))
+        #expect(prompt.contains("place it several times"))
+        #expect(prompt.contains("instead of hand-computed placements"))
+    }
 }
