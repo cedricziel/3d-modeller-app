@@ -56,6 +56,29 @@ struct ExportPlanTests {
         #expect(scene.products[1].bodies.map(\.body) == [BodyKey(part: pin.id, body: "Body1")])
     }
 
+    @Test("A part's appearance colours its product; an instance's own appearance colours its occurrence")
+    func appearanceColours() async throws {
+        let green = Appearance(color: HexColor(red: 0x2E, green: 0x7D, blue: 0x32))
+        let red = Appearance(color: HexColor(red: 0xC6, green: 0x28, blue: 0x28))
+        let ornament = Part(name: "Ornament", features: [box("A")], appearance: green)
+        let plain = Part(name: "Plain", features: [box("B")])
+        let instances = [
+            Instance(name: "O1", part: ornament.id), Instance(name: "O2", part: ornament.id, appearance: red),
+            Instance(name: "O3", part: ornament.id, appearance: green), Instance(name: "P1", part: plain.id),
+        ]
+        let result = try await engine.rebuild(
+            CADDocument(parts: [ornament, plain], assembly: Assembly(instances: instances)))
+
+        let scene = try ExportPlan.scene(.document, in: result, built: built(result))
+        let parts = try ExportPlan.scene(.part(ornament.id), in: result, built: built(result))
+
+        #expect(result.parts[0].appearance == green)
+        #expect(result.assembly?.instances.map(\.appearance) == [green, red, green, nil])
+        #expect(scene.products.map(\.color) == [green.color.rgb, ExportPalette.color(1)])
+        #expect(scene.occurrences.map(\.color) == [nil, red.color.rgb, nil, nil])
+        #expect(parts.products.map(\.color) == [green.color.rgb])
+    }
+
     @Test("An instance of one body of a multi-body part exports only that body")
     func instanceBodySelection() async throws {
         let plate = Part(name: "Plate", features: [box("A"), box("B")])

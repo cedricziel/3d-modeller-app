@@ -37,7 +37,7 @@ public extension InstanceResult {
         let own = bodies.compactMap { body in partBodies.first { $0.name == body.name } }
         return InstanceResult(
             id: id, name: name, part: part, status: status, transform: status == .ok ? .identity : nil, bodies: own,
-            names: names, movedByJoints: false)
+            names: names, movedByJoints: false, appearance: appearance)
     }
 
     /// The one face or edge the reference picks among the instance's bodies, or in `body` alone.

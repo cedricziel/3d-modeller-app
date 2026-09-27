@@ -27,14 +27,18 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
     public let freedoms: Int?
     /// The part's bodies in assembly coordinates, under the part's body names.
     public let bodies: [BodyResult]
+    /// The instance's own appearance, else its part's.
+    public let appearance: Appearance?
     /// The part's own face and edge names for each body, index-aligned with the moved topology. Computed before the
     /// move, because `[n]` pieces are ordered by position and a rotation would reorder them.
     let names: [String: TopologyNames]
 
     public init(
         id: UUID, name: String, part: UUID, status: InstanceStatus, transform: RigidTransform?, bodies: [BodyResult],
-        names: [String: TopologyNames] = [:], movedByJoints: Bool = false, freedoms: Int? = nil
+        names: [String: TopologyNames] = [:], movedByJoints: Bool = false, freedoms: Int? = nil,
+        appearance: Appearance? = nil
     ) {
+        self.appearance = appearance
         self.movedByJoints = movedByJoints
         self.freedoms = freedoms
         self.id = id
@@ -49,7 +53,13 @@ public struct InstanceResult: Sendable, Equatable, Identifiable {
     func with(freedoms: Int) -> InstanceResult {
         InstanceResult(
             id: id, name: name, part: part, status: status, transform: transform, bodies: bodies, names: names,
-            movedByJoints: movedByJoints, freedoms: freedoms)
+            movedByJoints: movedByJoints, freedoms: freedoms, appearance: appearance)
+    }
+
+    func with(appearance: Appearance?) -> InstanceResult {
+        InstanceResult(
+            id: id, name: name, part: part, status: status, transform: transform, bodies: bodies, names: names,
+            movedByJoints: movedByJoints, freedoms: freedoms, appearance: appearance)
     }
 
     /// The part's names for the faces and edges of one of the instance's bodies.
