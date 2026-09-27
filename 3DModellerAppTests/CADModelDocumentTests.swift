@@ -45,6 +45,35 @@ struct CADModelDocumentTests {
         #expect(undoManager.canUndo)
     }
 
+    @Test("Repeated edits with the same coalescing key make one undo step, until another edit comes between")
+    func coalescing() {
+        let undoManager = undoManager()
+        let document = CADModelDocument()
+        let colours = ["#111111", "#222222", "#333333"].compactMap(HexColor.init)
+        for colour in colours {
+            document.edit("Set appearance of Part1", coalescing: "part", undoManager: undoManager) {
+                $0.parts[0].appearance = Appearance(color: colour)
+            }
+        }
+        #expect(document.model.parts[0].appearance?.color.hex == "#333333")
+
+        undoManager.undo()
+        #expect(document.model.parts[0].appearance == nil)
+        #expect(!undoManager.canUndo)
+
+        undoManager.redo()
+        #expect(document.model.parts[0].appearance?.color.hex == "#333333")
+        let sphere = sphere
+        document.edit("Add Ball", undoManager: undoManager) { $0.parts[0].features.append(sphere) }
+        document.edit("Set appearance of Part1", coalescing: "part", undoManager: undoManager) {
+            $0.parts[0].appearance = Appearance(color: colours[0])
+        }
+
+        undoManager.undo()
+        #expect(document.model.parts[0].appearance?.color.hex == "#333333")
+        #expect(document.model.parts[0].features == [sphere])
+    }
+
     @Test("An edit that changes nothing registers nothing")
     func noOpEdit() {
         let undoManager = undoManager()
