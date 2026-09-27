@@ -140,10 +140,31 @@ struct JointDriverTests {
         await waitForBuilds(gate, count: 1)
         driver.clear()
         gate.open()
-        await Task.yield()
+        await driver.settle()
 
+        #expect(gate.values == [45])
         #expect(driver.preview == nil)
         #expect(driver.previewed == nil)
+    }
+
+    @Test("A drive right after clearing waits for the dropped rebuild instead of running beside it")
+    func driveAfterClearWaits() async {
+        let gate = BuildGate()
+        let driver = driver(gate)
+        let hinge = hinged.joints[0].id
+
+        driver.drive(hinge, to: 45, in: hinged)
+        await waitForBuilds(gate, count: 1)
+        driver.clear()
+        driver.drive(hinge, to: 20, in: hinged)
+        for _ in 0..<100 { await Task.yield() }
+        let whileBlocked = gate.values
+        gate.open()
+        await driver.settle()
+
+        #expect(whileBlocked == [45])
+        #expect(gate.values == [45, 20])
+        #expect(driver.previewed?.value == 20)
     }
 
     @Test("Clearing during an animation stops it and drops what it showed")
