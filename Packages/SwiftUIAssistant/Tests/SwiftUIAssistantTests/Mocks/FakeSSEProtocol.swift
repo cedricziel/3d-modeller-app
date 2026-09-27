@@ -5,6 +5,7 @@ import Synchronization
 final class FakeSSEProtocol: URLProtocol, @unchecked Sendable {
     enum Step: Sendable {
         case data(String)
+        case bytes(Data)
         case fail(URLError.Code)
         /// Send nothing for a while
         case pause(TimeInterval)
@@ -57,6 +58,9 @@ final class FakeSSEProtocol: URLProtocol, @unchecked Sendable {
         switch step {
         case .data(let text):
             client.urlProtocol(self, didLoad: Data(text.utf8))
+            deliver(steps.dropFirst(), to: client)
+        case .bytes(let data):
+            client.urlProtocol(self, didLoad: data)
             deliver(steps.dropFirst(), to: client)
         case .fail(let code):
             client.urlProtocol(self, didFailWithError: URLError(code))

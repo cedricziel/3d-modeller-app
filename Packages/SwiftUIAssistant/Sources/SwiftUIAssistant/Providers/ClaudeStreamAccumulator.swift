@@ -6,18 +6,22 @@ struct ClaudeStreamAccumulator {
     private var message: [String: Any] = [:]
     private var blocks: [Int: [String: Any]] = [:]
     private var toolInputs: [Int: String] = [:]
+    private var unparsableToolInputs: [Int: String] = [:]
 
     /// The complete response, once `message_stop` has arrived
     private(set) var response: LLMResponse?
 
     /// The JSON object on a `data:` line; other lines carry nothing the accumulator needs
-    static func payload(ofLine line: Data) -> [String: Any]? {
+    static func payload(ofLine line: Data) throws -> [String: Any]? {
         var line = line
         if line.last == UInt8(ascii: "\r") { line.removeLast() }
         let prefix = Data("data:".utf8)
         guard line.starts(with: prefix) else { return nil }
         let data = line.dropFirst(prefix.count)
-        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            throw AssistantError.parsingError("A stream event is not a JSON object")
+        }
+        return payload
     }
 
     /// Applies one event and returns what the caller should see of it
@@ -48,7 +52,7 @@ struct ClaudeStreamAccumulator {
             return applyDelta(event["delta"] as? [String: Any] ?? [:], at: index)
 
         case "content_block_stop":
-            try finishToolInput(at: index)
+            finishToolInput(at: index)
             return []
 
         case "message_delta":
@@ -63,6 +67,13 @@ struct ClaudeStreamAccumulator {
             return []
 
         case "message_stop":
+            if let name = unparsableToolInputs.values.first {
+                // The token limit can cut a tool call short; such a call can neither run nor be replayed.
+                guard message["stop_reason"] as? String == "max_tokens" else {
+                    throw AssistantError.parsingError("The input for \(name) is not a JSON object")
+                }
+                for index in unparsableToolInputs.keys { blocks[index] = nil }
+            }
             message["content"] = blocks.keys.sorted().compactMap { blocks[$0] }
             response = try ClaudeProvider.parseMessage(message)
             return []
@@ -107,15 +118,15 @@ struct ClaudeStreamAccumulator {
         blocks[index]?[key] = current + text
     }
 
-    private mutating func finishToolInput(at index: Int) throws {
+    private mutating func finishToolInput(at index: Int) {
         guard let json = toolInputs.removeValue(forKey: index) else { return }
         guard !json.isEmpty else {
             blocks[index]?["input"] = [String: Any]()
             return
         }
         guard let input = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] else {
-            let name = blocks[index]?["name"] as? String ?? "tool"
-            throw AssistantError.parsingError("The input for \(name) is not a JSON object")
+            unparsableToolInputs[index] = blocks[index]?["name"] as? String ?? "tool"
+            return
         }
         blocks[index]?["input"] = input
     }
@@ -135,8 +146,10 @@ struct ClaudeStreamAccumulator {
 }
 
 /// Remembers when a stream last made progress, and fails once it has been quiet for too long
+///
+/// The clock only runs once touched, so sending a large request is left to URLSession's own timeout.
 final class ActivityClock: Sendable {
-    private let last = Mutex(ContinuousClock.now)
+    private let last = Mutex<ContinuousClock.Instant?>(nil)
 
     func touch() {
         last.withLock { $0 = .now }
@@ -144,7 +157,11 @@ final class ActivityClock: Sendable {
 
     func expire(after timeout: Duration) async throws {
         while true {
-            let deadline = last.withLock { $0 } + timeout
+            guard let last = last.withLock({ $0 }) else {
+                try await Task.sleep(for: timeout)
+                continue
+            }
+            let deadline = last + timeout
             if ContinuousClock.now >= deadline { throw URLError(.timedOut) }
             try await Task.sleep(until: deadline, clock: .continuous)
         }

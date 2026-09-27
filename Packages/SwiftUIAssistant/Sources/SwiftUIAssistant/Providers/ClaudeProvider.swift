@@ -53,6 +53,7 @@ public actor ClaudeProvider: LLMProvider {
         tools: [any AssistantTool],
         onEvent: @escaping @Sendable (LLMStreamEvent) async -> Void
     ) async throws -> LLMResponse {
+        // A timeout ends the call only once `onEvent` returns, so it must return promptly.
         let request = try buildRequest(systemPrompt: systemPrompt, messages: conversationHistory, tools: tools)
         let session = session
         let idleTimeout = idleTimeout
@@ -102,7 +103,9 @@ public actor ClaudeProvider: LLMProvider {
         var line = Data()
 
         func process(_ line: Data) async throws {
-            guard let payload = ClaudeStreamAccumulator.payload(ofLine: line) else { return }
+            try Task.checkCancellation()
+            activity.touch()
+            guard let payload = try ClaudeStreamAccumulator.payload(ofLine: line) else { return }
             for event in try accumulator.apply(payload) {
                 await onEvent(event)
                 activity.touch()
@@ -110,7 +113,6 @@ public actor ClaudeProvider: LLMProvider {
         }
 
         for try await byte in bytes {
-            activity.touch()
             if byte == UInt8(ascii: "\n") {
                 try await process(line)
                 line.removeAll(keepingCapacity: true)

@@ -115,6 +115,52 @@ struct ClaudeProviderStreamingTests {
         #expect(try run.response.content == "Hello")
     }
 
+    @Test("A tool call cut off by the token limit is dropped and the turn ends with max_tokens")
+    func truncatedToolUse() async throws {
+        let run = await stream(.data(SSEFixtures.truncatedToolUse))
+        let response = try run.response
+
+        #expect(response.stopReason == .maxTokens)
+        #expect(response.content == "Sketching.")
+        #expect(response.toolCalls == nil)
+        #expect(response.rawContent?.count == 1)
+    }
+
+    @Test("Invalid tool input in a turn that was not cut off fails the turn")
+    func invalidToolInput() async throws {
+        let fixture = SSEFixtures.truncatedToolUse.replacingOccurrences(of: "max_tokens", with: "tool_use")
+        let run = await stream(.data(fixture))
+
+        guard case .parsingError? = run.error as? AssistantError else {
+            Issue.record("expected a parsing error, got \(String(describing: run.error))")
+            return
+        }
+    }
+
+    @Test("A data line that is not JSON fails the turn")
+    func malformedData() async throws {
+        let run = await stream(.data(SSEFixtures.messageStart + "data: {not json\n\n"))
+
+        guard case .parsingError? = run.error as? AssistantError else {
+            Issue.record("expected a parsing error, got \(String(describing: run.error))")
+            return
+        }
+    }
+
+    @Test("CRLF line endings and characters split across chunks are read intact")
+    func crlfAndSplitCharacters() async throws {
+        let fixture = Data(
+            SSEFixtures.textOnly.replacingOccurrences(of: "\"Hel\"", with: "\"Hé\"")
+                .replacingOccurrences(of: "\n", with: "\r\n").utf8)
+        let accent = try #require(fixture.firstRange(of: Data("é".utf8)))
+        let cut = accent.lowerBound + 1
+
+        let run = await stream(.bytes(fixture[..<cut]), .bytes(fixture[cut...]))
+
+        #expect(run.events == [.text("Hé"), .text("lo")])
+        #expect(try run.response.content == "Hélo")
+    }
+
     @Test("An error event mid-stream fails the turn after the text so far was reported")
     func errorEvent() async throws {
         let run = await stream(.data(SSEFixtures.partialText + SSEFixtures.overloadedError))
@@ -153,11 +199,12 @@ struct ClaudeProviderStreamingTests {
 
     @Test("A stream that keeps sending outlives the idle timeout")
     func liveStreamIsNotCut() async throws {
-        let text = SSEFixtures.textOnly
-        let cut = text.index(text.startIndex, offsetBy: text.count / 2)
-        let run = await stream(
-            .pause(1.2), .data(String(text[..<cut])), .pause(1.2), .data(String(text[cut...])),
-            idleTimeout: .seconds(2))
+        let bytes = Data(SSEFixtures.textOnly.utf8)
+        let size = bytes.count / 5 + 1
+        let steps: [FakeSSEProtocol.Step] = stride(from: 0, to: bytes.count, by: size).flatMap { start in
+            [.pause(0.4), .bytes(bytes[start..<min(start + size, bytes.count)])]
+        }
+        let run = await stream([FakeSSEProtocol.Script(steps: steps)], idleTimeout: .seconds(1.5))
 
         #expect(try run.response.content == "Hello")
     }

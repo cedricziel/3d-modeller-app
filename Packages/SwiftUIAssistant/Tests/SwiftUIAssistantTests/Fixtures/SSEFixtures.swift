@@ -135,6 +135,29 @@ enum SSEFixtures {
 
             """ + messageDelta(stopReason: "tool_use", outputTokens: 60) + messageStop
 
+    static let truncatedToolUse =
+        messageStart + """
+            event: content_block_start
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+            event: content_block_delta
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Sketching."}}
+
+            event: content_block_stop
+            data: {"type":"content_block_stop","index":0}
+
+            event: content_block_start
+            data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_1","name":"create_primitive","input":{}}}
+
+            event: content_block_delta
+            data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"type\\": \\"bo"}}
+
+            event: content_block_stop
+            data: {"type":"content_block_stop","index":1}
+
+
+            """ + messageDelta(stopReason: "max_tokens", outputTokens: 16000) + messageStop
+
     static let partialText =
         messageStart + """
             event: content_block_start
