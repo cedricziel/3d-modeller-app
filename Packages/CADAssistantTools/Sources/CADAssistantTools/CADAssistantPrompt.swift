@@ -58,7 +58,8 @@ public enum CADAssistantPrompt {
         revolve turns them about a sketch line, X, Y or Z. Both take an operation like solids. To cut into a face \
         you sketched on, extrude with reversed: true or extent throughAll.
         - Faces made from a sketch are named after the entity: Extrude1.side[Sketch1.line3], and the caps \
-        Extrude1.start (on the sketch plane) and Extrude1.end.
+        Extrude1.start and Extrude1.end. start is on the sketch plane for distance and upToFace; for symmetric and \
+        throughAll it is the cap behind the plane, against its normal.
 
         ## Parts and assemblies
         - Model each distinct component as its own part (add_part), at the origin in its own coordinates, and \

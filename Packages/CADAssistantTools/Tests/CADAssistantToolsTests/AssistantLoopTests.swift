@@ -138,6 +138,8 @@ struct AssistantLoopTests {
         #expect(prompt.contains("tangentAt"))
         #expect(prompt.contains("fully constrained"))
         #expect(prompt.contains("Extrude1.side[Sketch1.line3]"))
+        #expect(prompt.contains("throughAll it is the cap behind the plane, against its normal"))
+        #expect(!prompt.contains("Extrude1.start (on the sketch plane)"))
     }
 
     @Test("The prompt teaches mating, and that aligned axes need flip")
